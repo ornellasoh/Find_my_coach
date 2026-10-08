@@ -1,0 +1,22 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+!.env.mobile
+.env.mobile.local
+
+# Capacitor / natif
+android/app/build/
+android/.gradle/
+android/local.properties
+android/build/
+ios/App/Pods/
+ios/App/build/
+ios/DerivedData/
+*.keystore
+*.jks
+_to_delete/

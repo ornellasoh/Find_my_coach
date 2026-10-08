@@ -1,0 +1,108 @@
+@import "tailwindcss";
+
+/* Charte Find My Coach */
+@theme {
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --color-fmc-green: #00D664;
+  --color-fmc-green-dark: #00B050;
+  --color-fmc-green-ink: #00A84F;
+  --color-fmc-dark: #1C1C1C;
+  --color-fmc-navy: #0F172A;
+  --color-fmc-bg: #F6F9FA;
+  --color-fmc-line: #E2E8F0;
+}
+
+@layer base {
+  :root {
+    --sat: env(safe-area-inset-top, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --sal: env(safe-area-inset-left, 0px);
+    --sar: env(safe-area-inset-right, 0px);
+  }
+
+  html, body {
+    background-color: #F2F4F7;
+    color: #0F172A;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    overscroll-behavior-y: none;
+    transition: background-color 0.25s ease, color 0.25s ease;
+  }
+
+  html.dark, html.dark body {
+    background-color: #0B0F19;
+    color: #F8FAFC;
+  }
+  
+  * {
+    border-color: rgba(226, 232, 240, 0.8);
+  }
+
+  html.dark * {
+    border-color: rgba(51, 65, 85, 0.6);
+  }
+
+  /* Apple Tabular Numerics for time, counts, prices */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+}
+
+/* Apple iOS Materials & Frosted Blurs */
+.apple-glass {
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+.apple-glass-dark {
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+/* Subtle Apple HIG Card Shadow */
+.apple-card-shadow {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.apple-floating-shadow {
+  box-shadow: 0 12px 36px -4px rgba(0, 0, 0, 0.08), 0 4px 12px -2px rgba(0, 0, 0, 0.04);
+}
+
+/* Hide scrollbar for clean app design */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Haptic active state */
+.apple-press {
+  transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.12s ease;
+}
+.apple-press:active {
+  transform: scale(0.97);
+  opacity: 0.92;
+}
+
+/* App native (Capacitor) : laisse de la place à la barre d'accueil iPhone */
+html.native main {
+  padding-bottom: var(--sab);
+}
+html.native, html.native body {
+  -webkit-user-select: none;
+  user-select: none;
+}
+html.native input, html.native textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+

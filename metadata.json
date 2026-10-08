@@ -1,0 +1,8 @@
+{
+  "name": "FindMyCoach",
+  "description": "Marketplace mobile-first mettant en relation clients et coachs de haut niveau avec réservation en ligne, gestion des disponibilités et suivi.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">FindMyCoach</string>
+    <string name="title_activity_main">FindMyCoach</string>
+    <string name="package_name">io.findmycoach.app</string>
+    <string name="custom_url_scheme">io.findmycoach.app</string>
+</resources>
