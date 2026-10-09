@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 
 export const BottomNav: React.FC = () => {
-  const { currentScreen, navigateTo, currentUser, bookings } = useApp();
+  const { currentScreen, navigateTo, currentUser, bookings, coaches } = useApp();
 
   const role = currentUser?.role || 'client';
 
@@ -25,8 +25,9 @@ export const BottomNav: React.FC = () => {
   }
 
   // Count active bookings for badge
+  const myCoachId = coaches.find(c => c.userId === currentUser?.id)?.id;
   const upcomingBookingsCount = bookings.filter(
-    b => (b.clientId === currentUser?.id || b.coachId === currentUser?.id) && b.bookingStatus === 'confirmed'
+    b => (role === 'coach' ? b.coachId === myCoachId : b.clientId === currentUser?.id) && b.bookingStatus === 'confirmed'
   ).length;
 
   if (role === 'coach') {

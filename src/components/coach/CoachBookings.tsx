@@ -22,6 +22,7 @@ export const CoachBookings: React.FC = () => {
     coaches, 
     bookings, 
     completeBooking, 
+    cancelBooking,
     goBack,
     setActiveVideoBooking,
     setActiveChatPartner
@@ -29,6 +30,24 @@ export const CoachBookings: React.FC = () => {
 
   const coach = coaches.find(c => c.userId === currentUser?.id) || coaches[0];
   const coachBookings = bookings.filter(b => b.coachId === coach?.id);
+
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const handleCoachCancel = async (bookingId: string) => {
+    if (busyId) return;
+    if (!window.confirm('Annuler cette séance ? Votre client sera prévenu et remboursé intégralement.')) return;
+    setBusyId(bookingId);
+    setNotice(null);
+    try {
+      await cancelBooking(bookingId);
+      setNotice({ ok: true, text: 'Séance annulée. Le client est prévenu et remboursé.' });
+    } catch (err) {
+      setNotice({ ok: false, text: err instanceof Error ? err.message : "L'annulation a échoué." });
+    } finally {
+      setBusyId(null);
+    }
+  };
 
   const [filter, setFilter] = useState<'all' | 'confirmed' | 'completed' | 'cancelled'>('all');
 
@@ -83,6 +102,16 @@ export const CoachBookings: React.FC = () => {
 
       {/* Bookings List */}
       <div className="space-y-3.5">
+        {notice && (
+          <div
+            className={`p-3 rounded-2xl text-xs font-semibold border ${
+              notice.ok ? 'bg-[#00D664]/10 border-[#00D664]/30 text-[#008A3E]' : 'bg-rose-50 border-rose-200 text-rose-600'
+            }`}
+          >
+            {notice.text}
+          </div>
+        )}
+
         {filteredBookings.length === 0 ? (
           <div className="bg-white rounded-2xl p-8 text-center border border-slate-200 shadow-xs">
             <Calendar className="w-10 h-10 text-slate-300 mx-auto mb-2" />
@@ -192,6 +221,14 @@ export const CoachBookings: React.FC = () => {
                       <span>Itinéraire GPS</span>
                     </a>
                   ) : null}
+
+                  <button
+                    onClick={() => handleCoachCancel(b.id)}
+                    disabled={busyId === b.id}
+                    className="py-2 px-3 bg-white hover:bg-rose-50 text-rose-500 font-bold rounded-xl text-xs border border-rose-200 transition cursor-pointer disabled:opacity-60"
+                  >
+                    {busyId === b.id ? '…' : 'Annuler'}
+                  </button>
 
                   <button
                     onClick={() => completeBooking(b.id)}

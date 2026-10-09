@@ -105,3 +105,14 @@ export async function waitForPayment<T extends { paymentStatus: string; bookingS
   }
   return fetchBooking<T>(bookingId);
 }
+
+export interface CancelResult {
+  refunded: boolean;
+  amount?: number;
+}
+
+/** Annule une séance côté serveur (remboursement Stripe automatique si elle a été payée). */
+export async function cancelBookingRemote(bookingId: string): Promise<CancelResult> {
+  const res = await invoke<{ status: string; refunded: boolean; amount?: number }>('cancel-booking', { booking_id: bookingId });
+  return { refunded: !!res.refunded, amount: res.amount };
+}

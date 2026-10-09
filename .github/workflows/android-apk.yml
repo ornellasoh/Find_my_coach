@@ -59,7 +59,7 @@ jobs:
           # Fichier daté + copie « latest » (lien fixe pour le site)
           for NAME in "findmycoach-$VERSION.apk" "findmycoach-latest.apk"; do
             curl -sSf -X POST "$BASE/$NAME" \
-              -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+              -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
               -H "x-upsert: true" -H "Content-Type: application/vnd.android.package-archive" \
               --data-binary @"$APK"
           done
@@ -67,7 +67,7 @@ jobs:
           {"version":"$VERSION","date":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","size":$SIZE,"url":"$PUBLIC/findmycoach-latest.apk","versionUrl":"$PUBLIC/findmycoach-$VERSION.apk","commit":"${GITHUB_SHA::7}"}
           JSON
           curl -sSf -X POST "$BASE/version.json" \
-            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
             -H "x-upsert: true" -H "Content-Type: application/json" -H "Cache-Control: max-age=60" \
             --data-binary @version.json
           echo "APK publié : $PUBLIC/findmycoach-latest.apk"

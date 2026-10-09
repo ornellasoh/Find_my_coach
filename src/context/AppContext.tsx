@@ -187,7 +187,7 @@ interface AppContextType {
   createPendingBooking: (draft: BookingDraft) => Promise<Booking>;
   /** Met à jour une réservation depuis le serveur et affiche la confirmation si elle est payée. */
   applyServerBooking: (booking: Booking) => void;
-  cancelBooking: (bookingId: string) => void;
+  cancelBooking: (bookingId: string) => Promise<{ refunded: boolean; amount?: number }>;
   completeBooking: (bookingId: string) => void;
   
   // Reviews
@@ -617,7 +617,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const logout = () => {
     if (supabase) {
-      supabase.auth.signOut(); // l'écouteur de session remet l'app à zéro
+      import('../lib/push').then(({ unregisterPush }) => unregisterPush()).finally(() => supabase!.auth.signOut()); // l'écouteur de session remet l'app à zéro
       return;
     }
     setCurrentUser(null);
@@ -1009,9 +1009,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return newBooking;
   };
 
-  const cancelBooking = (bookingId: string) => {
+  const cancelBooking = async (bookingId: string): Promise<{ refunded: boolean; amount?: number }> => {
     const b = bookings.find((item) => item.id === bookingId);
-    if (!b) return;
+    if (!b) return { refunded: false };
+
+    // En ligne : le serveur annule et rembourse via Stripe (les erreurs remontent à l'écran)
+    if (syncOn) {
+      const { cancelBookingRemote, fetchBooking } = await import('../lib/payments');
+      const result = await cancelBookingRemote(bookingId);
+      const fresh = await fetchBooking<Booking>(bookingId);
+      const updated: Booking = fresh ?? { ...b, bookingStatus: 'cancelled', paymentStatus: result.refunded ? 'refunded' : b.paymentStatus };
+      setBookings((prev) => {
+        const next = prev.map((x) => (x.id === bookingId ? updated : x));
+        bookingsSync.setBaseline(next);
+        return next;
+      });
+      if (b.availabilityId) {
+        setAvailabilities((prev) =>
+          prev.map((slot) => (slot.id === b.availabilityId ? { ...slot, isBooked: false, bookingId: undefined } : slot))
+        );
+      }
+      setPayouts((prev) => prev.filter((p) => p.bookingId !== bookingId));
+      return result;
+    }
 
     setBookings((prev) =>
       prev.map((item) =>
@@ -1042,6 +1062,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       message: `Votre réservation avec ${b.coachName} a été annulée.`,
       relatedBookingId: bookingId
     });
+    return { refunded: true, amount: b.total };
   };
 
   const completeBooking = (bookingId: string) => {
@@ -1348,6 +1369,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // Mail de bienvenue (envoyé une seule fois par le serveur, ignoré ensuite)
     supabase?.functions.invoke('send-welcome').catch(() => {});
+
+    // Notifications push sur le téléphone (si activées)
+    import('../lib/push').then(({ registerPush }) =>
+      registerPush(user.id, (data) => {
+        if (data.type === 'message') setCurrentScreen(user.role === 'coach' ? 'coach_clients' : 'bookings');
+        else if (data.bookingId) {
+          setCurrentScreen(user.role === 'coach' ? 'coach_bookings' : 'bookings');
+        } else setIsNotificationDrawerOpen(true);
+      })
+    );
 
     // Paiements restés « en attente » : on revérifie auprès de Stripe
     const myPending = snap.bookings.filter((b) => b.clientId === user.id && b.bookingStatus === 'pending');

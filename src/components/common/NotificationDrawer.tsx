@@ -1,7 +1,23 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { fetchNotificationPrefs, saveNotificationPrefs } from '../../lib/push';
+import { isSupabaseEnabled } from '../../lib/supabase';
 import { useApp } from '../../context/AppContext';
 import { Bell, CheckCheck, X, Calendar, MessageSquare, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+
+/** Affiche « à l'instant », « il y a 5 min », « hier 14:30 »… pour les dates ISO ; sinon le texte tel quel. */
+function formatWhen(value: string): string {
+  const t = Date.parse(value);
+  if (!value || Number.isNaN(t) || !/\d{4}-\d{2}-\d{2}T/.test(value)) return value;
+  const diff = (Date.now() - t) / 60000;
+  if (diff < 1) return "à l'instant";
+  if (diff < 60) return `il y a ${Math.floor(diff)} min`;
+  const d = new Date(t);
+  const time = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  if (diff < 24 * 60 && new Date().getDate() === d.getDate()) return time;
+  if (diff < 48 * 60) return `hier ${time}`;
+  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+}
 
 export const NotificationDrawer: React.FC = () => {
   const { 
@@ -13,6 +29,20 @@ export const NotificationDrawer: React.FC = () => {
     markAllNotificationsAsRead,
     navigateTo
   } = useApp();
+
+  const [prefs, setPrefs] = useState<{ email: boolean; push: boolean } | null>(null);
+  useEffect(() => {
+    if (isNotificationDrawerOpen && currentUser && isSupabaseEnabled) {
+      fetchNotificationPrefs(currentUser.id).then(setPrefs).catch(() => setPrefs(null));
+    }
+  }, [isNotificationDrawerOpen, currentUser]);
+
+  const togglePref = (key: 'email' | 'push') => {
+    if (!prefs || !currentUser) return;
+    const next = { ...prefs, [key]: !prefs[key] };
+    setPrefs(next);
+    saveNotificationPrefs(currentUser.id, { [key]: next[key] }).catch(() => setPrefs(prefs));
+  };
 
   if (!isNotificationDrawerOpen) return null;
 
@@ -118,7 +148,7 @@ export const NotificationDrawer: React.FC = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-1">
                         <p className="text-xs font-bold text-[#0F172A] truncate">{notif.title}</p>
-                        <span className="text-[10px] text-slate-400 shrink-0">{notif.createdAt}</span>
+                        <span className="text-[10px] text-slate-400 shrink-0">{formatWhen(notif.createdAt)}</span>
                       </div>
                       <p className="text-xs text-slate-600 mt-0.5 leading-snug">{notif.message}</p>
                     </div>
@@ -127,6 +157,34 @@ export const NotificationDrawer: React.FC = () => {
               ))
             )}
           </div>
+
+          {/* Préférences */}
+          {prefs && (
+            <div className="border-t border-slate-200 bg-[#F6F9FA] p-4 pb-[calc(1rem+var(--sab,0px))] space-y-2">
+              <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Recevoir aussi</p>
+              {([
+                ['push', 'Notifications sur le téléphone', 'Réservations, messages, rappels'],
+                ['email', 'Emails', 'Confirmations, annulations, rappel la veille'],
+              ] as const).map(([key, label, hint]) => (
+                <button
+                  key={key}
+                  type="button"
+                  role="switch"
+                  aria-checked={prefs[key]}
+                  onClick={() => togglePref(key)}
+                  className="w-full flex items-center justify-between gap-3 text-left cursor-pointer"
+                >
+                  <span>
+                    <span className="block text-sm font-bold text-[#0F172A]">{label}</span>
+                    <span className="block text-[11px] text-slate-500">{hint}</span>
+                  </span>
+                  <span className={`w-11 h-6 rounded-full p-0.5 transition shrink-0 ${prefs[key] ? 'bg-[#00D664]' : 'bg-slate-300'}`}>
+                    <span className={`block w-5 h-5 rounded-full bg-white shadow transition ${prefs[key] ? 'translate-x-5' : ''}`} />
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
         </motion.div>
       </div>
     </AnimatePresence>

@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
         const c = event.data.object as Stripe.Charge;
         const pi = String(c.payment_intent ?? '');
         const { data: pay } = await admin.from('payments').select('*').eq('payment_intent_id', pi).maybeSingle();
-        if (pay) {
+        if (pay && pay.status !== 'refunded') {
           await admin.from('payments').update({ status: 'refunded', updated_at: new Date().toISOString() }).eq('id', pay.id);
           await setBooking(pay.booking_id, 'cancelled', { bookingStatus: 'cancelled', paymentStatus: 'refunded' });
           await notify(pay.client_id, 'booking_cancelled', 'Remboursement effectué', 'Votre séance a été remboursée sur votre carte.', pay.booking_id);

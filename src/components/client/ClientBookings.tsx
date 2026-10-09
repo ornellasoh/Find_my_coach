@@ -50,9 +50,25 @@ export const ClientBookings: React.FC = () => {
       ? completedBookings 
       : cancelledBookings;
 
-  const handleCancel = (bookingId: string) => {
-    if (window.confirm('Voulez-vous vraiment annuler cette séance ? Le créneau sera libéré et le remboursement intégral sera effectué.')) {
-      cancelBooking(bookingId);
+  const [cancelMessage, setCancelMessage] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const handleCancel = async (bookingId: string) => {
+    if (cancellingId) return;
+    if (!window.confirm("Annuler cette séance ? Le créneau sera libéré et vous serez remboursé intégralement (annulation gratuite jusqu'à 24 h avant).")) return;
+    setCancellingId(bookingId);
+    setCancelMessage(null);
+    try {
+      const res = await cancelBooking(bookingId);
+      setCancelMessage({
+        ok: true,
+        text: res.refunded
+          ? `Séance annulée. Remboursement de ${(res.amount ?? 0).toFixed(2).replace('.', ',')} € en cours sur votre carte (5 à 10 jours).`
+          : 'Séance annulée.',
+      });
+      setActiveTab('cancelled');
+    } catch (err) {
+      setCancelMessage({ ok: false, text: err instanceof Error ? err.message : "L'annulation a échoué." });
+    } finally {
       setCancellingId(null);
     }
   };
@@ -72,6 +88,16 @@ export const ClientBookings: React.FC = () => {
 
         <div className="w-10" />
       </div>
+
+      {cancelMessage && (
+        <div
+          className={`mb-3 p-3 rounded-2xl text-xs font-semibold border ${
+            cancelMessage.ok ? 'bg-[#00D664]/10 border-[#00D664]/30 text-[#008A3E]' : 'bg-rose-50 border-rose-200 text-rose-600'
+          }`}
+        >
+          {cancelMessage.text}
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex bg-white p-1 rounded-2xl mb-4 border border-slate-200 shadow-2xs">
@@ -221,9 +247,10 @@ export const ClientBookings: React.FC = () => {
 
                     <button
                       onClick={() => handleCancel(b.id)}
-                      className="py-2 px-3 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-700 font-bold rounded-xl text-xs border border-slate-200 transition cursor-pointer"
+                      disabled={cancellingId === b.id}
+                      className="py-2 px-3 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-700 font-bold rounded-xl text-xs border border-slate-200 transition cursor-pointer disabled:opacity-60"
                     >
-                      Annuler
+                      {cancellingId === b.id ? 'Annulation…' : 'Annuler'}
                     </button>
                   </>
                 )}
