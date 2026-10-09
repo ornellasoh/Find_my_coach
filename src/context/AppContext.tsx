@@ -38,6 +38,9 @@ import {
   INITIAL_WORKOUT_PROGRAMS,
   getFormattedDate
 } from '../data/mockData';
+import { findCityByName } from '../utils/geo';
+import { supabase, isSupabaseEnabled, authErrorFr } from '../lib/supabase';
+import { fetchProfile, fetchSnapshot, saveProfile, useRemoteSync } from '../lib/remote';
 
 export type AppScreen = 
   | 'onboarding'
@@ -74,6 +77,58 @@ export interface BookingDraft {
   clientAddress?: string;
 }
 
+export interface RegisterExtra {
+  password?: string;
+  city?: string;
+  category?: string;
+  phone?: string;
+}
+
+export interface AuthResult {
+  error?: string;
+  /** inscription faite mais email à confirmer avant connexion */
+  needsConfirmation?: boolean;
+  info?: string;
+}
+
+const uniqueId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+
+/** Fiche coach par défaut pour un nouveau compte coach. */
+const buildNewCoachProfile = (user: User, category?: string): CoachProfile => {
+  const city = user.city || 'Paris';
+  return {
+    // identifiant stable : une seule fiche coach par compte
+    id: isSupabaseEnabled ? `coach-${user.id}` : uniqueId('coach'),
+    userId: user.id,
+    name: user.name,
+    title: 'Nouveau Coach Certifié',
+    bio: 'Bienvenue sur mon profil Find My Coach. Je personnalise mes séances selon vos objectifs de performance et santé.',
+    photo: user.avatar,
+    rating: 5.0,
+    reviewCount: 0,
+    experienceYears: 2,
+    hourlyRate: 70,
+    isElite: false,
+    isAvailable: true,
+    location: `${city} & En ligne`,
+    city,
+    latitude: user.latitude ?? 48.8566,
+    longitude: user.longitude ?? 2.3522,
+    interventionRadiusKm: 15,
+    interventionZone: `${city} et alentours (15 km)`,
+    formats: ['online', 'coach_location', 'home'],
+    isOnlineCoaching: true,
+    isInPersonCoaching: true,
+    verificationStatus: 'pending',
+    specialties: category ? [category] : ['Fitness', 'Motivation', 'Mobilité'],
+    category: category || 'Sport & Fitness',
+    languages: ['Français'],
+    certifications: [],
+    isProfileComplete: false,
+    isActive: true,
+  };
+};
+
 interface AppContextType {
   // Navigation & Screen
   currentScreen: AppScreen;
@@ -86,7 +141,13 @@ interface AppContextType {
   currentRole: UserRole | 'guest';
   loginAs: (role: UserRole, user?: User) => void;
   logout: () => void;
-  registerUser: (name: string, email: string, role: UserRole) => void;
+  registerUser: (name: string, email: string, role: UserRole, extra?: RegisterExtra) => Promise<AuthResult>;
+  loginWithPassword: (email: string, password: string) => Promise<AuthResult>;
+  resetPassword: (email: string) => Promise<AuthResult>;
+  /** true pendant la restauration de session Supabase au démarrage */
+  authLoading: boolean;
+  /** true si l'app est connectée à Supabase (sinon : mode démo local) */
+  isOnline: boolean;
   updateUserProfile: (updates: Partial<User>) => void;
   
   // Coaches
@@ -96,6 +157,7 @@ interface AppContextType {
   selectCoachForBooking: (coach: CoachProfile) => void;
   getCoachById: (id: string) => CoachProfile | undefined;
   updateCoachProfile: (coachId: string, updates: Partial<CoachProfile>) => void;
+  updateCoachPhoto: (coachId: string, photo: string) => void;
   toggleCoachActiveStatus: (coachId: string) => void;
   submitVerificationDoc: (coachId: string, type: 'diploma' | 'identity' | 'insurance' | 'kbis' | 'cert', title: string) => void;
   reviewVerificationDoc: (coachId: string, docId: string, status: 'approved' | 'rejected', feedback?: string) => void;
@@ -121,6 +183,10 @@ interface AppContextType {
   latestConfirmedBooking: Booking | null;
   bookings: Booking[];
   createBooking: (draft: BookingDraft, paymentMethod: string) => Booking;
+  /** Mode en ligne : enregistre la réservation « en attente de paiement » avant Stripe. */
+  createPendingBooking: (draft: BookingDraft) => Promise<Booking>;
+  /** Met à jour une réservation depuis le serveur et affiche la confirmation si elle est payée. */
+  applyServerBooking: (booking: Booking) => void;
   cancelBooking: (bookingId: string) => void;
   completeBooking: (bookingId: string) => void;
   
@@ -183,6 +249,8 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+const ONBOARDED_KEY = 'fmc_onboarded_v2';
+
 const STORAGE_KEYS = {
   USERS: 'fmc_users_v2',
   CURRENT_USER: 'fmc_current_user_v2',
@@ -226,58 +294,70 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return saved ? JSON.parse(saved) : INITIAL_USERS;
   });
 
+  // Premier lancement : on affiche l'écran d'accueil (inscription client / coach)
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    if (isSupabaseEnabled) return null; // restauré depuis la session Supabase
+    if (!localStorage.getItem(ONBOARDED_KEY)) return null;
     const saved = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
-    if (saved) return JSON.parse(saved);
-    return INITIAL_USERS[0]; // Default to Alex Rivers (Client)
+    return saved ? JSON.parse(saved) : null;
   });
 
   const [coaches, setCoaches] = useState<CoachProfile[]>(() => {
+    if (isSupabaseEnabled) return [];
     const saved = localStorage.getItem(STORAGE_KEYS.COACHES);
     return saved ? JSON.parse(saved) : INITIAL_COACHES;
   });
 
   const [availabilities, setAvailabilities] = useState<AvailabilitySlot[]>(() => {
+    if (isSupabaseEnabled) return [];
     const saved = localStorage.getItem(STORAGE_KEYS.AVAILABILITIES);
     return saved ? JSON.parse(saved) : INITIAL_AVAILABILITIES;
   });
 
   const [bookings, setBookings] = useState<Booking[]>(() => {
+    if (isSupabaseEnabled) return [];
     const saved = localStorage.getItem(STORAGE_KEYS.BOOKINGS);
     return saved ? JSON.parse(saved) : INITIAL_BOOKINGS;
   });
 
   const [reviews, setReviews] = useState<Review[]>(() => {
+    if (isSupabaseEnabled) return [];
     const saved = localStorage.getItem(STORAGE_KEYS.REVIEWS);
     return saved ? JSON.parse(saved) : INITIAL_REVIEWS;
   });
 
   const [favorites, setFavorites] = useState<Favorite[]>(() => {
+    if (isSupabaseEnabled) return [];
     const saved = localStorage.getItem(STORAGE_KEYS.FAVORITES);
     return saved ? JSON.parse(saved) : INITIAL_FAVORITES;
   });
 
   const [notifications, setNotifications] = useState<Notification[]>(() => {
+    if (isSupabaseEnabled) return [];
     const saved = localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
     return saved ? JSON.parse(saved) : INITIAL_NOTIFICATIONS;
   });
 
   const [goals, setGoals] = useState<Goal[]>(() => {
+    if (isSupabaseEnabled) return [];
     const saved = localStorage.getItem(STORAGE_KEYS.GOALS);
     return saved ? JSON.parse(saved) : INITIAL_GOALS;
   });
 
   const [payouts, setPayouts] = useState<PayoutTransaction[]>(() => {
+    if (isSupabaseEnabled) return [];
     const saved = localStorage.getItem(STORAGE_KEYS.PAYOUTS);
     return saved ? JSON.parse(saved) : INITIAL_PAYOUTS;
   });
 
   const [coachClients, setCoachClients] = useState<CoachClientSummary[]>(() => {
+    if (isSupabaseEnabled) return [];
     const saved = localStorage.getItem(STORAGE_KEYS.COACH_CLIENTS);
     return saved ? JSON.parse(saved) : INITIAL_COACH_CLIENTS;
   });
 
   const [workoutPrograms, setWorkoutPrograms] = useState<WorkoutProgram[]>(() => {
+    if (isSupabaseEnabled) return [];
     const saved = localStorage.getItem(STORAGE_KEYS.WORKOUT_PROGRAMS);
     return saved ? JSON.parse(saved) : INITIAL_WORKOUT_PROGRAMS;
   });
@@ -347,8 +427,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const sessionTypes = INITIAL_SESSION_TYPES;
 
   // Active navigation state
-  const [currentScreen, setCurrentScreen] = useState<AppScreen>('home');
-  const [screenHistory, setScreenHistory] = useState<AppScreen[]>(['home']);
+  const homeScreenFor = (u: User | null): AppScreen =>
+    !u ? 'onboarding' : u.role === 'coach' ? 'coach_dashboard' : u.role === 'admin' ? 'admin_dashboard' : 'home';
+  const [currentScreen, setCurrentScreen] = useState<AppScreen>(() => homeScreenFor(currentUser));
+  const [screenHistory, setScreenHistory] = useState<AppScreen[]>(() => [homeScreenFor(currentUser)]);
   const [selectedCoach, setSelectedCoach] = useState<CoachProfile | null>(INITIAL_COACHES[0]);
   const [bookingDraft, setBookingDraft] = useState<BookingDraft | null>(null);
   const [latestConfirmedBooking, setLatestConfirmedBooking] = useState<Booking | null>(null);
@@ -368,6 +450,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: coach.id,
       name: coach.name,
       avatar: coach.photo,
+      userId: coach.userId,
       role: 'coach',
       title: coach.title,
       city: coach.city
@@ -377,6 +460,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const startChatWithClient = (clientSummary: CoachClientSummary) => {
     setActiveChatPartner({
       id: clientSummary.clientId,
+      userId: clientSummary.clientId,
       name: clientSummary.clientName,
       avatar: clientSummary.clientAvatar,
       role: 'client',
@@ -495,6 +579,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Auth methods
   const loginAs = (role: UserRole, userOverride?: User) => {
+    localStorage.setItem(ONBOARDED_KEY, '1');
+    window.scrollTo(0, 0);
+    if (isSupabaseEnabled) {
+      // Mode connecté : pas de changement de compte, seulement d'espace
+      if (!currentUser) return;
+      if (role === 'coach' && currentUser.role === 'client') {
+        becomeCoach();
+        return;
+      }
+      if (role === 'admin' && currentUser.role !== 'admin') return;
+      const screen: AppScreen = role === 'coach' ? 'coach_dashboard' : role === 'admin' ? 'admin_dashboard' : 'home';
+      setCurrentScreen(screen);
+      setScreenHistory([screen]);
+      return;
+    }
     if (userOverride) {
       setCurrentUser(userOverride);
     } else {
@@ -517,12 +616,45 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const logout = () => {
+    if (supabase) {
+      supabase.auth.signOut(); // l'écouteur de session remet l'app à zéro
+      return;
+    }
     setCurrentUser(null);
     setCurrentScreen('onboarding');
     setScreenHistory(['onboarding']);
   };
 
-  const registerUser = (name: string, email: string, role: UserRole) => {
+  const registerUser = async (
+    name: string,
+    email: string,
+    role: UserRole,
+    extra?: RegisterExtra
+  ): Promise<AuthResult> => {
+    localStorage.setItem(ONBOARDED_KEY, '1');
+    window.scrollTo(0, 0);
+    const cityPreset = findCityByName(extra?.city || 'Paris') || findCityByName('Paris');
+    const city = extra?.city?.trim() || 'Paris';
+    const lat = cityPreset?.latitude ?? 48.8566;
+    const lng = cityPreset?.longitude ?? 2.3522;
+
+    if (supabase) {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password: extra?.password || '',
+        options: {
+          data: { name, role, city, phone: extra?.phone, category: extra?.category, latitude: lat, longitude: lng },
+        },
+      });
+      if (error) return { error: authErrorFr(error.message) };
+      if (!data.session) {
+        return {
+          needsConfirmation: true,
+          info: `Un email de confirmation a été envoyé à ${email}. Cliquez sur le lien puis connectez-vous.`,
+        };
+      }
+      return {}; // la session déclenche le chargement du compte
+    }
     const newUser: User = {
       id: `user-${Date.now()}`,
       name,
@@ -533,9 +665,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400&auto=format&fit=crop&q=80',
       createdAt: new Date().toISOString(),
       status: 'active',
-      city: 'Paris',
-      latitude: 48.8566,
-      longitude: 2.3522,
+      phone: extra?.phone,
+      city,
+      latitude: lat,
+      longitude: lng,
       memberSince: new Date().getFullYear().toString()
     };
 
@@ -557,18 +690,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         hourlyRate: 70,
         isElite: false,
         isAvailable: true,
-        location: 'Paris & En ligne',
-        city: 'Paris',
-        latitude: 48.8566,
-        longitude: 2.3522,
+        location: `${city} & En ligne`,
+        city,
+        latitude: lat,
+        longitude: lng,
         interventionRadiusKm: 15,
-        interventionZone: 'Paris intra-muros (15 km)',
+        interventionZone: `${city} et alentours (15 km)`,
         formats: ['online', 'coach_location', 'home'],
         isOnlineCoaching: true,
         isInPersonCoaching: true,
         verificationStatus: 'pending',
-        specialties: ['Fitness', 'Motivation', 'Mobilité'],
-        category: 'Sport & Fitness',
+        specialties: extra?.category ? [extra.category] : ['Fitness', 'Motivation', 'Mobilité'],
+        category: extra?.category || 'Sport & Fitness',
         languages: ['Français'],
         certifications: ['BPJEPS AF'],
         isProfileComplete: false,
@@ -589,12 +722,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       title: 'Bienvenue sur Find My Coach !',
       message: 'Votre compte est prêt. Explorez les meilleurs coachs certifiés.'
     });
+    return {};
+  };
+
+  const loginWithPassword = async (email: string, password: string): Promise<AuthResult> => {
+    if (!supabase) return { error: 'Connexion indisponible en mode démo.' };
+    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    return error ? { error: authErrorFr(error.message) } : {};
+  };
+
+  const resetPassword = async (email: string): Promise<AuthResult> => {
+    if (!supabase) return { error: 'Indisponible en mode démo.' };
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
+    return error
+      ? { error: authErrorFr(error.message) }
+      : { info: `Si un compte existe pour ${email}, un email de réinitialisation vient d'être envoyé.` };
   };
 
   const updateUserProfile = (updates: Partial<User>) => {
     if (!currentUser) return;
     const updated = { ...currentUser, ...updates };
     setCurrentUser(updated);
+    if (isSupabaseEnabled) saveProfile(updated);
     setUsers((prev) => prev.map((u) => (u.id === currentUser.id ? updated : u)));
   };
 
@@ -607,6 +756,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
     if (selectedCoach && selectedCoach.id === coachId) {
       setSelectedCoach((prev) => (prev ? { ...prev, ...updates } : null));
+    }
+  };
+
+  /** Change la photo du coach (fiche publique + photo de profil) sans toucher au reste. */
+  const updateCoachPhoto = (coachId: string, photo: string) => {
+    setCoaches((prev) => prev.map((c) => (c.id === coachId ? { ...c, photo } : c)));
+    setSelectedCoach((prev) => (prev && prev.id === coachId ? { ...prev, photo } : prev));
+    if (currentUser) {
+      const updated: User = { ...currentUser, avatar: photo };
+      setCurrentUser(updated);
+      if (syncOn) saveProfile(updated);
     }
   };
 
@@ -742,7 +902,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Bookings
   const createBooking = (draft: BookingDraft, paymentMethod: string): Booking => {
-    const bookingId = `bk-${Date.now()}`;
+    const bookingId = uniqueId('bk');
     const newBooking: Booking = {
       id: bookingId,
       clientId: currentUser?.id || 'guest-client',
@@ -1012,7 +1172,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addNotification = (item: Omit<Notification, 'id' | 'createdAt' | 'read'>) => {
     const newNotif: Notification = {
       ...item,
-      id: `notif-${Date.now()}`,
+      id: uniqueId('notif'),
       read: false,
       createdAt: 'À l\'instant'
     };
@@ -1066,6 +1226,329 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     (window as any).__fmc = { navigateTo, goBack, canGoBack: screenHistory.length > 1 };
   });
 
+  // =====================================================================
+  // Supabase : session, chargement des données et synchronisation
+  // =====================================================================
+  const [authLoading, setAuthLoading] = useState<boolean>(isSupabaseEnabled);
+  const [remoteReady, setRemoteReady] = useState(false);
+  const loadedUserRef = React.useRef<string | null>(null);
+
+  const uid = currentUser?.id;
+  const isAdminUser = currentUser?.role === 'admin';
+  const myCoachIds = coaches.filter((c) => c.userId === uid).map((c) => c.id);
+  const syncOn = isSupabaseEnabled && remoteReady && !!uid;
+
+  const coachesSync = useRemoteSync<CoachProfile>('coaches', coaches, syncOn, (c) => c.userId === uid || isAdminUser);
+  const availSync = useRemoteSync<AvailabilitySlot>('availabilities', availabilities, syncOn, (a) => myCoachIds.includes(a.coachId));
+  const bookingsSync = useRemoteSync<Booking>('bookings', bookings, syncOn, (b) => b.clientId === uid || myCoachIds.includes(b.coachId) || isAdminUser);
+  const reviewsSync = useRemoteSync<Review>('reviews', reviews, syncOn, (r) => r.clientId === uid || isAdminUser);
+  const favoritesSync = useRemoteSync<Favorite>('favorites', favorites, syncOn, (f) => f.userId === uid);
+  const notificationsSync = useRemoteSync<Notification>('notifications', notifications, syncOn, (n, isNew) => isNew || n.userId === uid);
+  const goalsSync = useRemoteSync<Goal>('goals', goals, syncOn, (g) => g.userId === uid);
+  const programsSync = useRemoteSync<WorkoutProgram>('workout_programs', workoutPrograms, syncOn, (p) => p.clientId === uid || myCoachIds.includes(p.coachId));
+  const allSyncs = [coachesSync, availSync, bookingsSync, reviewsSync, favoritesSync, notificationsSync, goalsSync, programsSync];
+
+  const clearAppData = () => {
+    allSyncs.forEach((s) => s.reset());
+    setRemoteReady(false);
+    setCoaches([]);
+    setAvailabilities([]);
+    setBookings([]);
+    setReviews([]);
+    setFavorites([]);
+    setNotifications([]);
+    setGoals([]);
+    setWorkoutPrograms([]);
+    setPayouts([]);
+    setCoachClients([]);
+  };
+
+  /** Charge les données du compte depuis Supabase et prépare l'écran d'arrivée. */
+  const loadRemoteData = async (user: User) => {
+    const snap = await fetchSnapshot();
+
+    // Coach sans fiche (nouveau compte) : on crée sa fiche par défaut
+    let coachesList = snap.coaches;
+    let createdCoach: CoachProfile | null = null;
+    if (user.role === 'coach' && !coachesList.some((c) => c.userId === user.id)) {
+      createdCoach = buildNewCoachProfile(user, (user as User & { category?: string }).category);
+      coachesList = [...coachesList, createdCoach];
+    }
+
+    // Créneaux : ceux de la base + créneaux générés pour les coachs de démonstration
+    const demoIds = new Set(INITIAL_COACHES.map((c) => c.id));
+    const visibleDemo = new Set(coachesList.filter((c) => demoIds.has(c.id)).map((c) => c.id));
+    const booked = new Set(snap.bookedSlotIds);
+    const slots = [...snap.availabilities, ...INITIAL_AVAILABILITIES.filter((a) => visibleDemo.has(a.coachId))].map((a) =>
+      booked.has(a.id) ? { ...a, isBooked: true } : { ...a, isBooked: false }
+    );
+
+    // Données dérivées pour l'espace coach
+    const myIds = coachesList.filter((c) => c.userId === user.id).map((c) => c.id);
+    const coachBookings = snap.bookings.filter((b) => myIds.includes(b.coachId));
+    const derivedPayouts: PayoutTransaction[] = coachBookings
+      .filter((b) => b.bookingStatus === 'completed' || b.bookingStatus === 'confirmed')
+      .map((b) => {
+        const commission = Math.round(b.price * 0.15 * 100) / 100;
+        return {
+          id: `pay-${b.id}`,
+          bookingId: b.id,
+          coachId: b.coachId,
+          clientName: b.clientName,
+          sessionTitle: b.sessionType.name,
+          date: b.date,
+          grossAmount: b.price,
+          commissionAmount: commission,
+          netAmount: Math.round((b.price - commission) * 100) / 100,
+          status: 'pending' as const,
+        };
+      });
+    const clientsMap = new Map<string, CoachClientSummary>();
+    coachBookings
+      .filter((b) => b.bookingStatus !== 'cancelled')
+      .forEach((b) => {
+        const cur = clientsMap.get(b.clientId);
+        clientsMap.set(b.clientId, {
+          id: `cc-${b.clientId}`,
+          clientId: b.clientId,
+          clientName: b.clientName,
+          clientAvatar: b.clientAvatar,
+          clientEmail: b.clientEmail,
+          clientPhone: b.clientPhone,
+          totalSessions: (cur?.totalSessions || 0) + 1,
+          lastSessionDate: b.bookingStatus === 'completed' ? b.date : cur?.lastSessionDate,
+          nextSessionDate: b.bookingStatus === 'confirmed' ? b.date : cur?.nextSessionDate,
+          notes: cur?.notes || b.notes,
+          tags: cur?.tags || [],
+          status: b.bookingStatus === 'confirmed' ? 'active' : cur?.status || 'completed',
+        });
+      });
+
+    // Référence de synchro AVANT la mise à jour de l'état (pour ne rien renvoyer au serveur)
+    coachesSync.setBaseline(snap.coaches);
+    availSync.setBaseline(slots);
+    bookingsSync.setBaseline(snap.bookings);
+    reviewsSync.setBaseline(snap.reviews);
+    favoritesSync.setBaseline(snap.favorites);
+    notificationsSync.setBaseline(snap.notifications);
+    goalsSync.setBaseline(snap.goals);
+    programsSync.setBaseline(snap.workoutPrograms);
+
+    setCoaches(coachesList);
+    setAvailabilities(slots);
+    setBookings(snap.bookings);
+    setReviews(snap.reviews);
+    setFavorites(snap.favorites);
+    setNotifications(snap.notifications);
+    setGoals(snap.goals);
+    setWorkoutPrograms(snap.workoutPrograms);
+    setPayouts(derivedPayouts);
+    setCoachClients([...clientsMap.values()]);
+    setRemoteReady(true);
+
+    // Mail de bienvenue (envoyé une seule fois par le serveur, ignoré ensuite)
+    supabase?.functions.invoke('send-welcome').catch(() => {});
+
+    // Paiements restés « en attente » : on revérifie auprès de Stripe
+    const myPending = snap.bookings.filter((b) => b.clientId === user.id && b.bookingStatus === 'pending');
+    if (myPending.length) {
+      import('../lib/payments').then(async ({ verifyPayment, fetchBooking }) => {
+        for (const p of myPending) {
+          if ((await verifyPayment(p.id)) !== 'confirmed') continue;
+          const fresh = await fetchBooking<Booking>(p.id);
+          if (!fresh) continue;
+          setBookings((prev) => {
+            const next = prev.map((x) => (x.id === fresh.id ? fresh : x));
+            bookingsSync.setBaseline(next);
+            return next;
+          });
+        }
+      });
+    }
+
+    const myCoach = coachesList.find((c) => c.userId === user.id);
+    if (myCoach) setSelectedCoach(myCoach);
+    else if (coachesList[0]) setSelectedCoach(coachesList[0]);
+
+    const landing: AppScreen =
+      user.role === 'coach' ? (myCoach && !myCoach.isProfileComplete ? 'coach_profile_edit' : 'coach_dashboard')
+      : user.role === 'admin' ? 'admin_dashboard'
+      : 'home';
+    setCurrentScreen(landing);
+    setScreenHistory(user.role === 'coach' && landing === 'coach_profile_edit' ? ['coach_dashboard', landing] : [landing]);
+  };
+
+  // Écoute de la session (démarrage, connexion, déconnexion)
+  useEffect(() => {
+    if (!supabase) return;
+    const handleSession = async (authUserId: string | null) => {
+      if (!authUserId) {
+        loadedUserRef.current = null;
+        clearAppData();
+        setCurrentUser(null);
+        setCurrentScreen('onboarding');
+        setScreenHistory(['onboarding']);
+        setAuthLoading(false);
+        return;
+      }
+      if (loadedUserRef.current === authUserId) return;
+      loadedUserRef.current = authUserId;
+      setAuthLoading(true);
+      try {
+        let profile = await fetchProfile(authUserId);
+        if (!profile) {
+          // le profil est créé par un trigger : on laisse un court délai après l'inscription
+          await new Promise((r) => setTimeout(r, 1200));
+          profile = await fetchProfile(authUserId);
+        }
+        if (!profile) throw new Error('Profil introuvable');
+        setCurrentUser(profile);
+        await loadRemoteData(profile);
+      } catch (err) {
+        console.error('[supabase] chargement du compte impossible', err);
+        loadedUserRef.current = null;
+        setCurrentUser(null);
+        setCurrentScreen('onboarding');
+        setScreenHistory(['onboarding']);
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+        // différé : ne pas appeler Supabase directement dans ce callback
+        setTimeout(() => handleSession(session?.user?.id ?? null), 0);
+      }
+    });
+    return () => sub.subscription.unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Notifications en temps réel
+  useEffect(() => {
+    if (!supabase || !syncOn || !uid) return;
+    const channel = supabase
+      .channel(`notifications-${uid}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${uid}` },
+        (payload) => {
+          const n = (payload.new as { data: Notification }).data;
+          setNotifications((prev) => {
+            if (prev.some((p) => p.id === n.id)) return prev;
+            notificationsSync.setBaseline([n, ...prev]);
+            return [n, ...prev];
+          });
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase?.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [syncOn, uid]);
+
+  const createPendingBooking = async (draft: BookingDraft): Promise<Booking> => {
+    if (!supabase || !currentUser) throw new Error('Connexion requise');
+    if (draft.coach.userId === currentUser.id) throw new Error('Vous ne pouvez pas réserver une séance avec vous-même.');
+    const id = uniqueId('bk');
+    const b: Booking = {
+      id,
+      clientId: currentUser.id,
+      clientName: currentUser.name,
+      clientAvatar: currentUser.avatar,
+      clientEmail: currentUser.email,
+      clientPhone: currentUser.phone,
+      coachId: draft.coach.id,
+      coachName: draft.coach.name,
+      coachTitle: draft.coach.title,
+      coachPhoto: draft.coach.photo,
+      availabilityId: draft.selectedSlot.id,
+      date: draft.selectedDate,
+      startTime: draft.selectedSlot.startTime,
+      endTime: draft.selectedSlot.endTime,
+      sessionType: draft.sessionType,
+      format: draft.sessionType.format || 'online',
+      price: draft.basePrice,
+      serviceFee: draft.serviceFee,
+      taxes: draft.taxes,
+      total: draft.total,
+      paymentStatus: 'pending',
+      bookingStatus: 'pending',
+      paymentMethod: 'Carte bancaire (Stripe)',
+      notes: draft.notes,
+      clientAddress: draft.clientAddress,
+      createdAt: new Date().toISOString(),
+      hasReview: false,
+    };
+    const { error } = await supabase.from('bookings').insert({
+      id: b.id,
+      client_id: b.clientId,
+      coach_id: b.coachId,
+      availability_id: b.availabilityId,
+      status: 'pending',
+      date: b.date,
+      data: b,
+    });
+    if (error) throw new Error(error.message.includes('duplicate') ? 'Ce créneau vient d’être réservé.' : error.message);
+    setBookings((prev) => {
+      const next = [b, ...prev];
+      bookingsSync.setBaseline(next);
+      return next;
+    });
+    return b;
+  };
+
+  const applyServerBooking = (booking: Booking) => {
+    setBookings((prev) => {
+      const next = prev.some((x) => x.id === booking.id) ? prev.map((x) => (x.id === booking.id ? booking : x)) : [booking, ...prev];
+      bookingsSync.setBaseline(next);
+      return next;
+    });
+    if (booking.paymentStatus === 'paid') {
+      setAvailabilities((prev) => prev.map((s) => (s.id === booking.availabilityId ? { ...s, isBooked: true, bookingId: booking.id } : s)));
+      setLatestConfirmedBooking(booking);
+      setCurrentScreen('confirmation');
+      setScreenHistory(['home', 'confirmation']);
+    }
+  };
+
+  // Retour de Stripe sur le web (?payment=success&booking=…)
+  useEffect(() => {
+    if (!syncOn) return;
+    const params = new URLSearchParams(window.location.search);
+    const status = params.get('payment');
+    const bookingId = params.get('booking');
+    if (!status || !bookingId) return;
+    window.history.replaceState({}, '', window.location.pathname);
+    if (status !== 'success') {
+      setCurrentScreen('bookings');
+      setScreenHistory(['home', 'bookings']);
+      return;
+    }
+    import('../lib/payments').then(({ waitForPayment }) =>
+      waitForPayment<Booking>(bookingId).then((b) => {
+        if (b) applyServerBooking(b);
+      })
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [syncOn]);
+
+  /** Un client connecté devient coach (crée sa fiche coach). */
+  const becomeCoach = () => {
+    if (!currentUser) return;
+    const updated: User = { ...currentUser, role: 'coach' };
+    setCurrentUser(updated);
+    saveProfile(updated);
+    const existing = coaches.find((c) => c.userId === updated.id);
+    const coach = existing || buildNewCoachProfile(updated);
+    if (!existing) setCoaches((prev) => [...prev, coach]);
+    setSelectedCoach(coach);
+    setCurrentScreen('coach_profile_edit');
+    setScreenHistory(['coach_dashboard', 'coach_profile_edit']);
+  };
+
   const currentRole: UserRole | 'guest' = currentUser ? currentUser.role : 'guest';
 
   return (
@@ -1080,6 +1563,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         loginAs,
         logout,
         registerUser,
+        createPendingBooking,
+        applyServerBooking,
+        loginWithPassword,
+        resetPassword,
+        authLoading,
+        isOnline: isSupabaseEnabled,
         updateUserProfile,
         coaches,
         selectedCoach,
@@ -1087,6 +1576,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         selectCoachForBooking,
         getCoachById,
         updateCoachProfile,
+        updateCoachPhoto,
         toggleCoachActiveStatus,
         submitVerificationDoc,
         reviewVerificationDoc,

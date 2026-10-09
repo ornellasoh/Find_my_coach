@@ -14,6 +14,16 @@ import {
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { ChatPartner, ChatMessage } from '../../types';
+import { supabase } from '../../lib/supabase';
+
+interface MessageRow {
+  id: string;
+  sender_id: string;
+  recipient_id: string;
+  text: string;
+  read: boolean;
+  created_at: string;
+}
 
 interface ChatModalProps {
   partner: ChatPartner | null;
@@ -63,31 +73,108 @@ const QUICK_SUGGESTIONS = [
 ];
 
 export const ChatModal: React.FC<ChatModalProps> = ({ partner, onClose }) => {
-  const { currentUser, navigateTo } = useApp();
+  const { currentUser, navigateTo, isOnline } = useApp();
+  const partnerUserId = partner?.userId || partner?.id || '';
+  // Messagerie réelle si connecté à Supabase et que l'interlocuteur a un compte
+  const live = isOnline && !!supabase && !!currentUser && !!partnerUserId;
+
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    if (live) return [];
     const key = `fmc_chat_${partner?.id || 'default'}`;
     const saved = localStorage.getItem(key);
     return saved ? JSON.parse(saved) : INITIAL_DEMO_MESSAGES.default;
   });
   const [inputText, setInputText] = useState('');
+  const [sendError, setSendError] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Mode démo : historique local
   useEffect(() => {
-    if (partner) {
+    if (partner && !live) {
       const key = `fmc_chat_${partner.id}`;
       localStorage.setItem(key, JSON.stringify(messages));
     }
-  }, [messages, partner]);
+  }, [messages, partner, live]);
+
+  // Mode en ligne : chargement + temps réel
+  useEffect(() => {
+    if (!live || !supabase || !currentUser) return;
+    const me = currentUser.id;
+    const toMsg = (r: MessageRow): ChatMessage => ({
+      id: r.id,
+      senderId: r.sender_id,
+      senderName: r.sender_id === me ? currentUser.name : partner?.name || '',
+      senderAvatar: r.sender_id === me ? currentUser.avatar : partner?.avatar || '',
+      recipientId: r.recipient_id,
+      text: r.text,
+      createdAt: new Date(r.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+      isRead: r.read,
+    });
+
+    supabase
+      .from('messages')
+      .select('*')
+      .or(`and(sender_id.eq.${me},recipient_id.eq.${partnerUserId}),and(sender_id.eq.${partnerUserId},recipient_id.eq.${me})`)
+      .order('created_at', { ascending: true })
+      .limit(200)
+      .then(({ data, error }) => {
+        if (error) return console.warn('[supabase] messages', error.message);
+        setMessages(((data || []) as MessageRow[]).map(toMsg));
+        supabase!.from('messages').update({ read: true }).eq('recipient_id', me).eq('sender_id', partnerUserId).eq('read', false).then(() => {});
+      });
+
+    const channel = supabase
+      .channel(`chat-${me}-${partnerUserId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `recipient_id=eq.${me}` }, (payload) => {
+        const row = payload.new as MessageRow;
+        if (row.sender_id !== partnerUserId) return;
+        setMessages((prev) => (prev.some((m) => m.id === row.id) ? prev : [...prev, toMsg(row)]));
+      })
+      .subscribe();
+    return () => {
+      supabase?.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [live, partnerUserId, currentUser?.id]);
 
   if (!partner) return null;
 
-  const handleSend = (textToSend?: string) => {
+  const handleSend = async (textToSend?: string) => {
     const text = textToSend || inputText;
     if (!text.trim()) return;
+    setSendError('');
+
+    if (live && supabase && currentUser) {
+      if (!textToSend) setInputText('');
+      const { data, error } = await supabase
+        .from('messages')
+        .insert({ sender_id: currentUser.id, recipient_id: partnerUserId, text: text.trim() })
+        .select()
+        .single();
+      if (error) {
+        setSendError("Message non envoyé. Vérifiez votre connexion.");
+        return;
+      }
+      const row = data as MessageRow;
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: row.id,
+          senderId: row.sender_id,
+          senderName: currentUser.name,
+          senderAvatar: currentUser.avatar,
+          recipientId: row.recipient_id,
+          text: row.text,
+          createdAt: new Date(row.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+          isRead: false,
+        },
+      ]);
+      return;
+    }
 
     const newMsg: ChatMessage = {
       id: `msg-${Date.now()}`,
@@ -103,7 +190,7 @@ export const ChatModal: React.FC<ChatModalProps> = ({ partner, onClose }) => {
     setMessages((prev) => [...prev, newMsg]);
     if (!textToSend) setInputText('');
 
-    // Simulated coach smart response after 1.2 seconds
+    // Mode démo : réponse simulée du coach
     setTimeout(() => {
       const replies = [
         'Parfait, c’est bien noté ! À très vite.',
@@ -203,6 +290,7 @@ export const ChatModal: React.FC<ChatModalProps> = ({ partner, onClose }) => {
             </motion.div>
           );
         })}
+        {sendError && <p className="text-center text-xs font-medium text-rose-500">{sendError}</p>}
         <div ref={messagesEndRef} />
       </div>
 

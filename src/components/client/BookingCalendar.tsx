@@ -304,10 +304,13 @@ const BookingCalendarContent: React.FC<{ coach: CoachProfile }> = ({ coach }) =>
       </Card>
 
       <StickyAction>
+        {coach.userId === currentUser?.id && (
+          <p className="text-sm text-center text-rose-500 font-medium mb-2">Vous ne pouvez pas réserver une séance avec vous-même.</p>
+        )}
         <PrimaryButton
           id="btn-confirm-calendar-booking"
           onClick={handleProceedToCheckout}
-          disabled={availableSlots.length === 0}
+          disabled={availableSlots.length === 0 || coach.userId === currentUser?.id}
           icon={<ArrowRight className="w-5 h-5" />}
         >
           Confirmer la réservation • {formatEuro(baseRate)}

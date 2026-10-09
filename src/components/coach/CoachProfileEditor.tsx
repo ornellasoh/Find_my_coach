@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
+import { uploadProfilePhoto } from '../../lib/photos';
 import { useApp } from '../../context/AppContext';
 import { 
   ArrowLeft, 
@@ -25,8 +26,11 @@ export const CoachProfileEditor: React.FC = () => {
     currentUser, 
     coaches, 
     updateCoachProfile, 
+    updateCoachPhoto,
     submitVerificationDoc,
-    goBack 
+    goBack,
+    logout,
+    loginAs
   } = useApp();
   
   const coach = coaches.find(c => c.userId === currentUser?.id) || coaches[0];
@@ -61,6 +65,29 @@ export const CoachProfileEditor: React.FC = () => {
   const [docType, setDocType] = useState<'diploma' | 'identity' | 'insurance' | 'kbis' | 'cert'>('diploma');
   const [docTitle, setDocTitle] = useState('');
   const [feedback, setFeedback] = useState('');
+
+  // Photo de profil
+  const photoInput = useRef<HTMLInputElement>(null);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoError, setPhotoError] = useState('');
+
+  const handlePhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !coach || !currentUser) return;
+    setPhotoBusy(true);
+    setPhotoError('');
+    try {
+      const url = await uploadProfilePhoto(file, currentUser.id);
+      updateCoachPhoto(coach.id, url);
+      setFeedback('Photo de profil mise à jour ✓');
+      setTimeout(() => setFeedback(''), 3000);
+    } catch (err) {
+      setPhotoError(err instanceof Error ? err.message : "L'envoi de la photo a échoué.");
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
 
   const toggleFormat = (fmt: CoachingFormat) => {
     setFormats(prev => 
@@ -156,6 +183,44 @@ export const CoachProfileEditor: React.FC = () => {
       )}
 
       <form onSubmit={handleSave} className="space-y-4">
+        {/* Photo de profil */}
+        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => photoInput.current?.click()}
+            disabled={photoBusy}
+            className="relative w-20 h-20 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shrink-0 cursor-pointer"
+            aria-label="Changer la photo"
+          >
+            {coach?.photo ? (
+              <img src={coach.photo} alt="Photo de profil" className="w-full h-full object-cover" />
+            ) : (
+              <Camera className="w-7 h-7 text-slate-400 m-auto" />
+            )}
+            {photoBusy && (
+              <span className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                <span className="w-6 h-6 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+              </span>
+            )}
+          </button>
+          <div className="flex-1 min-w-0">
+            <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider block">Photo de profil</span>
+            <p className="text-xs text-slate-500 mt-0.5 leading-snug">Visible par les clients sur votre fiche. Une photo nette de votre visage inspire confiance.</p>
+            <button
+              id="btn-change-photo"
+              type="button"
+              onClick={() => photoInput.current?.click()}
+              disabled={photoBusy}
+              className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#00D664] text-[#0F172A] text-xs font-bold cursor-pointer disabled:opacity-60"
+            >
+              <Camera className="w-3.5 h-3.5" />
+              {photoBusy ? 'Envoi…' : coach?.photo ? 'Changer la photo' : 'Ajouter une photo'}
+            </button>
+            {photoError && <p className="text-[11px] text-rose-500 font-semibold mt-1.5">{photoError}</p>}
+          </div>
+          <input ref={photoInput} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
+        </div>
+
         {/* Titre & Bio */}
         <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs space-y-3">
           <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider block">
@@ -447,6 +512,25 @@ export const CoachProfileEditor: React.FC = () => {
             <span>Soumettre pour validation</span>
           </button>
         </form>
+      </div>
+
+      {/* Compte */}
+      <div className="mt-6 space-y-2">
+        <button
+          type="button"
+          onClick={() => loginAs('client')}
+          className="w-full h-12 rounded-full border border-slate-200 bg-white text-slate-700 font-semibold text-sm cursor-pointer"
+        >
+          Explorer l'app comme un client
+        </button>
+        <button
+          id="btn-logout-pro"
+          type="button"
+          onClick={logout}
+          className="w-full h-12 rounded-full border border-rose-300 text-rose-500 font-semibold text-sm cursor-pointer"
+        >
+          Se déconnecter
+        </button>
       </div>
     </div>
   );

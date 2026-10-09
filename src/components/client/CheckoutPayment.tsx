@@ -24,7 +24,9 @@ import { Card, IconTile, PrimaryButton, ScreenHeader, StickyAction, formatDateFr
 type PaymentMethodId = 'card' | 'apple_pay' | 'google_pay';
 
 export const CheckoutPayment: React.FC = () => {
-  const { bookingDraft, goBack, navigateTo, createBooking, currentUser } = useApp();
+  const { bookingDraft, goBack, navigateTo, createBooking, currentUser, isOnline, createPendingBooking, applyServerBooking } = useApp();
+  const [payError, setPayError] = useState('');
+  const [waitingReturn, setWaitingReturn] = useState(false);
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodId>('card');
   const [showCardForm, setShowCardForm] = useState(false);
@@ -74,9 +76,31 @@ export const CheckoutPayment: React.FC = () => {
     }
   };
 
-  const handleProcessPayment = (e?: React.SyntheticEvent) => {
+  const handleProcessPayment = async (e?: React.SyntheticEvent) => {
     e?.preventDefault();
+    setPayError('');
     setIsProcessing(true);
+
+    if (isOnline) {
+      // Paiement réel : réservation « en attente » puis page sécurisée Stripe
+      try {
+        const pending = await createPendingBooking(bookingDraft);
+        const { startCheckout, waitForPayment } = await import('../../lib/payments');
+        await startCheckout(pending.id, appliedDiscount > 0 ? promoCode : undefined, async () => {
+          // Mobile : le navigateur Stripe vient d'être fermé
+          setWaitingReturn(true);
+          const b = await waitForPayment<typeof pending>(pending.id, 5);
+          setWaitingReturn(false);
+          setIsProcessing(false);
+          if (b?.paymentStatus === 'paid') applyServerBooking(b);
+          else setPayError("Paiement non finalisé. Vous pouvez réessayer : aucun montant n'a été débité.");
+        });
+      } catch (err) {
+        setIsProcessing(false);
+        setPayError((err as Error).message || 'Le paiement a échoué.');
+      }
+      return;
+    }
 
     setTimeout(() => {
       const updatedDraft = {
@@ -124,6 +148,17 @@ export const CheckoutPayment: React.FC = () => {
 
       {/* Moyens de paiement */}
       <h2 className="text-base font-semibold mb-3">Mode de paiement</h2>
+      {isOnline ? (
+        <Card className="p-5 flex items-center gap-4" selected>
+          <IconTile tone="outline"><Lock className="w-5 h-5" /></IconTile>
+          <span className="flex-1 min-w-0">
+            <span className="font-semibold block">Paiement sécurisé Stripe</span>
+            <span className="text-sm text-slate-500 block">Carte bancaire, Apple Pay ou Google Pay</span>
+          </span>
+          <CheckCircle2 className="w-6 h-6 text-white fill-fmc-green shrink-0" />
+        </Card>
+      ) : (
+      <>
       <div className="space-y-3">
         {methods.map((m) => {
           const isSelected = paymentMethod === m.id;
@@ -171,6 +206,8 @@ export const CheckoutPayment: React.FC = () => {
             </Card>
           )}
         </>
+      )}
+      </>
       )}
 
       {/* Code promo */}
@@ -226,6 +263,9 @@ export const CheckoutPayment: React.FC = () => {
         </div>
       </Card>
 
+      {payError && <p className="text-sm text-rose-500 font-medium text-center mt-4">{payError}</p>}
+      {waitingReturn && <p className="text-sm text-slate-500 text-center mt-4">Vérification du paiement…</p>}
+
       <p className="text-xs text-slate-500 text-center mt-4 flex items-center justify-center gap-1.5">
         <ShieldCheck className="w-4 h-4 text-fmc-green-ink" />
         Paiement sécurisé · Annulation gratuite jusqu'à 24 h avant
@@ -239,7 +279,7 @@ export const CheckoutPayment: React.FC = () => {
           onClick={handleProcessPayment}
           icon={<Lock className="w-5 h-5" />}
         >
-          {isProcessing ? 'Validation du paiement…' : `Payer maintenant • ${formatEuro(finalTotal)}`}
+          {isProcessing ? (isOnline ? 'Ouverture du paiement sécurisé…' : 'Validation du paiement…') : `Payer maintenant • ${formatEuro(finalTotal)}`}
         </PrimaryButton>
       </StickyAction>
     </div>

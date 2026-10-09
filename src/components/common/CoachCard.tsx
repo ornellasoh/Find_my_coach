@@ -113,7 +113,8 @@ export const CoachCard: React.FC<CoachCardProps> = ({ coach, userLocation }) => 
 
 /** Carte coach « vedette » avec grande photo (écran Accueil). */
 export const CoachFeatureCard: React.FC<{ coach: CoachProfile }> = ({ coach }) => {
-  const { navigateTo, selectCoachForBooking } = useApp();
+  const { navigateTo, selectCoachForBooking, currentUser } = useApp();
+  const isOwn = coach.userId === currentUser?.id;
 
   const openProfile = () => {
     selectCoachForBooking(coach);
@@ -162,6 +163,7 @@ export const CoachFeatureCard: React.FC<{ coach: CoachProfile }> = ({ coach }) =
           >
             Voir le profil
           </button>
+          {!isOwn && (
           <button
             type="button"
             id={`btn-book-now-${coach.id}`}
@@ -175,6 +177,7 @@ export const CoachFeatureCard: React.FC<{ coach: CoachProfile }> = ({ coach }) =
           >
             <Calendar className="w-5 h-5" />
           </button>
+          )}
         </div>
       </div>
     </motion.article>

@@ -45,6 +45,11 @@ Dans Xcode : *Signing & Capabilities* → choisir ton Apple ID (Team), brancher 
 cliquer ▶︎. Pour TestFlight / App Store : compte Apple Developer (99 €/an) puis
 *Product → Archive*.
 
+## Base de données & comptes (Supabase)
+
+Voir `supabase/README.md`. Sans les variables `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`,
+l'app tourne en **mode démo** (données d'exemple stockées sur l'appareil).
+
 ## Agent IA (Gemini) dans l'app mobile
 
 L'IA passe par le serveur `server.ts` (la clé Gemini ne doit jamais être dans l'app).

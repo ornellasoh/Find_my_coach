@@ -23,7 +23,9 @@ export const AdminDashboard: React.FC = () => {
     toggleReviewVisibility, 
     toggleCoachActiveStatus, 
     resetAllData, 
-    goBack 
+    goBack,
+    logout,
+    loginAs
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'overview' | 'coaches' | 'reviews' | 'bookings'>('overview');
@@ -211,6 +213,25 @@ export const AdminDashboard: React.FC = () => {
           ))}
         </div>
       )}
+
+      {/* Compte */}
+      <div className="mt-6 space-y-2">
+        <button
+          type="button"
+          onClick={() => loginAs('client')}
+          className="w-full h-12 rounded-full border border-slate-200 bg-white text-slate-700 font-semibold text-sm cursor-pointer"
+        >
+          Explorer l'app comme un client
+        </button>
+        <button
+          id="btn-logout-pro"
+          type="button"
+          onClick={logout}
+          className="w-full h-12 rounded-full border border-rose-300 text-rose-500 font-semibold text-sm cursor-pointer"
+        >
+          Se déconnecter
+        </button>
+      </div>
     </div>
   );
 };

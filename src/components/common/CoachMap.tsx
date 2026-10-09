@@ -60,11 +60,26 @@ export const CoachMap: React.FC<CoachMapProps> = ({
       attributionControl: false
     });
 
-    // CartoDB Voyager tiles (modern, high contrast, clean typography)
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      maxZoom: 19,
-      subdomains: 'abcd'
-    }).addTo(map);
+    // Fond de carte : MapTiler si une clé est fournie (VITE_MAPTILER_KEY), sinon CARTO Voyager (sans clé)
+    const mapTilerKey = import.meta.env.VITE_MAPTILER_KEY as string | undefined;
+    if (mapTilerKey) {
+      L.tileLayer(`https://api.maptiler.com/maps/streets-v2/256/{z}/{x}/{y}{r}.png?key=${mapTilerKey}`, {
+        maxZoom: 19,
+        attribution: '© MapTiler © OpenStreetMap',
+      }).addTo(map);
+    } else {
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19,
+        subdomains: 'abcd',
+        attribution: '© CARTO © OpenStreetMap',
+      }).addTo(map);
+    }
+    L.control.attribution({ prefix: false, position: 'bottomleft' }).addTo(map);
+
+    // Recalcule la taille une fois l'écran affiché (évite une carte grise sur mobile/tablette)
+    setTimeout(() => map.invalidateSize(), 250);
+    const onResize = () => map.invalidateSize();
+    window.addEventListener('resize', onResize);
 
     const markersLayer = L.layerGroup().addTo(map);
     markersLayerRef.current = markersLayer;
@@ -78,6 +93,7 @@ export const CoachMap: React.FC<CoachMapProps> = ({
     });
 
     return () => {
+      window.removeEventListener('resize', onResize);
       map.remove();
       mapInstanceRef.current = null;
     };

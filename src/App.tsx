@@ -12,6 +12,7 @@ import { ReviewModal } from './components/common/ReviewModal';
 import { VideoCallRoom } from './components/common/VideoCallRoom';
 import { ChatModal } from './components/common/ChatModal';
 import { AnimatePresence } from 'motion/react';
+import { LogoIcon } from './components/common/Logo';
 
 // Screens
 import { Onboarding } from './components/Onboarding';
@@ -39,7 +40,18 @@ import { CoachAIAgentView } from './components/coach/CoachAIAgentView';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 
 const MainRouter: React.FC = () => {
-  const { currentScreen, activeVideoBooking, setActiveVideoBooking, activeChatPartner, setActiveChatPartner } = useApp();
+  const { currentScreen, activeVideoBooking, setActiveVideoBooking, activeChatPartner, setActiveChatPartner, authLoading } = useApp();
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-fmc-bg dark:bg-[#0B0F19] flex flex-col items-center justify-center gap-6">
+        <div className="w-24 h-24 rounded-[28px] bg-fmc-dark flex items-center justify-center shadow-[0_0_50px_rgba(0,214,100,0.4)]">
+          <LogoIcon size={54} />
+        </div>
+        <span className="w-6 h-6 rounded-full border-[3px] border-fmc-green/30 border-t-fmc-green animate-spin" aria-label="Chargement" />
+      </div>
+    );
+  }
 
   const renderScreen = () => {
     switch (currentScreen) {

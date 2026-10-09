@@ -26,6 +26,7 @@ import { PrimaryButton, Rating, SectionHeader, StickyAction, formatDateFr, forma
 
 export const CoachProfileView: React.FC = () => {
   const { 
+    currentUser,
     selectedCoach, 
     goBack, 
     navigateTo, 
@@ -268,6 +269,11 @@ export const CoachProfileView: React.FC = () => {
       </div>
 
       <StickyAction>
+        {coach.userId === currentUser?.id ? (
+          <PrimaryButton id="btn-edit-own-profile" onClick={() => navigateTo('coach_profile_edit')}>
+            C'est votre fiche · Modifier mon profil
+          </PrimaryButton>
+        ) : (
         <div className="flex items-center gap-4">
           <div className="shrink-0">
             <span className="text-2xl font-semibold tabular-nums block leading-tight">{formatEuro(coach.hourlyRate)}</span>
@@ -282,6 +288,7 @@ export const CoachProfileView: React.FC = () => {
             Réserver la séance
           </PrimaryButton>
         </div>
+        )}
       </StickyAction>
     </div>
   );

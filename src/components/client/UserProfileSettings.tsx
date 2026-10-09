@@ -40,7 +40,8 @@ export const UserProfileSettings: React.FC = () => {
     goBack,
     setIsNotificationDrawerOpen,
     isDarkMode,
-    toggleDarkMode
+    toggleDarkMode,
+    isOnline
   } = useApp();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -184,11 +185,13 @@ export const UserProfileSettings: React.FC = () => {
         <div className="space-y-3">
           <Row
             icon={<Briefcase className="w-5 h-5" />}
-            title="Espace coach"
-            subtitle="Gérer créneaux, clients et revenus"
+            title={isOnline && currentUser?.role === 'client' ? 'Devenir coach' : 'Espace coach'}
+            subtitle={isOnline && currentUser?.role === 'client' ? 'Proposez vos séances sur Find My Coach' : 'Gérer créneaux, clients et revenus'}
             onClick={() => loginAs('coach')}
           />
-          <Row icon={<Shield className="w-5 h-5" />} title="Administration" subtitle="Accès réservé à l'équipe" onClick={() => loginAs('admin')} />
+          {(!isOnline || currentUser?.role === 'admin') && (
+            <Row icon={<Shield className="w-5 h-5" />} title="Administration" subtitle="Accès réservé à l'équipe" onClick={() => loginAs('admin')} />
+          )}
           <Row
             icon={<HelpCircle className="w-5 h-5" />}
             title="Centre d'assistance"

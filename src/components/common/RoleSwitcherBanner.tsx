@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { UserCheck, Shield, Briefcase, RefreshCw, Bell, User, Sun, Moon } from 'lucide-react';
 import { LogoIcon } from './Logo';
 import { Capacitor } from '@capacitor/core';
+import { isSupabaseEnabled } from '../../lib/supabase';
 
 export const RoleSwitcherBanner: React.FC = () => {
   const { 
@@ -18,7 +19,7 @@ export const RoleSwitcherBanner: React.FC = () => {
   } = useApp();
 
   // Barre de démo/QA : affichée sur le web uniquement, pas dans l'app iPhone/Android
-  if (Capacitor.isNativePlatform()) return null;
+  if (Capacitor.isNativePlatform() || isSupabaseEnabled) return null;
 
   return (
     <div id="role-switcher-banner" className="bg-[#004022] text-white text-xs border-b border-[#055B33] px-3 py-1.5 flex flex-wrap items-center justify-between gap-2 z-50 sticky top-0 shadow-sm">

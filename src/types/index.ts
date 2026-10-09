@@ -290,6 +290,8 @@ export interface ChatMessage {
 
 export interface ChatPartner {
   id: string;
+  /** identifiant du compte (profil) de l'interlocuteur, pour la messagerie en ligne */
+  userId?: string;
   name: string;
   avatar: string;
   role: string;

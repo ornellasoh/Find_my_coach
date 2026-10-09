@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { 
   ArrowLeft, 
@@ -15,6 +15,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { fetchStripeStatus, openCoachStripe, type StripeAccountStatus } from '../../lib/payments';
 
 export const CoachFinancials: React.FC = () => {
   const { 
@@ -22,7 +23,8 @@ export const CoachFinancials: React.FC = () => {
     coaches, 
     payouts, 
     requestPayout, 
-    goBack 
+    goBack,
+    isOnline
   } = useApp();
 
   const coachProfile = coaches.find(c => c.userId === currentUser?.id) || coaches[0];
@@ -39,6 +41,28 @@ export const CoachFinancials: React.FC = () => {
   const availableForPayout = totalEarnedNet > 0 ? totalEarnedNet : 153.0; // demo available amount
 
   const [payoutRequested, setPayoutRequested] = useState(false);
+
+  // Paiements Stripe Connect (mode en ligne)
+  const [stripeStatus, setStripeStatus] = useState<StripeAccountStatus | null>(null);
+  const [stripeLoading, setStripeLoading] = useState(false);
+  const [stripeError, setStripeError] = useState('');
+  const refreshStripe = () => {
+    if (isOnline && coachProfile) fetchStripeStatus(coachProfile.id).then(setStripeStatus);
+  };
+  useEffect(refreshStripe, [isOnline, coachProfile?.id]);
+  const handleStripe = async () => {
+    setStripeError('');
+    setStripeLoading(true);
+    try {
+      await openCoachStripe(() => {
+        setStripeLoading(false);
+        refreshStripe();
+      });
+    } catch (err) {
+      setStripeError((err as Error).message);
+      setStripeLoading(false);
+    }
+  };
   const [iban, setIban] = useState('FR76 3000 4000 5000 6000 7000 890');
   const [isEditingIban, setIsEditingIban] = useState(false);
 
@@ -63,6 +87,39 @@ export const CoachFinancials: React.FC = () => {
 
         <div className="w-10" />
       </div>
+
+      {/* Encaissements Stripe */}
+      {isOnline && (
+        <div className={`rounded-3xl p-5 mb-4 border ${stripeStatus?.charges_enabled ? 'bg-white border-slate-200' : 'bg-[#00D664]/10 border-[#00D664]/40'}`}>
+          <div className="flex items-start gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-[#1C1C1C] text-[#00D664] flex items-center justify-center shrink-0">
+              <CreditCard className="w-5 h-5" />
+            </div>
+            <div className="flex-1">
+              <h2 className="font-bold text-[#0F172A]">
+                {stripeStatus?.charges_enabled
+                  ? 'Paiements activés ✅'
+                  : stripeStatus?.details_submitted
+                  ? 'Vérification Stripe en cours'
+                  : 'Activez vos paiements'}
+              </h2>
+              <p className="text-sm text-slate-600 mt-1 leading-snug">
+                {stripeStatus?.charges_enabled
+                  ? 'Vos séances payées sont versées automatiquement sur votre compte bancaire (commission Find My Coach déduite).'
+                  : 'Renseignez votre identité et votre IBAN via Stripe pour recevoir l’argent de vos séances. 5 minutes, sécurisé.'}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={handleStripe}
+            disabled={stripeLoading}
+            className="w-full h-12 mt-4 rounded-full bg-[#00D664] text-[#0F172A] font-bold text-sm disabled:opacity-50 cursor-pointer"
+          >
+            {stripeLoading ? 'Ouverture de Stripe…' : stripeStatus?.details_submitted ? 'Mon tableau de bord Stripe' : 'Activer les paiements avec Stripe'}
+          </button>
+          {stripeError && <p className="text-sm text-rose-500 mt-2">{stripeError}</p>}
+        </div>
+      )}
 
       {/* Main Balance Card */}
       <div className="bg-[#0F172A] text-white rounded-3xl p-5 shadow-lg mb-4 relative overflow-hidden">

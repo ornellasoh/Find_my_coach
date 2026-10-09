@@ -8,6 +8,8 @@ on:
 jobs:
   apk:
     runs-on: ubuntu-latest
+    env:
+      HAS_STORAGE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY != '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -26,8 +28,6 @@ jobs:
 
       - name: Compiler l'app web (mode mobile)
         run: npm run build:mobile
-        env:
-          VITE_API_URL: ${{ vars.VITE_API_URL }}
 
       - name: Synchroniser Capacitor Android
         run: |
@@ -44,3 +44,30 @@ jobs:
         with:
           name: FindMyCoach-apk
           path: android/app/build/outputs/apk/debug/*.apk
+
+      - name: Publier l'APK sur findmycoach.io (Supabase Storage)
+        if: ${{ env.HAS_STORAGE_KEY == 'true' }}
+        env:
+          SUPABASE_URL: https://seftoygihefwohrioojo.supabase.co
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          APK=$(ls android/app/build/outputs/apk/debug/*.apk | head -1)
+          VERSION="1.0.${{ github.run_number }}"
+          SIZE=$(stat -c%s "$APK")
+          BASE="$SUPABASE_URL/storage/v1/object/downloads"
+          PUBLIC="$SUPABASE_URL/storage/v1/object/public/downloads"
+          # Fichier daté + copie « latest » (lien fixe pour le site)
+          for NAME in "findmycoach-$VERSION.apk" "findmycoach-latest.apk"; do
+            curl -sSf -X POST "$BASE/$NAME" \
+              -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+              -H "x-upsert: true" -H "Content-Type: application/vnd.android.package-archive" \
+              --data-binary @"$APK"
+          done
+          cat > version.json <<JSON
+          {"version":"$VERSION","date":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","size":$SIZE,"url":"$PUBLIC/findmycoach-latest.apk","versionUrl":"$PUBLIC/findmycoach-$VERSION.apk","commit":"${GITHUB_SHA::7}"}
+          JSON
+          curl -sSf -X POST "$BASE/version.json" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "x-upsert: true" -H "Content-Type: application/json" -H "Cache-Control: max-age=60" \
+            --data-binary @version.json
+          echo "APK publié : $PUBLIC/findmycoach-latest.apk"
