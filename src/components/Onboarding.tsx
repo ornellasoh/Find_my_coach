@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { SocialLogin } from './common/SocialLogin';
 import { useApp } from '../context/AppContext';
 import {
   Award,
@@ -227,6 +228,12 @@ export const Onboarding: React.FC = () => {
               <RoleToggle role={role} onChange={setRole} />
             </div>
 
+            {isOnline && (
+              <div className="mb-4">
+                <SocialLogin role={role} onError={setError} />
+              </div>
+            )}
+
             <div className="space-y-4">
               <Field label="Nom complet">
                 <input id="input-auth-name" className={inputCls} value={name} onChange={(e) => setName(e.target.value)} placeholder="Alex Dupont" autoComplete="name" />
@@ -320,6 +327,12 @@ export const Onboarding: React.FC = () => {
 
             {info && (
               <p className="mb-4 p-4 rounded-2xl bg-fmc-green/10 text-sm text-fmc-navy dark:text-slate-100">{info}</p>
+            )}
+
+            {isOnline && (
+              <div className="mb-4">
+                <SocialLogin onError={setError} />
+              </div>
             )}
 
             <div className="space-y-4">

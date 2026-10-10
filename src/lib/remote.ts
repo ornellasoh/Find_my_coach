@@ -80,7 +80,7 @@ export async function fetchSnapshot(): Promise<RemoteSnapshot> {
   today.setDate(today.getDate() - 1);
   const fromDate = today.toISOString().slice(0, 10);
 
-  const [coaches, availabilities, booked, bookings, reviews, favorites, notifications, goals, programs] = await Promise.all([
+  const [coaches, availabilities, booked, bookings, reviews, favorites, notifications, goals, programs, settings] = await Promise.all([
     supabase.from('coaches').select('data'),
     supabase.from('availabilities').select('data').gte('date', fromDate).limit(5000),
     supabase.from('booked_slots').select('availability_id').gte('date', fromDate).limit(5000),
@@ -90,13 +90,19 @@ export async function fetchSnapshot(): Promise<RemoteSnapshot> {
     supabase.from('notifications').select('data').order('created_at', { ascending: false }).limit(100),
     supabase.from('goals').select('data'),
     supabase.from('workout_programs').select('data'),
+    supabase.from('app_settings').select('key, value'),
   ]);
 
   const firstError = [coaches, availabilities, booked, bookings, reviews, favorites, notifications, goals, programs].find((r) => r.error);
   if (firstError?.error) throw firstError.error;
 
+  // Coachs de démonstration : masqués au lancement (réglage « show_demo_coaches » dans app_settings)
+  const showDemo = ((settings.data || []) as { key: string; value: unknown }[]).find((r) => r.key === 'show_demo_coaches')?.value !== false;
+  const isRealAccount = (id?: string) => !!id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  const allCoaches = rowsToData(coaches.data as { data: CoachProfile }[]);
+
   return {
-    coaches: rowsToData(coaches.data as { data: CoachProfile }[]),
+    coaches: showDemo ? allCoaches : allCoaches.filter((c) => isRealAccount(c.userId)),
     availabilities: rowsToData(availabilities.data as { data: AvailabilitySlot }[]),
     bookedSlotIds: ((booked.data || []) as { availability_id: string }[]).map((r) => r.availability_id),
     bookings: rowsToData(bookings.data as { data: Booking }[]),

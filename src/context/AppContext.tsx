@@ -39,7 +39,7 @@ import {
   getFormattedDate
 } from '../data/mockData';
 import { findCityByName } from '../utils/geo';
-import { supabase, isSupabaseEnabled, authErrorFr } from '../lib/supabase';
+import { supabase, isSupabaseEnabled, authErrorFr, authRedirect } from '../lib/supabase';
 import { fetchProfile, fetchSnapshot, saveProfile, useRemoteSync } from '../lib/remote';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
@@ -660,6 +660,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         email,
         password: extra?.password || '',
         options: {
+          emailRedirectTo: authRedirect('signup'),
           data: { name, role, city, phone: extra?.phone, category: extra?.category, latitude: lat, longitude: lng },
         },
       });
@@ -750,7 +751,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const resetPassword = async (email: string): Promise<AuthResult> => {
     if (!supabase) return { error: 'Indisponible en mode démo.' };
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: authRedirect('recovery') });
     return error
       ? { error: authErrorFr(error.message) }
       : { info: `Si un compte existe pour ${email}, un email de réinitialisation vient d'être envoyé.` };
@@ -1450,6 +1451,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           profile = await fetchProfile(authUserId);
         }
         if (!profile) throw new Error('Profil introuvable');
+        // Inscription via Google / Apple en ayant choisi « Je suis coach »
+        const { takePendingRole } = await import('../lib/oauth');
+        if (takePendingRole() === 'coach' && profile.role === 'client') {
+          profile = { ...profile, role: 'coach' };
+          await saveProfile(profile);
+        }
         setCurrentUser(profile);
         await loadRemoteData(profile);
       } catch (err) {

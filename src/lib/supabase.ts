@@ -24,6 +24,27 @@ export const supabase: SupabaseClient | null =
 
 export const isSupabaseEnabled = supabase !== null;
 
+/** Lien de retour des emails d'authentification. */
+const NATIVE_CALLBACK = 'io.findmycoach.app://auth-callback';
+export function authRedirect(kind: 'signup' | 'recovery'): string {
+  if (Capacitor.isNativePlatform()) {
+    // Confirmation : page du site (fonctionne aussi si l'email est ouvert sur un ordinateur)
+    // Mot de passe oublié : retour direct dans l'app pour choisir le nouveau mot de passe
+    return kind === 'signup' ? 'https://findmycoach.io/auth/confirmation' : NATIVE_CALLBACK;
+  }
+  return `${window.location.origin}${window.location.pathname}`;
+}
+
+/** Réinitialisation du mot de passe : l'écran « nouveau mot de passe » s'affiche au retour. */
+export const RECOVERY_FLAG = 'fmc_password_recovery';
+export function markPasswordRecovery() {
+  try { sessionStorage.setItem(RECOVERY_FLAG, '1'); } catch { /* ignore */ }
+  window.dispatchEvent(new Event('fmc:password-recovery'));
+}
+supabase?.auth.onAuthStateChange((event) => {
+  if (event === 'PASSWORD_RECOVERY') markPasswordRecovery();
+});
+
 /** Traduit les erreurs Supabase Auth les plus courantes en français. */
 export const authErrorFr = (message?: string): string => {
   const m = (message || '').toLowerCase();

@@ -8,6 +8,7 @@ import { AppProvider, useApp } from './context/AppContext';
 import { RoleSwitcherBanner } from './components/common/RoleSwitcherBanner';
 import { BottomNav } from './components/common/BottomNav';
 import { NotificationDrawer } from './components/common/NotificationDrawer';
+import { NewPasswordModal } from './components/common/NewPasswordModal';
 import { ReviewModal } from './components/common/ReviewModal';
 import { VideoCallRoom } from './components/common/VideoCallRoom';
 import { ChatModal } from './components/common/ChatModal';
@@ -116,6 +117,7 @@ const MainRouter: React.FC = () => {
 
         {/* Notification Drawer */}
         <NotificationDrawer />
+        <NewPasswordModal />
 
         {/* Review & Rating Modal */}
         <ReviewModal />

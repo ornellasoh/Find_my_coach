@@ -2,6 +2,7 @@ import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { SplashScreen } from '@capacitor/splash-screen';
+import { initOAuthListener } from './lib/oauth';
 
 /** Initialise les fonctions natives (iOS / Android). Sans effet sur le web. */
 export async function initNative() {
@@ -24,6 +25,9 @@ export async function initNative() {
     if (fmc?.canGoBack) fmc.goBack();
     else App.exitApp();
   });
+
+  // Retour dans l'app après connexion Google / Apple
+  initOAuthListener();
 
   SplashScreen.hide().catch(() => {});
 }
