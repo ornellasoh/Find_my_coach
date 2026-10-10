@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "55334079234",
+    "project_id": "find-my-coach-40be1",
+    "storage_bucket": "find-my-coach-40be1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:55334079234:android:683b104cfe13daf213d01b",
+        "android_client_info": {
+          "package_name": "io.findmycoach.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDLLgKoHaFPILfI8haJ1IAOU1gIRPdhbsA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
