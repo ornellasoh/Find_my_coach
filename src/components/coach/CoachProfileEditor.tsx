@@ -1,5 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { uploadProfilePhoto } from '../../lib/photos';
+import { ThemePicker } from '../common/ThemePicker';
+import { DeleteAccount } from '../common/DeleteAccount';
 import { useApp } from '../../context/AppContext';
 import { 
   ArrowLeft, 
@@ -516,6 +518,7 @@ export const CoachProfileEditor: React.FC = () => {
 
       {/* Compte */}
       <div className="mt-6 space-y-2">
+        <ThemePicker className="mb-2" />
         <button
           type="button"
           onClick={() => loginAs('client')}
@@ -531,6 +534,7 @@ export const CoachProfileEditor: React.FC = () => {
         >
           Se déconnecter
         </button>
+        <DeleteAccount />
       </div>
     </div>
   );

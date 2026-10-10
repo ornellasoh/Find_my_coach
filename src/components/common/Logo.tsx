@@ -84,7 +84,7 @@ export const Logo: React.FC<LogoProps> = ({
       <div className="flex flex-col justify-center">
         <span
           className={`font-black tracking-tight leading-tight font-sans ${titleSizes[size]} ${
-            isDark ? 'text-white' : 'text-[#1D1D1D]'
+            isDark ? 'text-white' : 'text-[#1D1D1D] dark:text-white'
           }`}
           style={{ letterSpacing: '-0.03em' }}
         >
@@ -94,7 +94,7 @@ export const Logo: React.FC<LogoProps> = ({
         {showTagline && (
           <span
             className={`font-medium tracking-normal leading-none mt-0.5 font-sans ${taglineSizes[size]} ${
-              isDark ? 'text-slate-200' : 'text-[#565656]'
+              isDark ? 'text-slate-200' : 'text-[#565656] dark:text-slate-400'
             }`}
           >
             Your Coach Anytime, Anywhere

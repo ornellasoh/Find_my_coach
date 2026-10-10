@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ThemePicker } from '../common/ThemePicker';
 import { useApp } from '../../context/AppContext';
 import { 
   Shield, 
@@ -216,6 +217,7 @@ export const AdminDashboard: React.FC = () => {
 
       {/* Compte */}
       <div className="mt-6 space-y-2">
+        <ThemePicker className="mb-2" />
         <button
           type="button"
           onClick={() => loginAs('client')}

@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { ThemePicker } from '../common/ThemePicker';
+import { DeleteAccount } from '../common/DeleteAccount';
 import { useApp } from '../../context/AppContext';
 import { 
   ArrowLeft, 
@@ -140,22 +142,7 @@ export const UserProfileSettings: React.FC = () => {
           <Row icon={<User className="w-5 h-5" />} title="Informations personnelles" subtitle="Nom, email et téléphone" onClick={() => setIsEditing(true)} />
           <Row icon={<Bell className="w-5 h-5" />} title="Notifications" subtitle="Gérer les alertes et rappels" onClick={() => setIsNotificationDrawerOpen(true)} />
           <Row icon={<Dumbbell className="w-5 h-5" />} title="Mon programme" subtitle="Entraînement personnalisé" onClick={() => navigateTo('workout_programs')} />
-          <Row
-            icon={isDarkMode ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
-            title="Mode sombre"
-            subtitle={isDarkMode ? 'Activé' : 'Désactivé'}
-            trailing={
-              <button
-                id="switch-dark-mode-profile"
-                role="switch"
-                aria-checked={isDarkMode}
-                onClick={toggleDarkMode}
-                className={`w-[52px] h-8 rounded-full p-1 flex transition cursor-pointer ${isDarkMode ? 'bg-fmc-green justify-end' : 'bg-slate-200 justify-start'}`}
-              >
-                <motion.span layout className="w-6 h-6 rounded-full bg-white shadow" />
-              </button>
-            }
-          />
+          <ThemePicker />
         </div>
 
         {pastBookings.length > 0 && (
@@ -208,6 +195,7 @@ export const UserProfileSettings: React.FC = () => {
           <LogOut className="w-5 h-5" />
           Se déconnecter
         </button>
+        <DeleteAccount className="mt-2" />
 
         <div className="py-8 flex flex-col items-center gap-1 opacity-80">
           <Logo size="sm" showTagline={true} />

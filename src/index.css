@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Mode sombre piloté par la classe .dark sur <html> (choix dans l'app) */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* Charte Find My Coach */
 @theme {
   --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
@@ -106,3 +109,70 @@ html.native input, html.native textarea {
   user-select: text;
 }
 
+
+
+/* =====================================================================
+   Mode sombre — habillage global des écrans (fonds clairs → sombres,
+   textes foncés → clairs). Les éléments qui ont déjà leurs propres
+   classes « dark: » ne sont pas touchés. Les boutons verts gardent
+   leur texte foncé.
+   ===================================================================== */
+html.dark {
+  color-scheme: dark;
+  --dk-bg: #0B0F19;
+  --dk-card: #151B27;
+  --dk-card-2: #1C2433;
+  --dk-card-3: #263042;
+  --dk-line: rgba(71, 85, 105, 0.45);
+  --dk-text: #F1F5F9;
+  --dk-text-2: #CBD5E1;
+  --dk-text-3: #94A3B8;
+  --dk-green: #2BE07E;
+}
+
+/* Fonds de page */
+html.dark :is(.bg-slate-50, .bg-\[\#F6F9FA\], .bg-fmc-bg, .bg-\[\#F2F4F7\], .bg-gray-50):not([class*="dark:bg"]) { background-color: var(--dk-bg); }
+/* Cartes */
+html.dark :is(.bg-white):not([class*="dark:bg"]) { background-color: var(--dk-card); }
+html.dark :is(.bg-white\/95, .bg-white\/90):not([class*="dark:bg"]) { background-color: rgba(21, 27, 39, 0.95); }
+html.dark :is(.bg-slate-100, .bg-gray-100):not([class*="dark:bg"]) { background-color: var(--dk-card-2); }
+html.dark :is(.bg-slate-200, .bg-gray-200):not([class*="dark:bg"]) { background-color: var(--dk-card-3); }
+html.dark :is(.hover\:bg-slate-50, .hover\:bg-slate-100, .hover\:bg-white):hover:not([class*="dark:hover"]) { background-color: var(--dk-card-2); }
+html.dark :is(.hover\:bg-slate-200):hover:not([class*="dark:hover"]) { background-color: var(--dk-card-3); }
+
+/* Fonds teintés (badges, alertes) */
+html.dark :is(.bg-emerald-50, .bg-emerald-100, .bg-green-50):not([class*="dark:bg"]) { background-color: rgba(16, 185, 129, 0.14); }
+html.dark :is(.bg-rose-50, .bg-rose-100, .bg-red-50):not([class*="dark:bg"]) { background-color: rgba(244, 63, 94, 0.14); }
+html.dark :is(.bg-amber-50, .bg-amber-100, .bg-yellow-50):not([class*="dark:bg"]) { background-color: rgba(245, 158, 11, 0.15); }
+html.dark :is(.bg-blue-50, .bg-blue-100, .bg-sky-50):not([class*="dark:bg"]) { background-color: rgba(59, 130, 246, 0.15); }
+html.dark :is(.bg-purple-50, .bg-indigo-50):not([class*="dark:bg"]) { background-color: rgba(139, 92, 246, 0.15); }
+html.dark :is(.border-emerald-100, .border-emerald-200, .border-rose-100, .border-rose-200, .border-amber-100, .border-amber-200, .border-blue-100, .border-blue-200):not([class*="dark:border"]) { border-color: var(--dk-line); }
+html.dark :is(.text-amber-800, .text-amber-900, .text-amber-700):not([class*="dark:text"]) { color: #FBBF24; }
+html.dark :is(.text-rose-700, .text-rose-800, .text-red-700):not([class*="dark:text"]) { color: #FB7185; }
+html.dark :is(.text-emerald-700, .text-emerald-800, .text-green-700):not([class*="dark:text"]) { color: #34D399; }
+html.dark :is(.text-blue-700, .text-blue-800):not([class*="dark:text"]) { color: #60A5FA; }
+
+/* Bordures */
+html.dark :is(.border-slate-100, .border-slate-200, .border-slate-300, .border-fmc-line, .border-gray-200, .border-white):not([class*="dark:border"]) { border-color: var(--dk-line); }
+html.dark :is([class*="border-slate-200\/"], [class*="border-fmc-line\/"]):not([class*="dark:border"]) { border-color: var(--dk-line); }
+
+/* Textes foncés → clairs (sauf sur fond vert) */
+html.dark :is(.text-\[\#0F172A\], .text-slate-900, .text-fmc-navy, .text-gray-900, .text-black):not([class*="dark:text"]):not([class*="bg-[#00D664]"]):not([class*="bg-fmc-green"]):not([class*="bg-[#00B050]"]):not([class*="bg-[#00FD83]"]) { color: var(--dk-text); }
+html.dark :is(.text-slate-800, .text-slate-700, .text-gray-800, .text-gray-700):not([class*="dark:text"]):not([class*="bg-[#00D664]"]):not([class*="bg-fmc-green"]) { color: var(--dk-text-2); }
+html.dark :is(.text-slate-600, .text-gray-600):not([class*="dark:text"]) { color: var(--dk-text-3); }
+/* Texte hérité dans les boutons verts : toujours foncé */
+html.dark :is(.bg-\[\#00D664\], .bg-fmc-green, .bg-\[\#00B050\]) :is(.text-\[\#0F172A\], .text-fmc-navy, .text-slate-900) { color: #0F172A; }
+
+/* Vert foncé (lisible sur fond clair) → vert lumineux sur fond sombre */
+html.dark :is(.text-\[\#008A3E\], .text-fmc-green-ink, .text-\[\#00A84F\]):not([class*="dark:text"]) { color: var(--dk-green); }
+
+/* Champs de saisie */
+html.dark :is(input, textarea, select):not([class*="dark:bg"]) { color: var(--dk-text); }
+html.dark :is(input, textarea)::placeholder { color: #64748B; }
+html.dark select option { background: var(--dk-card); color: var(--dk-text); }
+
+/* Ombres plus discrètes */
+html.dark :is(.shadow-xs, .shadow-sm, .shadow-2xs) { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35); }
+
+/* Carte (Leaflet) : tuiles légèrement assombries */
+html.dark .leaflet-tile-pane { filter: brightness(0.8) contrast(1.1) saturate(0.85); }

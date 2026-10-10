@@ -42,6 +42,8 @@ import { findCityByName } from '../utils/geo';
 import { supabase, isSupabaseEnabled, authErrorFr } from '../lib/supabase';
 import { fetchProfile, fetchSnapshot, saveProfile, useRemoteSync } from '../lib/remote';
 
+export type ThemeMode = 'light' | 'dark' | 'system';
+
 export type AppScreen = 
   | 'onboarding'
   | 'auth'
@@ -239,6 +241,8 @@ interface AppContextType {
   // Apple Theme & Dark Mode
   isDarkMode: boolean;
   toggleDarkMode: () => void;
+  themeMode: ThemeMode;
+  setThemeMode: (mode: ThemeMode) => void;
 
   // Workout Programs & Exercise Sheets
   workoutPrograms: WorkoutProgram[];
@@ -264,28 +268,41 @@ const STORAGE_KEYS = {
   PAYOUTS: 'fmc_payouts_v2',
   COACH_CLIENTS: 'fmc_coach_clients_v2',
   WORKOUT_PROGRAMS: 'fmc_workout_programs_v2',
-  THEME_DARK: 'fmc_theme_dark_v2'
+  THEME_DARK: 'fmc_theme_dark_v2',
+  THEME_MODE: 'fmc_theme_mode'
 };
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Theme Dark Mode
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.THEME_DARK);
-    if (saved !== null) return JSON.parse(saved);
-    return false;
+  // Apparence : clair, sombre ou automatique (suit le réglage du téléphone)
+  const [themeMode, setThemeModeState] = useState<ThemeMode>(() => {
+    try {
+      const mode = localStorage.getItem(STORAGE_KEYS.THEME_MODE);
+      if (mode === 'light' || mode === 'dark' || mode === 'system') return mode;
+      const legacy = localStorage.getItem(STORAGE_KEYS.THEME_DARK);
+      if (legacy !== null) return JSON.parse(legacy) ? 'dark' : 'light';
+    } catch { /* stockage indisponible */ }
+    return 'system';
   });
+  const [systemDark, setSystemDark] = useState<boolean>(
+    () => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-color-scheme: dark)').matches
+  );
+  useEffect(() => {
+    const mq = window.matchMedia?.('(prefers-color-scheme: dark)');
+    if (!mq) return;
+    const onChange = (e: MediaQueryListEvent) => setSystemDark(e.matches);
+    mq.addEventListener?.('change', onChange);
+    return () => mq.removeEventListener?.('change', onChange);
+  }, []);
+  const isDarkMode = themeMode === 'dark' || (themeMode === 'system' && systemDark);
 
-  const toggleDarkMode = () => {
-    setIsDarkMode((prev) => !prev);
+  const setThemeMode = (mode: ThemeMode) => {
+    setThemeModeState(mode);
+    try { localStorage.setItem(STORAGE_KEYS.THEME_MODE, mode); } catch { /* ignore */ }
   };
+  const toggleDarkMode = () => setThemeMode(isDarkMode ? 'light' : 'dark');
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.THEME_DARK, JSON.stringify(isDarkMode));
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    document.documentElement.classList.toggle('dark', isDarkMode);
   }, [isDarkMode]);
 
   // Persistent or seed state
@@ -1661,6 +1678,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         startChatWithClient,
         isDarkMode,
         toggleDarkMode,
+        themeMode,
+        setThemeMode,
         workoutPrograms,
         toggleExerciseCompleted,
         toggleSessionCompleted,
