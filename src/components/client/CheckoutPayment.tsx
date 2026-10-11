@@ -57,7 +57,8 @@ export const CheckoutPayment: React.FC = () => {
   }
 
   const { coach, selectedDate, selectedSlot, sessionType, basePrice, serviceFee, taxes } = bookingDraft;
-  const subtotal = basePrice + serviceFee + taxes;
+  const travelFee = bookingDraft.travelFee ?? 0;
+  const subtotal = basePrice + travelFee + serviceFee + taxes;
   const finalTotal = Math.max(0, Number((subtotal - appliedDiscount).toFixed(2)));
 
   const handleApplyPromo = () => {
@@ -241,6 +242,12 @@ export const CheckoutPayment: React.FC = () => {
             <dt className="text-slate-500">Tarif de la séance ({sessionType.durationMinutes} min)</dt>
             <dd className="tabular-nums">{formatEuro(basePrice)}</dd>
           </div>
+          {travelFee > 0 && (
+            <div className="flex justify-between gap-4">
+              <dt className="text-slate-500">Frais de déplacement du coach</dt>
+              <dd className="tabular-nums">{formatEuro(travelFee)}</dd>
+            </div>
+          )}
           <div className="flex justify-between gap-4">
             <dt className="text-slate-500">Frais de service</dt>
             <dd className="tabular-nums">{formatEuro(serviceFee)}</dd>
@@ -256,6 +263,12 @@ export const CheckoutPayment: React.FC = () => {
             </div>
           )}
         </dl>
+        {coach.sessionIncludes && (
+          <p className="mt-4 text-sm text-slate-500">
+            <span className="font-semibold text-fmc-navy dark:text-white">La séance comprend : </span>
+            {coach.sessionIncludes}
+          </p>
+        )}
         <div className="h-px bg-fmc-line dark:bg-slate-800 my-6" />
         <div className="flex items-center justify-between">
           <span className="text-xl font-semibold">Montant total</span>

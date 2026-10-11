@@ -22,6 +22,7 @@ import {
   FileCheck2
 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { isVerifiedCoach, isRealCoach, levelsText, approximateZone } from '../../utils/coachTrust';
 import { PrimaryButton, Rating, SectionHeader, StickyAction, formatDateFr, formatEuro } from '../ui/fmc';
 
 export const CoachProfileView: React.FC = () => {
@@ -113,7 +114,9 @@ export const CoachProfileView: React.FC = () => {
 
         <div className="absolute bottom-2 left-5 right-5">
           <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-fmc-green text-white text-xs font-bold uppercase tracking-wide rounded-lg">
-            {coach.isElite ? 'Coach Élite' : coach.verificationStatus === 'verified' ? 'Coach vérifié' : 'Coach'}
+            {coach.isElite && isRealCoach(coach) ? 'Coach Élite' : isVerifiedCoach(coach) ? (
+              <><ShieldCheck className="w-3.5 h-3.5" /> Vérifié</>
+            ) : 'Coach'}
           </span>
           <h1 className="text-[34px] leading-tight font-semibold tracking-tight mt-2">{coach.name}</h1>
           <p className="text-base text-slate-500 dark:text-slate-400 flex items-center gap-2 mt-0.5">
@@ -145,13 +148,43 @@ export const CoachProfileView: React.FC = () => {
           <p className="text-[15px] leading-relaxed text-slate-500 dark:text-slate-400">{coach.bio}</p>
           <div className="flex flex-wrap gap-x-4 gap-y-2 mt-4 text-sm text-slate-500">
             <span className="inline-flex items-center gap-1.5">
-              <MapPin className="w-4 h-4 text-fmc-green-ink" /> {coach.location}
+              <MapPin className="w-4 h-4 text-fmc-green-ink" /> {approximateZone(coach)} — zone approximative
             </span>
             <span className="inline-flex items-center gap-1.5">
               <Globe className="w-4 h-4 text-fmc-green-ink" /> {coach.languages.join(', ')}
             </span>
           </div>
         </section>
+
+        {/* Méthode */}
+        {coach.methods && (
+          <section>
+            <h2 className="text-lg font-semibold mb-3">Méthode de travail</h2>
+            <p className="text-[15px] leading-relaxed text-slate-500 dark:text-slate-400 whitespace-pre-line">{coach.methods}</p>
+          </section>
+        )}
+
+        {/* Objectifs, niveaux, publics */}
+        {((coach.objectives?.length ?? 0) > 0 || (coach.levels?.length ?? 0) > 0 || (coach.audiences?.length ?? 0) > 0) && (
+          <section className="space-y-3">
+            {(coach.objectives?.length ?? 0) > 0 && (
+              <div>
+                <h2 className="text-lg font-semibold mb-2">Objectifs accompagnés</h2>
+                <div className="flex flex-wrap gap-2">
+                  {coach.objectives!.map((o) => (
+                    <span key={o} className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-fmc-line dark:border-slate-800 text-sm">{o}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {(coach.levels?.length ?? 0) > 0 && (
+              <p className="text-sm text-slate-500"><span className="font-semibold text-fmc-navy dark:text-white">Niveaux : </span>{levelsText(coach)}</p>
+            )}
+            {(coach.audiences?.length ?? 0) > 0 && (
+              <p className="text-sm text-slate-500"><span className="font-semibold text-fmc-navy dark:text-white">Publics : </span>{coach.audiences!.join(', ')}</p>
+            )}
+          </section>
+        )}
 
         {/* Spécialités */}
         <section>
@@ -195,7 +228,12 @@ export const CoachProfileView: React.FC = () => {
         {/* Certifications */}
         {coach.certifications.length > 0 && (
           <section>
-            <h2 className="text-lg font-semibold mb-3">Diplômes vérifiés</h2>
+            <h2 className="text-lg font-semibold mb-1">Diplômes et certifications</h2>
+            <p className="text-xs text-slate-500 mb-3">
+              {isVerifiedCoach(coach)
+                ? 'Justificatifs contrôlés par l’équipe Find My Coach (documents non publics).'
+                : 'Déclarés par le coach, pas encore vérifiés par Find My Coach.'}
+            </p>
             <div className="bg-white dark:bg-slate-900 rounded-[24px] border border-fmc-line/80 dark:border-slate-800 p-4 space-y-3">
               {coach.certifications.map((cert) => (
                 <div key={cert} className="flex items-center gap-3 text-sm">
@@ -206,6 +244,34 @@ export const CoachProfileView: React.FC = () => {
             </div>
           </section>
         )}
+
+        {/* Tarifs et contenu de la séance */}
+        <section>
+          <h2 className="text-lg font-semibold mb-3">Tarifs et contenu</h2>
+          <div className="bg-white dark:bg-slate-900 rounded-[24px] border border-fmc-line/80 dark:border-slate-800 p-4 space-y-2 text-sm">
+            {(coach.formats ?? []).map((f) => {
+              const price = coach.formatPrices?.[f] ?? coach.hourlyRate;
+              return (
+                <div key={f} className="flex justify-between gap-3">
+                  <span>{formatLabels[f]?.title ?? f}</span>
+                  <span className="tabular-nums font-semibold">{formatEuro(price)}</span>
+                </div>
+              );
+            })}
+            {!!coach.travelFee && coach.formats?.includes('home') && (
+              <div className="flex justify-between gap-3 text-slate-500">
+                <span>Frais de déplacement (à domicile)</span>
+                <span className="tabular-nums">+ {formatEuro(coach.travelFee)}</span>
+              </div>
+            )}
+            <p className="text-xs text-slate-500 pt-2 border-t border-fmc-line dark:border-slate-800">
+              Frais de service (4,50 €) et taxes en plus. Le montant total exact s'affiche avant le paiement.
+            </p>
+            {coach.sessionIncludes && (
+              <p className="pt-1"><span className="font-semibold">La séance comprend : </span>{coach.sessionIncludes}</p>
+            )}
+          </div>
+        </section>
 
         {/* Disponibilité */}
         <section>

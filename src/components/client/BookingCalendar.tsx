@@ -98,7 +98,10 @@ const BookingCalendarContent: React.FC<{ coach: CoachProfile }> = ({ coach }) =>
 
   const serviceFee = 4.5;
   const taxes = Number((baseRate * 0.025).toFixed(2));
-  const total = Number((baseRate + serviceFee + taxes).toFixed(2));
+  // Frais de déplacement : séance à domicile uniquement (même calcul que le serveur, 0 à 100 €)
+  const travelFee =
+    selectedSessionType.format === 'home' ? Math.min(100, Math.max(0, Number(coach.travelFee) || 0)) : 0;
+  const total = Number((baseRate + travelFee + serviceFee + taxes).toFixed(2));
 
   const handleProceedToCheckout = () => {
     const chosenSlot =
@@ -114,6 +117,7 @@ const BookingCalendarContent: React.FC<{ coach: CoachProfile }> = ({ coach }) =>
       serviceFee,
       taxes,
       total,
+      travelFee: travelFee || undefined,
       notes: clientNotes.trim() ? clientNotes : undefined,
       clientAddress: selectedSessionType.format === 'home' ? clientAddress : undefined,
     };

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { coachNet } from '../../utils/payout';
 import { 
   ArrowLeft, 
   Calendar, 
@@ -20,11 +21,11 @@ export const CoachBookings: React.FC = () => {
   const { 
     currentUser, 
     coaches, 
-    bookings, 
-    completeBooking, 
+    bookings,
     cancelBooking,
     goBack,
     setActiveVideoBooking,
+    openBookingDetail,
     setActiveChatPartner
   } = useApp();
 
@@ -143,7 +144,7 @@ export const CoachBookings: React.FC = () => {
 
                 <div className="text-right">
                   <span className="text-sm font-extrabold text-[#008A3E] block">
-                    +{(b.price * 0.85).toFixed(2)} €
+                    +{coachNet(b).toFixed(2).replace('.', ',')} €
                   </span>
                   <span className="text-[10px] text-slate-400">net coach</span>
                 </div>
@@ -161,12 +162,6 @@ export const CoachBookings: React.FC = () => {
                   </div>
                 </div>
 
-                {b.clientAddress && (
-                  <div className="flex items-center gap-1 text-[11px] text-slate-700 font-medium">
-                    <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                    <span className="truncate">{b.clientAddress}</span>
-                  </div>
-                )}
 
                 {b.notes && (
                   <div className="flex items-start gap-1 text-[11px] text-slate-600 bg-white p-2 rounded-lg border border-slate-200">
@@ -202,25 +197,13 @@ export const CoachBookings: React.FC = () => {
                     <MessageSquare className="w-4 h-4 text-[#008A3E]" />
                   </button>
 
-                  {b.meetingLink && b.format === 'online' ? (
-                    <button
-                      onClick={() => setActiveVideoBooking(b)}
-                      className="flex-1 py-2 bg-[#00D664] hover:bg-[#00B050] text-[#0F172A] font-extrabold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-xs transition cursor-pointer active:scale-95"
-                    >
-                      <Video className="w-3.5 h-3.5 stroke-[2.5]" />
-                      <span>Ouvrir la Visio HD</span>
-                    </button>
-                  ) : b.clientAddress ? (
-                    <a
-                      href={`https://maps.google.com/?q=${encodeURIComponent(b.clientAddress)}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex-1 py-2 bg-[#00D664] hover:bg-[#00B050] text-[#0F172A] font-extrabold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-xs transition cursor-pointer"
-                    >
-                      <MapPin className="w-3.5 h-3.5 stroke-[2.5]" />
-                      <span>Itinéraire GPS</span>
-                    </a>
-                  ) : null}
+                  <button
+                    onClick={() => setActiveVideoBooking(b)}
+                    className="flex-1 min-h-11 py-2 bg-[#00D664] hover:bg-[#00B050] text-[#0F172A] font-extrabold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-xs transition cursor-pointer active:scale-95"
+                  >
+                    {b.format === 'online' ? <Video className="w-3.5 h-3.5 stroke-[2.5]" /> : <MapPin className="w-3.5 h-3.5 stroke-[2.5]" />}
+                    <span>{b.format === 'online' ? 'Lien de la séance' : 'Lieu & itinéraire'}</span>
+                  </button>
 
                   <button
                     onClick={() => handleCoachCancel(b.id)}
@@ -231,12 +214,21 @@ export const CoachBookings: React.FC = () => {
                   </button>
 
                   <button
-                    onClick={() => completeBooking(b.id)}
-                    className="py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-xs border border-slate-200 transition cursor-pointer"
+                    onClick={() => openBookingDetail(b.id)}
+                    className="min-h-11 py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-xs border border-slate-200 transition cursor-pointer"
                   >
-                    Valider la séance
+                    Détails
                   </button>
                 </div>
+              )}
+
+              {b.bookingStatus !== 'confirmed' && (
+                <button
+                  onClick={() => openBookingDetail(b.id)}
+                  className="w-full min-h-11 py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-xs border border-slate-200 transition cursor-pointer"
+                >
+                  {b.bookingStatus === 'completed' ? 'Compte rendu & détails' : 'Voir le détail'}
+                </button>
               )}
             </motion.div>
           ))

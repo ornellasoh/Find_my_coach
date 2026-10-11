@@ -41,6 +41,9 @@ import {
 import { findCityByName } from '../utils/geo';
 import { supabase, isSupabaseEnabled, authErrorFr, authRedirect } from '../lib/supabase';
 import { fetchProfile, fetchSnapshot, saveProfile, useRemoteSync } from '../lib/remote';
+import { DEFAULT_SEARCH_FILTERS, type SearchFilters } from '../utils/searchFilters';
+import { coachNet } from '../utils/payout';
+import { rememberDemoAddress } from '../lib/sessions';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 
@@ -64,6 +67,7 @@ export type AppScreen =
   | 'coach_clients'
   | 'coach_financials'
   | 'coach_ai_agent'
+  | 'booking_detail'
   | 'admin_dashboard';
 
 export interface BookingDraft {
@@ -77,6 +81,8 @@ export interface BookingDraft {
   total: number;
   notes?: string;
   clientAddress?: string;
+  /** Frais de déplacement (séance à domicile) */
+  travelFee?: number;
 }
 
 export interface RegisterExtra {
@@ -170,6 +176,8 @@ interface AppContextType {
   setSearchQuery: (query: string) => void;
   selectedCategory: string | null;
   setSelectedCategory: (cat: string | null) => void;
+  searchFilters: SearchFilters;
+  setSearchFilters: React.Dispatch<React.SetStateAction<SearchFilters>>;
   
   // Availabilities
   availabilities: AvailabilitySlot[];
@@ -191,6 +199,13 @@ interface AppContextType {
   applyServerBooking: (booking: Booking) => void;
   cancelBooking: (bookingId: string) => Promise<{ refunded: boolean; amount?: number }>;
   completeBooking: (bookingId: string) => void;
+  /** Réservation ouverte dans l'écran « Détail de la réservation » */
+  selectedBookingId: string | null;
+  openBookingDetail: (bookingId: string) => void;
+  /** Recharge les réservations depuis le serveur (après un report accepté, par exemple) */
+  refreshBookings: () => Promise<void>;
+  /** Mode démo : applique localement un changement validé (report accepté…) */
+  patchBookingLocal: (bookingId: string, patch: Partial<Booking>) => void;
   
   // Reviews
   reviews: Review[];
@@ -455,6 +470,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Search & filter state
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [searchFilters, setSearchFilters] = useState<SearchFilters>(DEFAULT_SEARCH_FILTERS);
+  const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
 
   // UI Drawers & Modals
   const [isNotificationDrawerOpen, setIsNotificationDrawerOpen] = useState(false);
@@ -567,6 +584,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     if (extraParams?.bookingDraft) {
       setBookingDraft(extraParams.bookingDraft);
+    }
+    if (extraParams?.bookingId) {
+      setSelectedBookingId(extraParams.bookingId);
     }
     
     setScreenHistory((prev) => [...prev, screen]);
@@ -944,14 +964,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       paymentStatus: 'paid',
       bookingStatus: 'confirmed',
       paymentMethod,
-      meetingLink: `https://zoom.us/j/findmycoach-${draft.coach.id.replace('coach-', '')}-${Date.now().toString().slice(-6)}`,
+      // Pas de lien de visio inventé : le coach l'ajoute lui-même (Meet, Zoom, Teams…)
       notes: draft.notes,
       clientAddress: draft.clientAddress,
+      travelFee: draft.travelFee || undefined,
       createdAt: new Date().toISOString(),
       hasReview: false
     };
 
     // 1. Add booking
+    rememberDemoAddress(bookingId, draft.clientAddress);
     setBookings((prev) => [newBooking, ...prev]);
     setLatestConfirmedBooking(newBooking);
 
@@ -1097,11 +1119,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         : p
     ));
 
+    // Le client est invité à laisser un avis depuis ses réservations (jamais le coach qui clôture la séance)
     const b = bookings.find(item => item.id === bookingId);
-    if (b) {
-      // Prompt client for review
-      setReviewModalBooking(b);
-    }
+    if (b && currentUser?.id === b.clientId) setReviewModalBooking({ ...b, bookingStatus: 'completed' });
+  };
+
+  const openBookingDetail = (bookingId: string) => navigateTo('booking_detail', { bookingId });
+
+  const patchBookingLocal = (bookingId: string, patch: Partial<Booking>) => {
+    setBookings((prev) => {
+      const next = prev.map((b) => (b.id === bookingId ? { ...b, ...patch } : b));
+      if (syncOn) bookingsSync.setBaseline(next);
+      return next;
+    });
+  };
+
+  const refreshBookings = async () => {
+    if (!syncOn || !supabase) return;
+    const { data, error } = await supabase.from('bookings').select('data').order('created_at', { ascending: false }).limit(500);
+    if (error || !data) return;
+    const fresh = (data as { data: Booking }[]).map((r) => r.data);
+    bookingsSync.setBaseline(fresh);
+    setBookings(fresh);
   };
 
   // Financials
@@ -1328,7 +1367,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const derivedPayouts: PayoutTransaction[] = coachBookings
       .filter((b) => b.bookingStatus === 'completed' || b.bookingStatus === 'confirmed')
       .map((b) => {
-        const commission = Math.round(b.price * 0.15 * 100) / 100;
+        const gross = Math.round((b.price + (b.travelFee ?? 0)) * 100) / 100;
+        const net = coachNet(b);
         return {
           id: `pay-${b.id}`,
           bookingId: b.id,
@@ -1336,9 +1376,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           clientName: b.clientName,
           sessionTitle: b.sessionType.name,
           date: b.date,
-          grossAmount: b.price,
-          commissionAmount: commission,
-          netAmount: Math.round((b.price - commission) * 100) / 100,
+          grossAmount: gross,
+          // commission (séance) + frais Stripe sur les frais de déplacement
+          commissionAmount: Math.round((gross - net) * 100) / 100,
+          netAmount: net,
           status: 'pending' as const,
         };
       });
@@ -1393,7 +1434,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       registerPush(user.id, (data) => {
         if (data.type === 'message') setCurrentScreen(user.role === 'coach' ? 'coach_clients' : 'bookings');
         else if (data.bookingId) {
-          setCurrentScreen(user.role === 'coach' ? 'coach_bookings' : 'bookings');
+          setSelectedBookingId(data.bookingId);
+          setCurrentScreen('booking_detail');
+          setScreenHistory([user.role === 'coach' ? 'coach_bookings' : 'bookings', 'booking_detail']);
         } else setIsNotificationDrawerOpen(true);
       })
     );
@@ -1640,6 +1683,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setSearchQuery,
         selectedCategory,
         setSelectedCategory,
+        searchFilters,
+        setSearchFilters,
         availabilities,
         getCoachAvailabilities,
         addAvailabilitySlot,
@@ -1653,6 +1698,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         createBooking,
         cancelBooking,
         completeBooking,
+        selectedBookingId,
+        openBookingDetail,
+        refreshBookings,
+        patchBookingLocal,
         reviews,
         addReview,
         getCoachReviews,

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { isVerifiedCoach } from '../../utils/coachTrust';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { CoachProfile } from '../../types';
@@ -15,6 +16,8 @@ interface CoachMapProps {
   onSearchThisArea?: (center: { lat: number; lng: number }, radiusKm: number) => void;
   className?: string;
   height?: string;
+  /** Rayon de recherche affiché autour du point choisi (km) */
+  radiusKm?: number;
 }
 
 export const CoachMap: React.FC<CoachMapProps> = ({
@@ -24,7 +27,8 @@ export const CoachMap: React.FC<CoachMapProps> = ({
   onSelectCoach,
   onSearchThisArea,
   className = '',
-  height = 'calc(100vh - 240px)'
+  height = 'calc(100vh - 240px)',
+  radiusKm
 }) => {
   const { navigateTo, selectCoachForBooking } = useApp();
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -130,6 +134,24 @@ export const CoachMap: React.FC<CoachMapProps> = ({
       userMarkerRef.current = null;
     }
   }, [userLocation]);
+
+  // Cercle du rayon de recherche
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    circleLayerRef.current?.remove();
+    circleLayerRef.current = null;
+    if (userLocation && radiusKm) {
+      circleLayerRef.current = L.circle([userLocation.latitude, userLocation.longitude], {
+        radius: radiusKm * 1000,
+        color: '#00B050',
+        weight: 1.5,
+        fillColor: '#00D664',
+        fillOpacity: 0.06,
+        interactive: false,
+      }).addTo(map);
+    }
+  }, [userLocation, radiusKm]);
 
   // Update Coach Markers
   useEffect(() => {
@@ -308,7 +330,7 @@ export const CoachMap: React.FC<CoachMapProps> = ({
                   alt={activeCoach.name}
                   className="w-14 h-14 rounded-xl object-cover border border-slate-100 shadow-xs"
                 />
-                {activeCoach.verificationStatus === 'verified' && (
+                {isVerifiedCoach(activeCoach) && (
                   <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-[#00D664] text-[#0F172A] rounded-full flex items-center justify-center text-[10px] shadow-xs">
                     ✓
                   </span>
@@ -343,7 +365,7 @@ export const CoachMap: React.FC<CoachMapProps> = ({
 
                   {distanceToActiveCoach !== null && (
                     <span className="px-1.5 py-0.5 bg-emerald-50 text-[#008A3E] font-bold rounded-md text-[10px]">
-                      à {formatDistance(distanceToActiveCoach)}
+                      à {formatDistance(distanceToActiveCoach)} à vol d'oiseau
                     </span>
                   )}
 

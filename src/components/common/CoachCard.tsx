@@ -1,4 +1,5 @@
 import React from 'react';
+import { isRealCoach, isVerifiedCoach } from '../../utils/coachTrust';
 import { CoachProfile } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { MapPin, ArrowRight, Calendar, Heart, Check, Star } from 'lucide-react';
@@ -10,10 +11,12 @@ interface CoachCardProps {
   coach: CoachProfile;
   userLocation?: { latitude: number; longitude: number } | null;
   onBookDirect?: (coachId: string) => void;
+  /** Mention affichée sous la localisation (ex. « Hors rayon — disponible en visio ») */
+  note?: string;
 }
 
 /** Carte coach en liste (écran Recherche). */
-export const CoachCard: React.FC<CoachCardProps> = ({ coach, userLocation }) => {
+export const CoachCard: React.FC<CoachCardProps> = ({ coach, userLocation, note }) => {
   const { navigateTo, isFavorite, toggleFavorite, selectCoachForBooking } = useApp();
   const favorite = isFavorite(coach.id);
 
@@ -42,7 +45,7 @@ export const CoachCard: React.FC<CoachCardProps> = ({ coach, userLocation }) => 
             alt={coach.name}
             className="w-[88px] h-[88px] rounded-[22px] object-cover bg-slate-100"
           />
-          {coach.verificationStatus === 'verified' && (
+          {isVerifiedCoach(coach) && (
             <span
               title="Coach vérifié"
               className="absolute -top-1.5 -left-1.5 w-6 h-6 rounded-full bg-fmc-green border-[3px] border-white dark:border-slate-900 flex items-center justify-center"
@@ -57,14 +60,17 @@ export const CoachCard: React.FC<CoachCardProps> = ({ coach, userLocation }) => 
             <h3 className="text-lg font-semibold leading-tight truncate">{coach.name}</h3>
             <Rating value={coach.rating} className="shrink-0 pt-0.5" />
           </div>
-          <p className="text-sm font-medium text-fmc-green-ink mt-1 truncate">{coach.title}</p>
+          <p className="text-sm font-medium text-fmc-green-ink mt-1 truncate">{coach.category || coach.title}</p>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1.5 flex items-center gap-1.5 min-w-0">
             <MapPin className="w-4 h-4 shrink-0" />
-            <span className="truncate">{coach.isOnlineCoaching && !coach.city ? 'À distance / En ligne' : coach.location || coach.city}</span>
-            {distanceKm !== null && (
-              <span className="shrink-0 text-fmc-green-ink font-semibold">· {formatDistance(distanceKm)}</span>
-            )}
+            <span className="truncate">{coach.isOnlineCoaching && !coach.city ? 'À distance / En ligne' : coach.city || coach.location}</span>
           </p>
+          {distanceKm !== null && (
+            <p className="text-xs text-slate-500 mt-1">
+              <span className="text-fmc-green-ink font-semibold">{distanceKm < 1 ? 'moins de 1 km' : `≈ ${formatDistance(distanceKm)}`}</span> à vol d'oiseau
+            </p>
+          )}
+          {note && <p className="text-xs font-semibold text-fmc-green-ink mt-1">{note}</p>}
         </div>
       </div>
 
@@ -136,7 +142,7 @@ export const CoachFeatureCard: React.FC<{ coach: CoachProfile }> = ({ coach }) =
           <Star className="w-3.5 h-3.5 fill-fmc-green text-fmc-green" />
           {coach.rating.toFixed(1)}
         </span>
-        {coach.isElite && (
+        {coach.isElite && isRealCoach(coach) && (
           <span className="absolute top-4 right-4 px-2.5 py-1 rounded-full bg-fmc-green text-fmc-navy text-[11px] font-bold uppercase tracking-wide">
             Élite
           </span>

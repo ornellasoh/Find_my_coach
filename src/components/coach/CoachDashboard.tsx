@@ -37,7 +37,7 @@ export const CoachDashboard: React.FC = () => {
     payouts,
     coachClients,
     navigateTo, 
-    completeBooking,
+    openBookingDetail,
     setActiveVideoBooking,
     setActiveChatPartner
   } = useApp();
@@ -229,38 +229,19 @@ export const CoachDashboard: React.FC = () => {
               <MessageSquare className="w-4 h-4 text-[#00FD83]" />
             </button>
 
-            {nextImminentBooking.meetingLink && nextImminentBooking.format === 'online' ? (
-              <button
-                onClick={() => setActiveVideoBooking(nextImminentBooking)}
-                className="flex-1 py-2.5 bg-[#00D664] hover:bg-[#00B050] text-[#0F172A] font-black rounded-xl text-xs flex items-center justify-center gap-1.5 transition shadow-xs cursor-pointer active:scale-95"
-              >
-                <Video className="w-4 h-4 stroke-[2.5]" />
-                <span>Démarrer Visio HD</span>
-              </button>
-            ) : nextImminentBooking.clientAddress ? (
-              <a
-                href={`https://maps.google.com/?q=${encodeURIComponent(nextImminentBooking.clientAddress)}`}
-                target="_blank"
-                rel="noreferrer"
-                className="flex-1 py-2.5 bg-[#00D664] hover:bg-[#00B050] text-[#0F172A] font-black rounded-xl text-xs flex items-center justify-center gap-1.5 transition shadow-xs"
-              >
-                <MapPin className="w-4 h-4 stroke-[2.5]" />
-                <span>Itinéraire GPS</span>
-              </a>
-            ) : (
-              <button
-                onClick={() => completeBooking(nextImminentBooking.id)}
-                className="flex-1 py-2.5 bg-[#00D664] text-[#0F172A] font-black rounded-xl text-xs transition"
-              >
-                Marquer comme terminée
-              </button>
-            )}
+            <button
+              onClick={() => setActiveVideoBooking(nextImminentBooking)}
+              className="flex-1 min-h-11 py-2.5 bg-[#00D664] hover:bg-[#00B050] text-[#0F172A] font-black rounded-xl text-xs flex items-center justify-center gap-1.5 transition shadow-xs cursor-pointer active:scale-95"
+            >
+              {nextImminentBooking.format === 'online' ? <Video className="w-4 h-4 stroke-[2.5]" /> : <MapPin className="w-4 h-4 stroke-[2.5]" />}
+              <span>{nextImminentBooking.format === 'online' ? 'Lien de la séance' : 'Lieu & itinéraire'}</span>
+            </button>
 
             <button
-              onClick={() => completeBooking(nextImminentBooking.id)}
-              className="px-3.5 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition cursor-pointer"
+              onClick={() => openBookingDetail(nextImminentBooking.id)}
+              className="min-h-11 px-3.5 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition cursor-pointer"
             >
-              Terminer
+              Détails
             </button>
           </div>
         </div>

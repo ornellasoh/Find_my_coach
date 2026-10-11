@@ -44,3 +44,31 @@ Fonctions serveur (`supabase/functions`, déjà déployées) :
 
 Secrets à définir (Edge Functions → Secrets) : `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, et plus tard `SITE_URL`.
 Commission : 15 % de la séance + frais de service (4,50 €) + taxes, prélevés automatiquement via Stripe Connect.
+
+## Version 1 « séances » (migration `20261011000000_v1_sessions.sql`)
+
+À appliquer **après** les migrations précédentes (SQL Editor → coller le fichier → Run). Elle est idempotente et ne supprime aucune donnée :
+les adresses exactes et les justificatifs déjà présents dans les fiches sont **déplacés** dans des tables privées.
+
+| Table | Contenu | Qui peut lire |
+|---|---|---|
+| booking_session_details | lien de visio (https), consignes, lieu exact | client et coach d'une séance confirmée ou effectuée, admin |
+| booking_reschedules | demandes de report + historique | client et coach de la séance, admin |
+| session_reports | compte rendu après la séance | client et coach de la séance, admin |
+| booking_issues | signalements (absence, technique, comportement) | l'auteur et l'admin (statut modifiable par l'admin seulement) |
+| coach_private | adresse et coordonnées exactes du coach | le coach lui-même, admin |
+| coach_documents | justificatifs (fichiers dans le stockage privé `documents`) | le coach lui-même, admin |
+
+Fonctions appelables par l'app (contrôles côté serveur) : `set_session_details`, `propose_reschedule`, `respond_reschedule`,
+`save_session_report`, `admin_review_document`, `admin_set_coach_verification`.
+
+Règles appliquées par la base :
+- une seule séance confirmée par créneau (index unique + verrou en cas de demandes simultanées) ;
+- le client ne peut modifier ni l'horaire, ni le prix, ni le statut de paiement d'une réservation ;
+- report : même coach, même séance, même prix, accord de l'autre participant, au moins `reschedule_min_hours` (24 h, table `app_settings`) avant la séance ;
+- badge « Vérifié » et « Élite » : modifiables uniquement par un admin.
+
+Fonction serveur ajoutée : `notify-dispatch` (envoi push + email des notifications créées par la base) — à déployer **sans vérification JWT** (comme `send-reminders`).
+Fonctions modifiées : `create-checkout`, `stripe-webhook` / `verify-payment` (via `_shared/confirm.ts`), `send-reminders`, `_shared/common.ts`.
+
+Tests (base PostgreSQL locale jetable, jamais la production) : `PGHOST=… PGPORT=… PGUSER=postgres bash supabase/tests/run_local.sh`

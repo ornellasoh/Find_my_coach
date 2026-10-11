@@ -27,6 +27,7 @@ export const ClientBookings: React.FC = () => {
     navigateTo, 
     goBack,
     setActiveVideoBooking,
+    openBookingDetail,
     startChatWithCoach,
     coaches
   } = useApp();
@@ -39,7 +40,7 @@ export const ClientBookings: React.FC = () => {
     ? bookings.filter(b => b.clientId === currentUser.id)
     : bookings;
 
-  const upcomingBookings = clientBookings.filter(b => b.bookingStatus === 'confirmed');
+  const upcomingBookings = clientBookings.filter(b => b.bookingStatus === 'confirmed' || b.bookingStatus === 'pending');
   const completedBookings = clientBookings.filter(b => b.bookingStatus === 'completed');
   const cancelledBookings = clientBookings.filter(b => b.bookingStatus === 'cancelled');
 
@@ -189,13 +190,15 @@ export const ClientBookings: React.FC = () => {
                 </div>
 
                 <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
-                  b.bookingStatus === 'confirmed'
+                  b.bookingStatus === 'pending'
+                    ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                    : b.bookingStatus === 'confirmed'
                     ? 'bg-[#00D664]/15 text-[#008A3E] border border-[#00D664]/30'
                     : b.bookingStatus === 'completed'
                     ? 'bg-blue-50 text-blue-700 border border-blue-200'
                     : 'bg-rose-50 text-rose-600 border border-rose-200'
                 }`}>
-                  {b.bookingStatus === 'confirmed' ? 'Confirmée' : b.bookingStatus === 'completed' ? 'Effectuée' : 'Annulée'}
+                  {b.bookingStatus === 'pending' ? 'Paiement en attente' : b.bookingStatus === 'confirmed' ? 'Confirmée' : b.bookingStatus === 'completed' ? 'Effectuée' : 'Annulée'}
                 </span>
               </div>
 
@@ -239,10 +242,17 @@ export const ClientBookings: React.FC = () => {
 
                     <button
                       onClick={() => setActiveVideoBooking(b)}
-                      className="flex-1 py-2 px-3 bg-[#00D664] hover:bg-[#00B050] text-[#0F172A] font-extrabold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer"
+                      className="flex-1 min-h-11 py-2 px-3 bg-[#00D664] hover:bg-[#00B050] text-[#0F172A] font-extrabold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer"
                     >
-                      <Video className="w-3.5 h-3.5 stroke-[2.5]" />
-                      <span>Rejoindre la visio</span>
+                      {b.format === 'online' ? <Video className="w-3.5 h-3.5 stroke-[2.5]" /> : <MapPin className="w-3.5 h-3.5 stroke-[2.5]" />}
+                      <span>{b.format === 'online' ? 'Rejoindre la séance' : 'Lieu & itinéraire'}</span>
+                    </button>
+
+                    <button
+                      onClick={() => openBookingDetail(b.id)}
+                      className="min-h-11 py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-xs border border-slate-200 transition cursor-pointer"
+                    >
+                      Détails
                     </button>
 
                     <button
@@ -255,8 +265,23 @@ export const ClientBookings: React.FC = () => {
                   </>
                 )}
 
+                {b.bookingStatus === 'pending' && (
+                  <button
+                    onClick={() => openBookingDetail(b.id)}
+                    className="w-full min-h-11 py-2 bg-amber-400 text-[#0F172A] font-extrabold rounded-xl text-xs cursor-pointer"
+                  >
+                    Finaliser le paiement ou abandonner
+                  </button>
+                )}
+
                 {b.bookingStatus === 'completed' && (
                   <>
+                    <button
+                      onClick={() => openBookingDetail(b.id)}
+                      className="min-h-11 py-2 px-3 bg-slate-100 text-slate-800 font-bold rounded-xl text-xs hover:bg-slate-200 border border-slate-200 transition cursor-pointer"
+                    >
+                      Compte rendu
+                    </button>
                     {!b.hasReview ? (
                       <button
                         onClick={() => setReviewModalBooking(b)}
@@ -275,7 +300,7 @@ export const ClientBookings: React.FC = () => {
                       onClick={() => navigateTo('booking_calendar', { coachId: b.coachId })}
                       className="py-2 px-3 bg-slate-100 text-slate-800 font-bold rounded-xl text-xs hover:bg-slate-200 border border-slate-200 transition cursor-pointer"
                     >
-                      Reprendre une séance
+                      Réserver à nouveau
                     </button>
                   </>
                 )}
@@ -286,7 +311,7 @@ export const ClientBookings: React.FC = () => {
                     className="w-full py-2.5 bg-[#00D664] hover:bg-[#00B050] text-[#0F172A] font-extrabold rounded-xl text-xs shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
-                    <span>Reprendre un rendez-vous</span>
+                    <span>Réserver à nouveau</span>
                   </button>
                 )}
               </div>

@@ -15,6 +15,7 @@ import {
   Award
 } from 'lucide-react';
 import { Logo } from '../common/Logo';
+import { AdminIssues, AdminVerifications } from './AdminModeration';
 
 export const AdminDashboard: React.FC = () => {
   const { 
@@ -29,7 +30,7 @@ export const AdminDashboard: React.FC = () => {
     loginAs
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'coaches' | 'reviews' | 'bookings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'coaches' | 'reviews' | 'bookings' | 'verif' | 'issues'>('overview');
 
   // Metrics
   const totalVolume = bookings.reduce((sum, b) => sum + (b.bookingStatus !== 'cancelled' ? b.total : 0), 0);
@@ -125,6 +126,27 @@ export const AdminDashboard: React.FC = () => {
           Flux ({bookings.length})
         </button>
       </div>
+      <div className="flex bg-white border border-slate-200 p-1 rounded-2xl mb-4 text-xs font-extrabold shadow-2xs">
+        <button
+          onClick={() => setActiveTab('verif')}
+          className={`flex-1 py-2 rounded-xl transition cursor-pointer ${
+            activeTab === 'verif' ? 'bg-[#00D664] text-[#0F172A] shadow-xs' : 'text-slate-500 hover:text-slate-900'
+          }`}
+        >
+          Vérifications
+        </button>
+        <button
+          onClick={() => setActiveTab('issues')}
+          className={`flex-1 py-2 rounded-xl transition cursor-pointer ${
+            activeTab === 'issues' ? 'bg-[#00D664] text-[#0F172A] shadow-xs' : 'text-slate-500 hover:text-slate-900'
+          }`}
+        >
+          Signalements
+        </button>
+      </div>
+
+      {activeTab === 'verif' && <AdminVerifications />}
+      {activeTab === 'issues' && <AdminIssues />}
 
       {/* Tab: Coaches Moderation */}
       {activeTab === 'coaches' && (

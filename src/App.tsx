@@ -12,6 +12,7 @@ import { NewPasswordModal } from './components/common/NewPasswordModal';
 import { ReviewModal } from './components/common/ReviewModal';
 import { VideoCallRoom } from './components/common/VideoCallRoom';
 import { ChatModal } from './components/common/ChatModal';
+import { BookingDetail } from './components/common/BookingDetail';
 import { AnimatePresence } from 'motion/react';
 import { LogoIcon } from './components/common/Logo';
 
@@ -93,6 +94,8 @@ const MainRouter: React.FC = () => {
         return <CoachClients />;
       case 'coach_ai_agent':
         return <CoachAIAgentView />;
+      case 'booking_detail':
+        return <BookingDetail />;
       case 'admin_dashboard':
         return <AdminDashboard />;
       default:
@@ -122,7 +125,7 @@ const MainRouter: React.FC = () => {
         {/* Review & Rating Modal */}
         <ReviewModal />
 
-        {/* Apple Video Call Room */}
+        {/* Accès rapide à une séance (lien de visio externe, consignes) */}
         <AnimatePresence>
           {activeVideoBooking && (
             <VideoCallRoom

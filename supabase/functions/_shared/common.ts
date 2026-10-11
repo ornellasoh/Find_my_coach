@@ -58,8 +58,22 @@ const SESSION_MULTIPLIERS: Record<string, number> = {
 };
 export const SERVICE_FEE = 4.5;
 export const COMMISSION_RATE = 0.15;
+/**
+ * Part des frais Stripe correspondant aux frais de déplacement, retenue au coach
+ * (tarif Stripe cartes standard EEE : 1,5 % — le forfait par paiement est déjà couvert par les frais de service).
+ * À ajuster si le tarif Stripe du compte change.
+ */
+export const TRAVEL_STRIPE_RATE = 0.015;
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
+
+/** Frais de déplacement du coach (séance à domicile uniquement), bornés à 0–100 €. */
+// deno-lint-ignore no-explicit-any
+export function travelFeeFor(coach: any, format?: string): number {
+  if (format !== 'home') return 0;
+  const fee = Number(coach?.travelFee ?? 0);
+  return Number.isFinite(fee) ? round2(Math.min(100, Math.max(0, fee))) : 0;
+}
 
 // deno-lint-ignore no-explicit-any
 export function computePrice(coach: any, sessionType: any, promoCode?: string) {
@@ -72,19 +86,25 @@ export function computePrice(coach: any, sessionType: any, promoCode?: string) {
       ? fp.online
       : coach.hourlyRate * (SESSION_MULTIPLIERS[sessionType?.id] ?? sessionType?.priceMultiplier ?? 1);
   const basePrice = round2(base);
+  const travelFee = travelFeeFor(coach, format);
   const taxes = round2(basePrice * 0.025);
   let discount = 0;
   const code = (promoCode ?? '').trim().toUpperCase();
   if (code === 'FMC10') discount = 10;
   if (code === 'WELCOME20') discount = round2(basePrice * 0.2);
-  const total = Math.max(0, round2(basePrice + SERVICE_FEE + taxes - discount));
-  // Commission Find My Coach : 15 % de la séance + frais de service + taxes, moins la remise offerte
-  const platformFee = Math.max(0, round2(basePrice * COMMISSION_RATE + SERVICE_FEE + taxes - discount));
-  return { basePrice, taxes, discount, total, platformFee };
+  const total = Math.max(0, round2(basePrice + travelFee + SERVICE_FEE + taxes - discount));
+  // Commission Find My Coach : 15 % de la séance + frais de service + taxes, moins la remise offerte.
+  // Frais de déplacement : sans commission, le coach les reçoit moins les frais Stripe correspondants.
+  const travelStripeFee = round2(travelFee * TRAVEL_STRIPE_RATE);
+  const platformFee = Math.max(0, round2(basePrice * COMMISSION_RATE + SERVICE_FEE + taxes - discount + travelStripeFee));
+  return { basePrice, travelFee, travelStripeFee, taxes, discount, total, platformFee };
 }
 
 /** Types de notifications qui déclenchent aussi un email (les autres : app + push uniquement). */
-const EMAIL_TYPES = new Set(['booking_confirmed', 'new_booking', 'booking_cancelled', 'reminder']);
+const EMAIL_TYPES = new Set([
+  'booking_confirmed', 'new_booking', 'booking_cancelled', 'reminder',
+  'session_link', 'reschedule_request', 'reschedule_accepted', 'reschedule_declined', 'session_report',
+]);
 
 /**
  * Ajoute une notification dans l'app, puis l'envoie en push sur le téléphone
@@ -99,7 +119,11 @@ export async function notify(userId: string | null | undefined, type: string, ti
     read: false,
     data: { id, userId, type, title, message, relatedBookingId: bookingId, read: false, createdAt: new Date().toISOString() },
   });
+  await deliver(userId, type, title, message, bookingId);
+}
 
+/** Envoi push + email d'une notification déjà enregistrée (aussi utilisé par notify-dispatch). */
+export async function deliver(userId: string, type: string, title: string, message: string, bookingId?: string) {
   try {
     const { data: profile } = await admin.from('profiles').select('name, email, notify_email, notify_push').eq('id', userId).maybeSingle();
     if (!profile) return;

@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { uploadProfilePhoto } from '../../lib/photos';
 import { ThemePicker } from '../common/ThemePicker';
 import { DeleteAccount } from '../common/DeleteAccount';
@@ -21,7 +21,12 @@ import {
   Layers,
   Sparkles
 } from 'lucide-react';
-import { CoachingFormat, VerificationDoc } from '../../types';
+import { CoachingFormat, CoachLevel } from '../../types';
+import { CoachDocumentsPanel } from './CoachDocumentsPanel';
+import { fetchMyPrivateAddress } from '../../lib/sessions';
+import { searchPlaces } from '../../utils/geo';
+import { profileChecklist } from '../../utils/coachTrust';
+import { AUDIENCE_OPTIONS, LEVEL_LABELS, OBJECTIVE_OPTIONS } from '../../utils/searchFilters';
 
 export const CoachProfileEditor: React.FC = () => {
   const { 
@@ -29,7 +34,7 @@ export const CoachProfileEditor: React.FC = () => {
     coaches, 
     updateCoachProfile, 
     updateCoachPhoto,
-    submitVerificationDoc,
+    availabilities,
     goBack,
     logout,
     loginAs
@@ -54,6 +59,24 @@ export const CoachProfileEditor: React.FC = () => {
   const [certifications, setCertifications] = useState<string[]>(coach?.certifications || []);
   const [newCert, setNewCert] = useState('');
   const [videoLink, setVideoLink] = useState(coach?.videoLink || '');
+  const [methods, setMethods] = useState(coach?.methods || '');
+  const [objectives, setObjectives] = useState<string[]>(coach?.objectives || []);
+  const [levels, setLevels] = useState<CoachLevel[]>(coach?.levels || []);
+  const [audiences, setAudiences] = useState<string[]>(coach?.audiences || []);
+  const [sessionIncludes, setSessionIncludes] = useState(coach?.sessionIncludes || '');
+  const [prepInstructions, setPrepInstructions] = useState(coach?.prepInstructions || '');
+  const [travelFee, setTravelFee] = useState<number>(coach?.travelFee ?? 0);
+  const [docCount, setDocCount] = useState(0);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
+
+  // Adresse exacte : stockée à part (privée), jamais sur la fiche publique
+  useEffect(() => {
+    if (!coach) return;
+    fetchMyPrivateAddress(coach.id).then((a) => { if (a) setAddress(a); }).catch(() => {});
+  }, [coach?.id]);
+
+  const toggleIn = <T,>(list: T[], v: T) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
 
   // Formats & format prices
   const [formats, setFormats] = useState<CoachingFormat[]>(
@@ -64,8 +87,6 @@ export const CoachProfileEditor: React.FC = () => {
   const [gymPrice, setGymPrice] = useState(coach?.formatPrices?.partner_gym || hourlyRate);
 
   // Document upload state
-  const [docType, setDocType] = useState<'diploma' | 'identity' | 'insurance' | 'kbis' | 'cert'>('diploma');
-  const [docTitle, setDocTitle] = useState('');
   const [feedback, setFeedback] = useState('');
 
   // Photo de profil
@@ -97,11 +118,33 @@ export const CoachProfileEditor: React.FC = () => {
     );
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!coach) return;
+    setSaving(true);
+    setSaveError('');
+
+    // Position publique = centre de la commune (zone approximative), à partir du code postal ou de la ville
+    let coords: { latitude: number; longitude: number } | null = null;
+    try {
+      const [place] = await searchPlaces(/^\d{5}$/.test(postalCode.trim()) ? postalCode.trim() : city.trim());
+      if (place) coords = { latitude: place.latitude, longitude: place.longitude };
+    } catch { /* hors connexion : on garde la position actuelle */ }
+    if (!coords && (city.trim() !== coach.city)) {
+      setSaveError("Ville introuvable : vérifiez l'orthographe ou le code postal.");
+      setSaving(false);
+      return;
+    }
 
     updateCoachProfile(coach.id, {
+      ...(coords ?? {}),
+      methods: methods.trim(),
+      objectives,
+      levels,
+      audiences,
+      sessionIncludes: sessionIncludes.trim(),
+      prepInstructions: prepInstructions.trim(),
+      travelFee: formats.includes('home') ? Math.min(100, Math.max(0, Number(travelFee) || 0)) : 0,
       title,
       bio,
       hourlyRate: Number(hourlyRate),
@@ -125,19 +168,12 @@ export const CoachProfileEditor: React.FC = () => {
       isInPersonCoaching: formats.some(f => f !== 'online')
     });
 
+    setSaving(false);
     setFeedback('Profil professionnel mis à jour avec succès !');
     setTimeout(() => setFeedback(''), 3000);
   };
 
-  const handleUploadDoc = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!docTitle.trim()) return;
 
-    submitVerificationDoc(coach.id, docType, docTitle.trim());
-    setDocTitle('');
-    setFeedback(`Document "${docTitle}" envoyé pour validation avec succès !`);
-    setTimeout(() => setFeedback(''), 3000);
-  };
 
   const addSpecialty = () => {
     if (newSpecialty.trim() && !specialties.includes(newSpecialty.trim())) {
@@ -161,6 +197,19 @@ export const CoachProfileEditor: React.FC = () => {
     setCertifications(certifications.filter(c => c !== item));
   };
 
+
+  const pill = (active: boolean) =>
+    `min-h-10 px-3 rounded-full text-xs font-bold border transition cursor-pointer ${active ? 'bg-[#00D664]/15 border-[#00D664] text-[#008A3E]' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'}`;
+
+  const checklist = coach
+    ? profileChecklist(
+        { ...coach, bio, methods, objectives, levels, audiences, sessionIncludes, formats, hourlyRate: Number(hourlyRate), city, interventionRadiusKm: Number(radiusKm), specialties },
+        docCount > 0 || (coach.verificationStatus === 'verified'),
+        availabilities.some((a) => a.coachId === coach.id && !a.isBooked && a.date >= new Date().toISOString().slice(0, 10)),
+      )
+    : [];
+  const doneCount = checklist.filter((c) => c.done).length;
+
   return (
     <div className="min-h-screen bg-[#F6F9FA] text-[#0F172A] pb-28 max-w-md mx-auto px-4 pt-3">
       {/* Header */}
@@ -182,6 +231,30 @@ export const CoachProfileEditor: React.FC = () => {
           <Check className="w-4 h-4" />
           <span>{feedback}</span>
         </div>
+      )}
+
+      {/* Profil à compléter */}
+      {checklist.length > 0 && doneCount < checklist.length && (
+        <details className="mb-4 bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-xs" open={doneCount < 6}>
+          <summary className="cursor-pointer text-sm font-bold flex items-center justify-between">
+            <span>Profil complété à {Math.round((doneCount / checklist.length) * 100)} %</span>
+            <span className="text-xs text-slate-500">{doneCount}/{checklist.length}</span>
+          </summary>
+          <div className="mt-2 h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+            <div className="h-full bg-[#00D664]" style={{ width: `${(doneCount / checklist.length) * 100}%` }} />
+          </div>
+          <ul className="mt-3 space-y-1.5">
+            {checklist.map((c) => (
+              <li key={c.key} className={`text-xs flex items-center gap-2 ${c.done ? 'text-slate-400 line-through' : 'font-semibold'}`}>
+                <span className={`w-4 h-4 rounded-full flex items-center justify-center ${c.done ? 'bg-[#00D664] text-white' : 'border border-slate-300'}`}>
+                  {c.done && <Check className="w-3 h-3" />}
+                </span>
+                {c.label}
+              </li>
+            ))}
+          </ul>
+          <p className="text-[11px] text-slate-500 mt-2">Un profil complet inspire confiance et apparaît mieux dans les recherches.</p>
+        </details>
       )}
 
       <form onSubmit={handleSave} className="space-y-4">
@@ -253,12 +326,12 @@ export const CoachProfileEditor: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Lien Visio par défaut / Vidéo</label>
+            <label className="block text-xs font-bold text-slate-700 mb-1">Vidéo de présentation (lien YouTube, Vimeo…)</label>
             <input
               type="text"
               value={videoLink}
               onChange={(e) => setVideoLink(e.target.value)}
-              placeholder="https://zoom.us/j/votre-salle-live"
+              placeholder="https://youtube.com/…"
               className="w-full px-3.5 py-2 bg-slate-50 text-xs text-slate-900 rounded-xl border border-slate-300 focus:outline-none focus:border-[#00D664]"
             />
           </div>
@@ -358,6 +431,19 @@ export const CoachProfileEditor: React.FC = () => {
           </div>
 
           <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Adresse exacte (studio, salle) — privée</label>
+            <input
+              type="text"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              autoComplete="street-address"
+              placeholder="Communiquée uniquement aux clients d'une séance confirmée"
+              className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 text-sm rounded-xl border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-[#00D664]"
+            />
+            <p className="text-[11px] text-slate-500 mt-1">Votre fiche publique n'affiche que la ville et une zone approximative.</p>
+          </div>
+
+          <div>
             <div className="flex items-center justify-between mb-1">
               <label className="text-xs font-bold text-slate-700">Rayon de déplacement</label>
               <span className="text-xs font-black text-[#008A3E]">{radiusKm} km</span>
@@ -423,9 +509,94 @@ export const CoachProfileEditor: React.FC = () => {
           </div>
         </div>
 
+        {/* Méthode, objectifs, niveaux, publics */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
+          <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider block">Méthode & publics</span>
+          <div>
+            <label className="block text-xs font-bold mb-1">Votre méthode de travail</label>
+            <textarea
+              rows={4}
+              value={methods}
+              onChange={(e) => setMethods(e.target.value)}
+              maxLength={2000}
+              placeholder="Bilan de départ, déroulé d'une séance, suivi entre les séances…"
+              className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 text-sm rounded-xl border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-[#00D664] resize-none"
+            />
+          </div>
+          <div>
+            <p className="text-xs font-bold mb-1.5">Objectifs accompagnés</p>
+            <div className="flex flex-wrap gap-1.5">
+              {OBJECTIVE_OPTIONS.map((o) => (
+                <button key={o} type="button" onClick={() => setObjectives(toggleIn(objectives, o))} className={pill(objectives.includes(o))}>{o}</button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="text-xs font-bold mb-1.5">Niveaux acceptés</p>
+            <div className="flex flex-wrap gap-1.5">
+              {(Object.keys(LEVEL_LABELS) as CoachLevel[]).map((l) => (
+                <button key={l} type="button" onClick={() => setLevels(toggleIn(levels, l))} className={pill(levels.includes(l))}>{LEVEL_LABELS[l]}</button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="text-xs font-bold mb-1.5">Publics</p>
+            <div className="flex flex-wrap gap-1.5">
+              {AUDIENCE_OPTIONS.map((a) => (
+                <button key={a} type="button" onClick={() => setAudiences(toggleIn(audiences, a))} className={pill(audiences.includes(a))}>{a}</button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Contenu de la séance, consignes, frais de déplacement */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
+          <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider block">Séance & préparation</span>
+          <div>
+            <label className="block text-xs font-bold mb-1">Ce que comprend une séance (affiché avant paiement)</label>
+            <textarea
+              rows={2}
+              value={sessionIncludes}
+              onChange={(e) => setSessionIncludes(e.target.value)}
+              maxLength={500}
+              placeholder="ex. 60 min de coaching, matériel fourni, programme envoyé après la séance"
+              className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 text-sm rounded-xl border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-[#00D664] resize-none"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold mb-1">Consignes par défaut pour vos clients</label>
+            <textarea
+              rows={2}
+              value={prepInstructions}
+              onChange={(e) => setPrepInstructions(e.target.value)}
+              maxLength={2000}
+              placeholder="Tenue de sport, tapis, bouteille d'eau, 2 m² dégagés…"
+              className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 text-sm rounded-xl border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-[#00D664] resize-none"
+            />
+            <p className="text-[11px] text-slate-500 mt-1">Copiées dans chaque séance confirmée ; modifiables séance par séance avec le lien de visio.</p>
+          </div>
+          {formats.includes('home') && (
+            <div>
+              <label className="block text-xs font-bold mb-1">Frais de déplacement à domicile (€)</label>
+              <input
+                type="number"
+                min={0}
+                max={100}
+                step={0.5}
+                value={travelFee}
+                onChange={(e) => setTravelFee(Number(e.target.value))}
+                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 text-sm rounded-xl border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-[#00D664]"
+              />
+              <p className="text-[11px] text-slate-500 mt-1">Ajoutés au prix des séances à domicile et affichés avant le paiement. Sans commission Find My Coach : ils vous sont reversés, moins les frais bancaires Stripe correspondants (1,5 %).</p>
+            </div>
+          )}
+        </div>
+
         {/* Save Button */}
+        {saveError && <p className="text-sm text-rose-600 font-semibold">{saveError}</p>}
         <button
           type="submit"
+          disabled={saving}
           className="w-full py-3.5 bg-[#00D664] hover:bg-[#00B050] text-[#0F172A] font-black rounded-2xl text-sm transition shadow-md flex items-center justify-center gap-2 cursor-pointer active:scale-98"
         >
           <Save className="w-4 h-4" />
@@ -433,88 +604,8 @@ export const CoachProfileEditor: React.FC = () => {
         </button>
       </form>
 
-      {/* Diplomas & Official Verification Module */}
-      <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs space-y-3 mt-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <FileCheck2 className="w-4 h-4 text-[#00B050]" />
-            <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">
-              Documents & Badge Vérifié ✓
-            </h3>
-          </div>
-          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-            coach?.verificationStatus === 'verified'
-              ? 'bg-emerald-100 text-[#008A3E]'
-              : 'bg-amber-100 text-amber-800'
-          }`}>
-            {coach?.verificationStatus === 'verified' ? 'Statut Vérifié ✓' : 'Validation en cours'}
-          </span>
-        </div>
-
-        {/* List of submitted docs */}
-        <div className="space-y-2">
-          {coach?.verificationDocs && coach.verificationDocs.length > 0 ? (
-            coach.verificationDocs.map((doc) => (
-              <div
-                key={doc.id}
-                className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between text-xs"
-              >
-                <div>
-                  <span className="font-extrabold text-[#0F172A] block">{doc.title}</span>
-                  <span className="text-[10px] text-slate-400 capitalize">{doc.type}</span>
-                </div>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                  doc.status === 'approved'
-                    ? 'bg-emerald-100 text-[#008A3E]'
-                    : doc.status === 'rejected'
-                    ? 'bg-rose-100 text-rose-700'
-                    : 'bg-amber-100 text-amber-800'
-                }`}>
-                  {doc.status === 'approved' ? 'Validé ✓' : doc.status === 'rejected' ? 'Rejeté' : 'En attente'}
-                </span>
-              </div>
-            ))
-          ) : (
-            <p className="text-xs text-slate-400 text-center py-2">
-              Aucun document justificatif téléversé pour le moment.
-            </p>
-          )}
-        </div>
-
-        {/* Add New Document Form */}
-        <form onSubmit={handleUploadDoc} className="space-y-2 pt-2 border-t border-slate-100">
-          <div className="grid grid-cols-3 gap-2">
-            <select
-              value={docType}
-              onChange={(e) => setDocType(e.target.value as any)}
-              className="col-span-1 p-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-[#00D664]"
-            >
-              <option value="diploma">Diplôme STAPS / BPJEPS</option>
-              <option value="insurance">Assurance RC Pro</option>
-              <option value="identity">Pièce d'identité</option>
-              <option value="kbis">KBIS / Statut</option>
-              <option value="cert">Certificat complémentaire</option>
-            </select>
-
-            <input
-              type="text"
-              required
-              value={docTitle}
-              onChange={(e) => setDocTitle(e.target.value)}
-              placeholder="Intitulé officiel du document..."
-              className="col-span-2 p-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-[#00D664]"
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
-          >
-            <Upload className="w-3.5 h-3.5 text-[#00B050]" />
-            <span>Soumettre pour validation</span>
-          </button>
-        </form>
-      </div>
+      {/* Justificatifs (stockage privé) */}
+      {coach && currentUser && <CoachDocumentsPanel coach={coach} ownerId={currentUser.id} onCountChange={setDocCount} />}
 
       {/* Compte */}
       <div className="mt-6 space-y-2">

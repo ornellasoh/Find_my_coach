@@ -144,21 +144,22 @@ END:VCALENDAR`;
             </div>
           </div>
 
-          {b.meetingLink && (
-            <div className="p-3 bg-[#00D664]/10 rounded-xl border border-[#00D664]/20 flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2">
-                <Video className="w-4 h-4 text-[#008A3E]" />
-                <span className="font-bold text-[#0F172A]">Séance en visio HD :</span>
-              </div>
-              <button
-                onClick={() => setActiveVideoBooking(b)}
-                className="px-3 py-1.5 bg-[#00D664] text-[#0F172A] rounded-lg font-extrabold hover:bg-[#00B050] transition flex items-center gap-1 shadow-2xs cursor-pointer active:scale-95"
-              >
-                <span>Tester la salle</span>
-                <Video className="w-3.5 h-3.5" />
-              </button>
+          <div className="p-3 bg-[#00D664]/10 rounded-xl border border-[#00D664]/20 flex items-center justify-between gap-2 text-xs">
+            <div className="flex items-center gap-2">
+              {b.format === 'online' ? <Video className="w-4 h-4 text-[#008A3E] shrink-0" /> : <MapPin className="w-4 h-4 text-[#008A3E] shrink-0" />}
+              <span className="font-semibold text-[#0F172A]">
+                {b.format === 'online'
+                  ? 'Le coach ajoutera le lien de visio avant la séance. Vous serez prévenu.'
+                  : 'Le lieu exact et l\'itinéraire sont dans le détail de la réservation.'}
+              </span>
             </div>
-          )}
+            <button
+              onClick={() => setActiveVideoBooking(b)}
+              className="min-h-11 px-3 bg-[#00D664] text-[#0F172A] rounded-lg font-extrabold hover:bg-[#00B050] transition shrink-0 cursor-pointer active:scale-95"
+            >
+              Voir
+            </button>
+          </div>
         </div>
 
         {/* Quick Utility CTAs (Add to calendar, Contact coach) */}

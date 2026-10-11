@@ -16,6 +16,10 @@ Deno.serve(async (req) => {
     const { data: coachRow } = await admin.from('coaches').select('id, data').eq('id', row.coach_id).maybeSingle();
     if (!coachRow) return json({ error: 'Coach introuvable' }, 404);
 
+    // Le créneau doit être encore libre (une autre personne a pu payer entre-temps)
+    const { data: conflict } = await admin.rpc('fmc_booking_conflict', { p_booking_id: booking_id, p_include_pending: false });
+    if (conflict === true) return json({ error: 'Ce créneau vient d’être réservé. Choisissez un autre horaire.' }, 409);
+
     const price = computePrice(coachRow.data, booking.sessionType, promo_code);
     const amount = Math.round(price.total * 100);
     const fee = Math.round(price.platformFee * 100);
@@ -42,7 +46,7 @@ Deno.serve(async (req) => {
             unit_amount: amount,
             product_data: {
               name: `${booking.sessionType?.name ?? 'Séance'} avec ${coachRow.data.name}`,
-              description: `${booking.date} à ${booking.startTime} — Find My Coach`,
+              description: `${booking.date} à ${booking.startTime}${price.travelFee ? ` — dont ${price.travelFee.toFixed(2).replace('.', ',')} € de déplacement` : ''} — Find My Coach`,
             },
           },
         },
@@ -74,7 +78,7 @@ Deno.serve(async (req) => {
     // Le prix enregistré est celui calculé par le serveur
     await admin
       .from('bookings')
-      .update({ data: { ...booking, price: price.basePrice, taxes: price.taxes, total: price.total, paymentMethod: 'Carte bancaire (Stripe)' } })
+      .update({ data: { ...booking, price: price.basePrice, travelFee: price.travelFee, taxes: price.taxes, total: price.total, paymentMethod: 'Carte bancaire (Stripe)' } })
       .eq('id', booking_id);
 
     return json({ url: session.url, total: price.total });

@@ -8,16 +8,12 @@ import {
   Briefcase,
   Brain,
   TrendingUp,
-  Clock,
-  Video,
-  MessageSquare,
-  ChevronRight,
   Sparkles,
   LayoutGrid,
 } from 'lucide-react';
-import { motion } from 'motion/react';
 import { CoachFeatureCard } from '../common/CoachCard';
-import { Chip, Screen, SearchField, SectionHeader, formatDateFr } from '../ui/fmc';
+import { NextSessionCard } from './NextSessionCard';
+import { Chip, Screen, SearchField, SectionHeader } from '../ui/fmc';
 
 const getCategoryIcon = (slug: string) => {
   const cls = 'w-4 h-4';
@@ -42,14 +38,8 @@ export const HomeDashboard: React.FC = () => {
     setSearchQuery,
     selectedCategory,
     setSelectedCategory,
-    bookings,
-    setActiveVideoBooking,
-    startChatWithCoach,
   } = useApp();
 
-  const nextBooking = bookings.find(
-    (b) => b.clientId === (currentUser?.id || 'user-client-1') && b.bookingStatus === 'confirmed'
-  );
 
   const activeCoaches = coaches.filter((c) => c.isActive);
   const selectedCat = categories.find((cat) => cat.slug === selectedCategory);
@@ -93,51 +83,8 @@ export const HomeDashboard: React.FC = () => {
         className="mb-6"
       />
 
-      {/* Prochaine séance */}
-      {nextBooking && (
-        <motion.section
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-7 rounded-[28px] bg-fmc-dark text-white p-5"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-xs font-bold uppercase tracking-wider text-fmc-green">Prochaine séance</span>
-            <button
-              onClick={() => navigateTo('bookings')}
-              className="text-sm font-semibold text-white/70 flex items-center gap-0.5 cursor-pointer"
-            >
-              Gérer <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-          <div className="flex items-center gap-3">
-            <img src={nextBooking.coachPhoto} alt={nextBooking.coachName} className="w-12 h-12 rounded-2xl object-cover" />
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold truncate">{nextBooking.coachName}</p>
-              <p className="text-sm text-white/60 flex items-center gap-1.5 tabular-nums whitespace-nowrap">
-                <Clock className="w-3.5 h-3.5 shrink-0" />
-                {formatDateFr(nextBooking.date)} • {nextBooking.startTime}
-              </p>
-            </div>
-            <button
-              aria-label="Message au coach"
-              onClick={() => {
-                const coach = coaches.find((c) => c.id === nextBooking.coachId);
-                if (coach) startChatWithCoach(coach);
-              }}
-              className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center cursor-pointer"
-            >
-              <MessageSquare className="w-5 h-5" />
-            </button>
-            <button
-              aria-label="Rejoindre la visio"
-              onClick={() => setActiveVideoBooking(nextBooking)}
-              className="w-11 h-11 rounded-full bg-fmc-green text-fmc-navy flex items-center justify-center cursor-pointer"
-            >
-              <Video className="w-5 h-5" />
-            </button>
-          </div>
-        </motion.section>
-      )}
+      {/* Ma prochaine séance */}
+      <NextSessionCard />
 
       {/* Catégories */}
       <SectionHeader title="Catégories" />

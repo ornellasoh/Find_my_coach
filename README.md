@@ -191,7 +191,7 @@ Icône et splash natifs : sources dans `resources/`, régénération avec `npm r
 - Pages légales sur le site (`/confidentialite`, `/suppression-compte`, CGU, mentions légales)
 - Comptes de test (client + coach) pour la validation Apple / Google
 - Notifications push : configuration Firebase
-- Visio intégrée, écrans coach/admin restants à la charte
+- Écrans coach/admin restants à la charte
 - Publication App Store et Google Play
 
 ---

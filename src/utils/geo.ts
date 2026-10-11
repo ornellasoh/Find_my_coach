@@ -76,3 +76,61 @@ export function findCityByName(query: string): CityPreset | undefined {
       q.includes(c.name.toLowerCase())
   );
 }
+
+export interface PlaceResult {
+  label: string;      // « Poitiers (86000) »
+  city: string;
+  postalCode: string;
+  latitude: number;
+  longitude: number;
+}
+
+/** Repli hors connexion : villes préréglées. */
+function presetMatches(q: string): PlaceResult[] {
+  const s = q.trim().toLowerCase();
+  return CITY_PRESETS.filter((c) => c.name.toLowerCase().startsWith(s) || c.postalCode.startsWith(s)).map((c) => ({
+    label: `${c.name} (${c.postalCode})`,
+    city: c.name,
+    postalCode: c.postalCode,
+    latitude: c.latitude,
+    longitude: c.longitude,
+  }));
+}
+
+/**
+ * Recherche d'une ville ou d'un code postal français (API publique geo.api.gouv.fr, sans clé, sans compte).
+ * Seul le texte tapé est envoyé (jamais la position de l'utilisateur). Repli sur les villes préréglées.
+ */
+export async function searchPlaces(query: string, signal?: AbortSignal): Promise<PlaceResult[]> {
+  const q = query.trim();
+  if (q.length < 2) return [];
+  const isPostal = /^\d{2,5}$/.test(q);
+  if (isPostal && q.length < 5) return presetMatches(q);
+  const params = new URLSearchParams({ fields: 'nom,codesPostaux,centre', limit: '6' });
+  if (isPostal) params.set('codePostal', q);
+  else {
+    params.set('nom', q);
+    params.set('boost', 'population');
+  }
+  try {
+    const res = await fetch(`https://geo.api.gouv.fr/communes?${params.toString()}`, { signal });
+    if (!res.ok) throw new Error(String(res.status));
+    const rows = (await res.json()) as { nom: string; codesPostaux?: string[]; centre?: { coordinates: [number, number] } }[];
+    const out = rows
+      .filter((r) => r.centre?.coordinates)
+      .map((r) => {
+        const cp = isPostal ? q : r.codesPostaux?.[0] ?? '';
+        return {
+          label: `${r.nom}${cp ? ` (${cp})` : ''}`,
+          city: r.nom,
+          postalCode: cp,
+          latitude: r.centre!.coordinates[1],
+          longitude: r.centre!.coordinates[0],
+        };
+      });
+    return out.length ? out : presetMatches(q);
+  } catch (e) {
+    if ((e as Error).name === 'AbortError') throw e;
+    return presetMatches(q);
+  }
+}

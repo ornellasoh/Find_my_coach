@@ -111,9 +111,20 @@ export interface CoachProfile {
   recurringSchedule?: WeeklyScheduleDay[];
   blockedDates?: string[]; // YYYY-MM-DD
   
+  // Présentation détaillée (v1)
+  methods?: string;              // méthode de travail, déroulé type d'une séance
+  objectives?: string[];         // ex. « Perte de poids », « Remise en forme »
+  levels?: CoachLevel[];         // niveaux acceptés
+  audiences?: string[];          // publics : adultes, seniors, femmes enceintes…
+  sessionIncludes?: string;      // ce que comprend une séance (matériel fourni, bilan, suivi…)
+  prepInstructions?: string;     // consignes par défaut (tenue, matériel, espace), copiées à la confirmation
+  travelFee?: number;            // frais de déplacement (séance à domicile), en €
+
   isProfileComplete: boolean;
   isActive: boolean;
 }
+
+export type CoachLevel = 'debutant' | 'intermediaire' | 'avance';
 
 export interface Category {
   id: string;
@@ -181,6 +192,73 @@ export interface Booking {
   notes?: string;
   createdAt: string;
   hasReview?: boolean;
+  travelFee?: number;
+  rescheduledAt?: string;
+  rescheduleCount?: number;
+  cancelReason?: string;
+}
+
+/** Détails privés d'une séance confirmée (visibles uniquement par le client et le coach). */
+export interface SessionDetails {
+  bookingId: string;
+  meetingUrl: string | null;
+  prepInstructions: string | null;
+  sessionAddress: string | null;
+  updatedAt?: string;
+}
+
+export type RescheduleStatus = 'pending' | 'accepted' | 'declined' | 'cancelled';
+
+export interface RescheduleRequest {
+  id: string;
+  bookingId: string;
+  requestedBy: string;
+  requesterRole: 'client' | 'coach';
+  oldDate: string;
+  oldStart: string;
+  oldEnd?: string | null;
+  newDate: string;
+  newStart: string;
+  newEnd?: string | null;
+  newAvailabilityId: string;
+  message?: string | null;
+  status: RescheduleStatus;
+  createdAt: string;
+  respondedAt?: string | null;
+}
+
+export interface SessionReport {
+  bookingId: string;
+  summary: string;
+  nextActions?: string | null;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export type IssueCategory = 'no_show' | 'technical' | 'behaviour' | 'other';
+export type IssueStatus = 'open' | 'in_progress' | 'resolved' | 'dismissed';
+
+export interface BookingIssue {
+  id: string;
+  bookingId: string;
+  reporterId: string;
+  reporterRole: 'client' | 'coach';
+  category: IssueCategory;
+  description?: string | null;
+  status: IssueStatus;
+  adminNote?: string | null;
+  createdAt: string;
+}
+
+export interface CoachDocument {
+  id: string;
+  coachId: string;
+  type: VerificationDoc['type'];
+  title: string;
+  filePath?: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  adminFeedback?: string | null;
+  submittedAt: string;
 }
 
 export interface Review {
@@ -213,6 +291,13 @@ export type NotificationType =
   | 'payment_received'
   | 'verification_approved'
   | 'verification_rejected'
+  | 'session_link'
+  | 'reschedule_request'
+  | 'reschedule_accepted'
+  | 'reschedule_declined'
+  | 'session_report'
+  | 'reminder'
+  | 'reminder_soon'
   | 'system';
 
 export interface Notification {

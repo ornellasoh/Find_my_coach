@@ -1,314 +1,353 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { 
-  ArrowLeft, 
-  Search, 
-  SlidersHorizontal, 
-  MapPin, 
-  Star, 
-  X, 
-  Sparkles, 
-  Video, 
-  Check, 
-  Calendar, 
-  RotateCcw,
+import {
+  Calendar,
+  Crosshair,
   List,
+  Loader2,
   Map as MapIcon,
-  Navigation,
-  CheckCircle2,
-  Filter,
-  Layers,
-  Home,
-  Building2,
-  Trees,
-  Wallet
+  MapPin,
+  RotateCcw,
+  Search,
+  SlidersHorizontal,
+  Video,
+  X,
 } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 import { Chip, IconButton, ScreenHeader, SearchField } from '../ui/fmc';
-import { motion, AnimatePresence } from 'motion/react';
 import { CoachCard } from '../common/CoachCard';
 import { CoachMap } from '../common/CoachMap';
-import { CoachingFormat } from '../../types';
-import { calculateDistanceKm, CITY_PRESETS, findCityByName } from '../../utils/geo';
+import type { CoachProfile, CoachingFormat, CoachLevel } from '../../types';
+import { calculateDistanceKm, searchPlaces, type PlaceResult } from '../../utils/geo';
+import {
+  DEFAULT_SEARCH_FILTERS,
+  LEVEL_LABELS,
+  OBJECTIVE_OPTIONS,
+  RADIUS_OPTIONS,
+  type SearchFilters,
+} from '../../utils/searchFilters';
+import { isVerifiedCoach } from '../../utils/coachTrust';
+
+const IN_PERSON: CoachingFormat[] = ['home', 'coach_location', 'outdoor', 'partner_gym', 'corporate'];
+const FORMAT_LABELS: Record<CoachingFormat, string> = {
+  online: 'Visio',
+  home: 'À domicile',
+  coach_location: 'Chez le coach',
+  outdoor: 'Extérieur',
+  partner_gym: 'En salle',
+  corporate: 'Entreprise',
+};
+
+const minPrice = (c: CoachProfile) => {
+  const prices = Object.values(c.formatPrices ?? {}).filter((p): p is number => typeof p === 'number' && p > 0);
+  return Math.min(c.hourlyRate, ...(prices.length ? prices : [c.hourlyRate]));
+};
+
+type GeoState = 'idle' | 'locating' | 'denied' | 'unavailable' | 'unsupported';
+
+interface Row {
+  coach: CoachProfile;
+  distanceKm: number | null;
+  /** Coach hors rayon mais disponible en visio */
+  remoteOnly: boolean;
+}
 
 export const CoachSearch: React.FC = () => {
-  const { 
-    coaches, 
+  const {
+    coaches,
     categories,
-    goBack, 
-    searchQuery, 
+    availabilities,
+    goBack,
+    searchQuery,
     setSearchQuery,
     selectedCategory,
-    setSelectedCategory
+    setSelectedCategory,
+    searchFilters: f,
+    setSearchFilters,
   } = useApp();
 
-  // View mode: 'list' vs 'map'
-  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
+  const set = (patch: Partial<SearchFilters>) => setSearchFilters((prev) => ({ ...prev, ...patch }));
 
-  // User location state
-  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
-  const [locationPermissionStatus, setLocationPermissionStatus] = useState<'idle' | 'prompt' | 'granted' | 'denied'>('idle');
-  const [locationSearchText, setLocationSearchText] = useState<string>('');
-  const [activeCityFilter, setActiveCityFilter] = useState<string | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [geoState, setGeoState] = useState<GeoState>('idle');
+  const [placeText, setPlaceText] = useState(f.centerSource === 'city' ? f.centerLabel ?? '' : '');
+  const [places, setPlaces] = useState<PlaceResult[]>([]);
+  const [placesLoading, setPlacesLoading] = useState(false);
+  const [placesError, setPlacesError] = useState<string | null>(null);
+  const placeInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Filters State
-  const [showFiltersModal, setShowFiltersModal] = useState<boolean>(false);
-  const [maxPrice, setMaxPrice] = useState<number>(200);
-  const [minRating, setMinRating] = useState<number>(0);
-  const [selectedFormats, setSelectedFormats] = useState<CoachingFormat[]>([]);
-  const [availabilityFilter, setAvailabilityFilter] = useState<'all' | 'today' | 'tomorrow' | 'week'>('all');
-  const [radiusKm, setRadiusKm] = useState<number>(50); // default 50km
-  const [onlyVerified, setOnlyVerified] = useState<boolean>(false);
-  const [sortBy, setSortBy] = useState<'recommended' | 'distance' | 'rating' | 'price_asc' | 'price_desc'>('recommended');
-
-  // Attempt browser geolocation on demand or automatically
-  const requestUserLocation = () => {
-    if (!navigator.geolocation) {
-      setLocationPermissionStatus('denied');
+  // Suggestions de villes / codes postaux (sans GPS)
+  useEffect(() => {
+    const q = placeText.trim();
+    if (q.length < 2 || (f.centerSource === 'city' && q === f.centerLabel)) {
+      setPlaces([]);
+      setPlacesError(null);
       return;
     }
-    setLocationPermissionStatus('prompt');
+    const ctrl = new AbortController();
+    const t = setTimeout(async () => {
+      setPlacesLoading(true);
+      setPlacesError(null);
+      try {
+        const res = await searchPlaces(q, ctrl.signal);
+        setPlaces(res);
+        if (!res.length) setPlacesError('Aucune ville trouvée. Vérifiez l’orthographe ou essayez un code postal à 5 chiffres.');
+      } catch {
+        /* recherche annulée */
+      } finally {
+        setPlacesLoading(false);
+      }
+    }, 300);
+    return () => {
+      clearTimeout(t);
+      ctrl.abort();
+    };
+  }, [placeText, f.centerSource, f.centerLabel]);
+
+  const choosePlace = (p: PlaceResult) => {
+    set({ center: { latitude: p.latitude, longitude: p.longitude }, centerLabel: p.label, centerSource: 'city' });
+    setPlaceText(p.label);
+    setPlaces([]);
+    setGeoState('idle');
+  };
+
+  /** Position demandée uniquement au clic, une seule fois (pas de suivi). */
+  const locateMe = () => {
+    if (!('geolocation' in navigator)) {
+      setGeoState('unsupported');
+      return;
+    }
+    setGeoState('locating');
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setUserLocation({
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude
+        set({
+          center: { latitude: pos.coords.latitude, longitude: pos.coords.longitude },
+          centerLabel: 'Autour de moi',
+          centerSource: 'gps',
         });
-        setLocationPermissionStatus('granted');
-        setActiveCityFilter(null);
+        setPlaceText('');
+        setGeoState('idle');
       },
-      (err) => {
-        console.warn('Geolocation error:', err.message);
-        setLocationPermissionStatus('denied');
-      },
-      { timeout: 8000, enableHighAccuracy: true }
+      (err) => setGeoState(err.code === err.PERMISSION_DENIED ? 'denied' : 'unavailable'),
+      { timeout: 10000, maximumAge: 5 * 60 * 1000, enableHighAccuracy: false },
     );
   };
 
-  // Handle manual city selection
-  const handleSelectCityPreset = (cityName: string) => {
-    const city = findCityByName(cityName);
-    if (city) {
-      setUserLocation({
-        latitude: city.latitude,
-        longitude: city.longitude
-      });
-      setActiveCityFilter(city.name);
-      setLocationSearchText(city.name);
-    }
+  const clearPlace = () => {
+    set({ center: null, centerLabel: null, centerSource: null });
+    setPlaceText('');
+    setPlaces([]);
+    setGeoState('idle');
   };
 
-  const resetFilters = () => {
-    setMaxPrice(200);
-    setMinRating(0);
-    setSelectedFormats([]);
-    setAvailabilityFilter('all');
-    setRadiusKm(50);
-    setOnlyVerified(false);
+  // Créneaux réellement libres par coach dans les N prochains jours
+  const freeSlotsByCoach = useMemo(() => {
+    const map = new Map<string, number>();
+    if (!f.availabilityDays) return map;
+    const now = new Date();
+    const today = now.toISOString().slice(0, 10);
+    const limit = new Date(now.getTime() + f.availabilityDays * 86_400_000).toISOString().slice(0, 10);
+    for (const s of availabilities) {
+      if (s.isBooked || s.date < today || s.date > limit) continue;
+      if (new Date(`${s.date}T${s.startTime}:00`).getTime() < now.getTime()) continue;
+      map.set(s.coachId, (map.get(s.coachId) ?? 0) + 1);
+    }
+    return map;
+  }, [availabilities, f.availabilityDays]);
+
+  const rows: Row[] = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    const cat = categories.find((c) => c.slug === selectedCategory);
+    const out: Row[] = [];
+    for (const c of coaches) {
+      if (!c.isActive) continue;
+      if (q) {
+        const hay = [c.name, c.title, c.category, c.city, ...(c.specialties ?? []), ...(c.objectives ?? [])].join(' ').toLowerCase();
+        if (!hay.includes(q)) continue;
+      }
+      if (cat && c.category !== cat.name && !c.specialties.some((s) => s.toLowerCase() === cat.name.toLowerCase())) continue;
+      if (f.maxPrice !== null && minPrice(c) > f.maxPrice) continue;
+      if (c.rating < f.minRating) continue;
+      if (f.onlyVerified && !isVerifiedCoach(c)) continue;
+      if (f.objective) {
+        const o = f.objective.toLowerCase();
+        const ok = (c.objectives ?? []).some((x) => x.toLowerCase() === o) || c.specialties.some((s) => s.toLowerCase().includes(o.split(' ')[0]));
+        if (!ok) continue;
+      }
+      if (f.level && !(c.levels ?? []).includes(f.level)) continue;
+      const offersOnline = (c.formats ?? []).includes('online') || c.isOnlineCoaching;
+      const offersInPerson = (c.formats ?? []).some((x) => IN_PERSON.includes(x));
+      if (f.mode === 'online' && !offersOnline) continue;
+      if (f.mode === 'in_person' && !offersInPerson) continue;
+      if (f.formats.length && !f.formats.some((x) => c.formats?.includes(x))) continue;
+      if (f.availabilityDays && !freeSlotsByCoach.get(c.id)) continue;
+
+      let distanceKm: number | null = null;
+      let remoteOnly = false;
+      if (f.center && c.latitude && c.longitude) {
+        distanceKm = calculateDistanceKm(f.center.latitude, f.center.longitude, c.latitude, c.longitude);
+      }
+      if (f.center && f.mode !== 'online') {
+        let inRadius = distanceKm !== null && distanceKm <= f.radiusKm && offersInPerson;
+        // « À domicile » demandé seul : le client doit être dans la zone de déplacement du coach
+        if (inRadius && f.formats.length === 1 && f.formats[0] === 'home' && c.interventionRadiusKm > 0) {
+          inRadius = distanceKm! <= c.interventionRadiusKm;
+        }
+        if (!inRadius) {
+          // La visio reste proposée quel que soit le rayon (sauf si « présentiel » est demandé)
+          if (offersOnline && f.mode === 'any' && !f.formats.some((x) => IN_PERSON.includes(x))) remoteOnly = true;
+          else continue;
+        }
+      }
+      out.push({ coach: c, distanceKm, remoteOnly });
+    }
+    out.sort((a, b) => {
+      if (a.remoteOnly !== b.remoteOnly) return a.remoteOnly ? 1 : -1;
+      if (f.sortBy === 'distance' && a.distanceKm !== null && b.distanceKm !== null) return a.distanceKm - b.distanceKm;
+      if (f.sortBy === 'price') return minPrice(a.coach) - minPrice(b.coach);
+      if (f.sortBy === 'rating') return b.coach.rating - a.coach.rating;
+      if (f.center && a.distanceKm !== null && b.distanceKm !== null && Math.abs(a.distanceKm - b.distanceKm) > 2) return a.distanceKm - b.distanceKm;
+      if (isVerifiedCoach(a.coach) !== isVerifiedCoach(b.coach)) return isVerifiedCoach(a.coach) ? -1 : 1;
+      return b.coach.rating - a.coach.rating;
+    });
+    return out;
+  }, [coaches, categories, searchQuery, selectedCategory, f, freeSlotsByCoach]);
+
+  const activeCount =
+    (f.maxPrice !== null ? 1 : 0) +
+    (f.minRating > 0 ? 1 : 0) +
+    (f.onlyVerified ? 1 : 0) +
+    (f.objective ? 1 : 0) +
+    (f.level ? 1 : 0) +
+    (f.mode !== 'any' ? 1 : 0) +
+    f.formats.length +
+    (f.availabilityDays ? 1 : 0);
+
+  const resetAll = () => {
+    setSearchFilters({ ...DEFAULT_SEARCH_FILTERS, viewMode: f.viewMode });
     setSelectedCategory(null);
     setSearchQuery('');
-    setActiveCityFilter(null);
-    setSortBy('recommended');
+    setPlaceText('');
+    setGeoState('idle');
   };
 
-  const hasActiveFilters = 
-    maxPrice < 200 || 
-    minRating > 0 || 
-    selectedFormats.length > 0 || 
-    availabilityFilter !== 'all' || 
-    radiusKm < 50 ||
-    onlyVerified ||
-    selectedCategory !== null || 
-    searchQuery.trim().length > 0 ||
-    activeCityFilter !== null;
-
-  // Toggle format selection
-  const toggleFormat = (fmt: CoachingFormat) => {
-    setSelectedFormats(prev => 
-      prev.includes(fmt) ? prev.filter(f => f !== fmt) : [...prev, fmt]
-    );
-  };
-
-  // Filtered and sorted coaches
-  const filteredCoaches = coaches
-    .filter(c => c.isActive)
-    .filter(c => {
-      // Search text query
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const matchesName = c.name.toLowerCase().includes(q);
-        const matchesTitle = c.title.toLowerCase().includes(q);
-        const matchesSpecialty = c.specialties.some(s => s.toLowerCase().includes(q));
-        const matchesLocation = c.location.toLowerCase().includes(q);
-        const matchesCategory = c.category.toLowerCase().includes(q);
-        if (!matchesName && !matchesTitle && !matchesSpecialty && !matchesLocation && !matchesCategory) return false;
-      }
-      
-      // Category
-      if (selectedCategory) {
-        const catObj = categories.find(cat => cat.slug === selectedCategory);
-        if (catObj && c.category !== catObj.name && !c.specialties.some(s => s.toLowerCase() === catObj.name.toLowerCase())) {
-          return false;
-        }
-      }
-
-      // Max price
-      if (c.hourlyRate > maxPrice) return false;
-
-      // Min rating
-      if (c.rating < minRating) return false;
-
-      // Verification filter
-      if (onlyVerified && c.verificationStatus !== 'verified') return false;
-
-      // Coaching formats
-      if (selectedFormats.length > 0) {
-        const hasMatchingFormat = selectedFormats.some(f => c.formats?.includes(f));
-        if (!hasMatchingFormat) return false;
-      }
-
-      // Availability filter
-      if (availabilityFilter === 'today' && !c.nextAvailabilitySummary?.toLowerCase().includes("aujourd'hui")) return false;
-      if (availabilityFilter === 'tomorrow' && !c.nextAvailabilitySummary?.toLowerCase().includes('demain')) return false;
-
-      // Geographic Distance / Radius filter
-      if (userLocation && c.latitude && c.longitude && radiusKm < 50) {
-        const dist = calculateDistanceKm(userLocation.latitude, userLocation.longitude, c.latitude, c.longitude);
-        if (dist > radiusKm) {
-          // If the coach does online coaching and online is not explicitly excluded, allow them
-          if (!selectedFormats.includes('home') && !selectedFormats.includes('coach_location') && c.isOnlineCoaching) {
-            // Keep online coach
-          } else {
-            return false;
-          }
-        }
-      }
-
-      // City filter
-      if (activeCityFilter && c.city.toLowerCase() !== activeCityFilter.toLowerCase()) {
-        if (!c.isOnlineCoaching) return false;
-      }
-
-      return true;
-    })
-    .sort((a, b) => {
-      if (sortBy === 'rating') return b.rating - a.rating;
-      if (sortBy === 'price_asc') return a.hourlyRate - b.hourlyRate;
-      if (sortBy === 'price_desc') return b.hourlyRate - a.hourlyRate;
-      if (sortBy === 'distance' && userLocation && a.latitude && b.latitude) {
-        const distA = calculateDistanceKm(userLocation.latitude, userLocation.longitude, a.latitude, a.longitude);
-        const distB = calculateDistanceKm(userLocation.latitude, userLocation.longitude, b.latitude, b.longitude);
-        return distA - distB;
-      }
-      // Default: Verified + Elite first, then rating
-      if (a.isElite !== b.isElite) return a.isElite ? -1 : 1;
-      return b.rating - a.rating;
-    });
-
-  const sortLabels: Record<typeof sortBy, string> = {
-    recommended: 'Popularité',
-    distance: 'Distance',
-    rating: 'Note',
-    price_asc: 'Prix croissant',
-    price_desc: 'Prix décroissant',
-  };
+  const nearCount = rows.filter((r) => !r.remoteOnly).length;
+  const remoteCount = rows.length - nearCount;
 
   return (
     <div className="min-h-screen bg-fmc-bg dark:bg-[#0B0F19] text-fmc-navy dark:text-slate-100 pb-36 max-w-md mx-auto px-5 pt-4">
       <ScreenHeader
-        title="Trouvez votre Coach"
+        title="Trouvez votre coach"
         onBack={goBack}
         right={
-          <IconButton
-            id="btn-toggle-filters"
-            onClick={() => setShowFiltersModal(true)}
-            aria-label="Filtres"
-            className="relative"
-          >
+          <IconButton id="btn-toggle-filters" onClick={() => setShowFilters(true)} aria-label="Filtres" className="relative">
             <SlidersHorizontal className="w-5 h-5" />
-            {hasActiveFilters && (
-              <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-fmc-green rounded-full border-2 border-white" />
+            {activeCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 bg-fmc-green text-fmc-navy text-[11px] font-bold rounded-full flex items-center justify-center">
+                {activeCount}
+              </span>
             )}
           </IconButton>
         }
       />
 
-      <div className="relative mb-4">
+      {/* Nom / spécialité */}
+      <div className="relative mb-3">
         <SearchField
           id="input-coach-search"
           icon={<Search className="w-5 h-5" />}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Rechercher par nom ou spécialité…"
+          placeholder="Nom, discipline, objectif…"
         />
         {searchQuery && (
-          <button
-            onClick={() => setSearchQuery('')}
-            aria-label="Effacer"
-            className="absolute inset-y-0 right-3 flex items-center text-slate-400 cursor-pointer"
-          >
+          <button onClick={() => setSearchQuery('')} aria-label="Effacer" className="absolute inset-y-0 right-1 w-11 flex items-center justify-center text-slate-400 cursor-pointer">
             <X className="w-5 h-5" />
           </button>
         )}
       </div>
 
-      {/* Filtres rapides */}
-      <div className="flex gap-3 overflow-x-auto no-scrollbar -mx-5 px-5 pb-1 mb-5">
-        <Chip
-          active={maxPrice < 200}
-          icon={<Wallet className="w-4 h-4" />}
-          onClick={() => setShowFiltersModal(true)}
-        >
-          {maxPrice < 200 ? `≤ ${maxPrice} €` : 'Prix'}
-        </Chip>
-        <Chip
-          active={!!userLocation}
-          icon={<MapIcon className="w-4 h-4" />}
-          onClick={() => {
-            if (userLocation) {
-              setUserLocation(null);
-              setActiveCityFilter(null);
-            } else {
-              requestUserLocation();
-            }
-          }}
-        >
-          {activeCityFilter || (userLocation ? 'Autour de moi' : 'Lieu')}
-        </Chip>
-        <Chip
-          active={minRating >= 4.5}
-          icon={<Star className={`w-4 h-4 ${minRating >= 4.5 ? 'fill-white' : 'fill-fmc-navy dark:fill-white'}`} />}
-          onClick={() => setMinRating(minRating >= 4.5 ? 0 : 4.5)}
-        >
-          Note 4.5+
-        </Chip>
-        {categories.map((cat) => (
-          <Chip
-            key={cat.id}
-            active={selectedCategory === cat.slug}
-            onClick={() => setSelectedCategory(selectedCategory === cat.slug ? null : cat.slug)}
+      {/* Lieu : ville / code postal ou « Autour de moi » */}
+      <div className="relative mb-3">
+        <div className="flex gap-2">
+          <label className="relative flex-1">
+            <span className="absolute inset-y-0 left-3.5 flex items-center text-slate-400 pointer-events-none">
+              <MapPin className="w-5 h-5" />
+            </span>
+            <input
+              ref={placeInputRef}
+              id="input-place-search"
+              type="search"
+              inputMode="search"
+              autoComplete="off"
+              value={f.centerSource === 'gps' ? 'Autour de moi' : placeText}
+              onFocus={() => f.centerSource === 'gps' && clearPlace()}
+              onChange={(e) => setPlaceText(e.target.value)}
+              placeholder="Ville ou code postal"
+              aria-label="Ville ou code postal"
+              className="w-full h-12 pl-10 pr-9 bg-white dark:bg-slate-900 rounded-2xl text-sm placeholder:text-slate-400 shadow-[0_1px_3px_rgba(15,23,42,0.05)] focus:outline-none focus:ring-2 focus:ring-fmc-green/50"
+            />
+            {(placeText || f.center) && (
+              <button onClick={clearPlace} aria-label="Effacer le lieu" className="absolute inset-y-0 right-0 w-11 flex items-center justify-center text-slate-400 cursor-pointer">
+                {placesLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-5 h-5" />}
+              </button>
+            )}
+          </label>
+          <button
+            type="button"
+            onClick={locateMe}
+            disabled={geoState === 'locating'}
+            className={`h-12 px-2.5 rounded-2xl text-[13px] font-semibold flex items-center gap-1.5 shrink-0 cursor-pointer transition ${
+              f.centerSource === 'gps' ? 'bg-fmc-green text-fmc-navy' : 'bg-white dark:bg-slate-900 border border-fmc-line dark:border-slate-800'
+            }`}
           >
-            {cat.name}
-          </Chip>
-        ))}
+            {geoState === 'locating' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Crosshair className="w-4 h-4" />}
+            Autour de moi
+          </button>
+        </div>
+
+        {places.length > 0 && (
+          <ul className="absolute z-30 left-0 right-0 mt-1 bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-fmc-line dark:border-slate-800 overflow-hidden">
+            {places.map((p) => (
+              <li key={`${p.label}-${p.latitude}`}>
+                <button type="button" onClick={() => choosePlace(p)} className="w-full min-h-12 px-4 text-left text-[15px] hover:bg-fmc-bg dark:hover:bg-slate-800 flex items-center gap-2 cursor-pointer">
+                  <MapPin className="w-4 h-4 text-fmc-green-ink shrink-0" /> {p.label}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
-      {locationPermissionStatus === 'denied' && !activeCityFilter && (
-        <p className="text-sm text-slate-500 mb-4">
-          Localisation indisponible : choisissez une ville dans les filtres.
-        </p>
+      {placesError && <p className="text-sm text-slate-500 mb-3">{placesError}</p>}
+      {geoState === 'denied' && (
+        <div className="mb-3 p-3 rounded-2xl bg-amber-50 dark:bg-amber-500/10 text-sm text-amber-800 dark:text-amber-200">
+          Localisation refusée. Saisissez une ville ou un code postal, ou autorisez la position dans les réglages du téléphone.
+          <button onClick={() => placeInputRef.current?.focus()} className="block mt-2 font-semibold underline cursor-pointer">Saisir une ville</button>
+        </div>
+      )}
+      {(geoState === 'unavailable' || geoState === 'unsupported') && (
+        <div className="mb-3 p-3 rounded-2xl bg-amber-50 dark:bg-amber-500/10 text-sm text-amber-800 dark:text-amber-200">
+          {geoState === 'unsupported' ? 'La localisation n’est pas disponible sur cet appareil.' : 'Position introuvable pour le moment.'} Saisissez une ville ou un code postal.
+          {geoState === 'unavailable' && (
+            <button onClick={locateMe} className="block mt-2 font-semibold underline cursor-pointer">Réessayer</button>
+          )}
+        </div>
       )}
 
-      {/* Rayon si localisation active */}
-      {userLocation && (
-        <div className="flex items-center justify-between mb-5 text-sm">
+      {/* Rayon */}
+      {f.center && f.mode !== 'online' && (
+        <div className="flex items-center justify-between mb-3 text-sm gap-2">
           <span className="text-slate-500 font-medium">Rayon</span>
-          <div className="flex gap-1.5">
-            {[5, 10, 20, 50].map((km) => (
+          <div className="flex gap-1.5" role="radiogroup" aria-label="Rayon de recherche">
+            {RADIUS_OPTIONS.map((km) => (
               <button
                 key={km}
-                onClick={() => setRadiusKm(km)}
-                className={`h-8 px-3 rounded-full text-xs font-semibold transition cursor-pointer ${
-                  radiusKm === km ? 'bg-fmc-navy text-white dark:bg-white dark:text-fmc-navy' : 'bg-white dark:bg-slate-900 text-slate-600 border border-fmc-line dark:border-slate-800'
+                role="radio"
+                aria-checked={f.radiusKm === km}
+                onClick={() => set({ radiusKm: km })}
+                className={`h-11 min-w-12 px-3 rounded-full text-sm font-semibold transition cursor-pointer ${
+                  f.radiusKm === km ? 'bg-fmc-navy text-white dark:bg-white dark:text-fmc-navy' : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-fmc-line dark:border-slate-800'
                 }`}
               >
                 {km} km
@@ -318,305 +357,215 @@ export const CoachSearch: React.FC = () => {
         </div>
       )}
 
-      {viewMode === 'map' ? (
-        <div className="space-y-3">
-          <div className="rounded-[28px] overflow-hidden border border-fmc-line/80">
-            <CoachMap
-              coaches={filteredCoaches}
-              userLocation={userLocation}
-              height="calc(100vh - 330px)"
-              onSearchThisArea={(center, radius) => {
-                setUserLocation({ latitude: center.lat, longitude: center.lng });
-                setRadiusKm(radius);
-              }}
-            />
-          </div>
-          <p className="text-center text-sm text-slate-500">
-            {filteredCoaches.length} coach{filteredCoaches.length > 1 ? 's' : ''} dans cette zone
+      {/* Filtres rapides */}
+      <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-5 px-5 pb-1 mb-4">
+        <Chip active={f.mode === 'online'} icon={<Video className="w-4 h-4" />} onClick={() => set({ mode: f.mode === 'online' ? 'any' : 'online' })}>
+          Visio
+        </Chip>
+        <Chip active={f.mode === 'in_person'} icon={<MapPin className="w-4 h-4" />} onClick={() => set({ mode: f.mode === 'in_person' ? 'any' : 'in_person' })}>
+          Présentiel
+        </Chip>
+        <Chip active={f.availabilityDays === 7} icon={<Calendar className="w-4 h-4" />} onClick={() => set({ availabilityDays: f.availabilityDays === 7 ? 0 : 7 })}>
+          Dispo cette semaine
+        </Chip>
+        {categories.map((cat) => (
+          <Chip key={cat.id} active={selectedCategory === cat.slug} onClick={() => setSelectedCategory(selectedCategory === cat.slug ? null : cat.slug)}>
+            {cat.name}
+          </Chip>
+        ))}
+      </div>
+
+      {/* Résultats + vue */}
+      <div className="flex items-center justify-between mb-3 gap-2">
+        <p className="text-sm text-slate-500" aria-live="polite">
+          {rows.length === 0
+            ? 'Aucun coach'
+            : f.center && f.mode !== 'online'
+            ? `${nearCount} à moins de ${f.radiusKm} km${remoteCount ? ` · ${remoteCount} en visio` : ''}`
+            : `${rows.length} coach${rows.length > 1 ? 's' : ''}`}
+        </p>
+        <div className="flex bg-white dark:bg-slate-900 rounded-full p-1 border border-fmc-line dark:border-slate-800">
+          <button onClick={() => set({ viewMode: 'list' })} aria-label="Liste" className={`w-11 h-9 rounded-full flex items-center justify-center cursor-pointer ${f.viewMode === 'list' ? 'bg-fmc-green text-fmc-navy' : 'text-slate-500'}`}>
+            <List className="w-4 h-4" />
+          </button>
+          <button onClick={() => set({ viewMode: 'map' })} aria-label="Carte" className={`w-11 h-9 rounded-full flex items-center justify-center cursor-pointer ${f.viewMode === 'map' ? 'bg-fmc-green text-fmc-navy' : 'text-slate-500'}`}>
+            <MapIcon className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+      {f.center && rows.some((r) => r.distanceKm !== null) && (
+        <p className="text-xs text-slate-400 mb-3">Distances estimées à vol d'oiseau depuis {f.centerSource === 'gps' ? 'votre position' : f.centerLabel}. Les adresses exactes ne sont jamais affichées.</p>
+      )}
+
+      {rows.length === 0 ? (
+        <div className="bg-white dark:bg-slate-900 rounded-[28px] border border-fmc-line/80 dark:border-slate-800 p-6 text-center">
+          <p className="font-semibold">Aucun coach ne correspond</p>
+          <p className="text-sm text-slate-500 mt-1">
+            {f.center && f.mode === 'in_person' ? 'Élargissez le rayon ou essayez la visio.' : 'Retirez un filtre ou élargissez la zone.'}
           </p>
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
+            {f.center && f.radiusKm < 50 && (
+              <button onClick={() => set({ radiusKm: 50 })} className="min-h-11 px-4 rounded-full bg-fmc-green text-fmc-navy text-sm font-bold cursor-pointer">
+                Élargir à 50 km
+              </button>
+            )}
+            {f.mode === 'in_person' && (
+              <button onClick={() => set({ mode: 'online' })} className="min-h-11 px-4 rounded-full bg-slate-100 dark:bg-slate-800 text-sm font-bold cursor-pointer">
+                Voir les coachs en visio
+              </button>
+            )}
+            <button onClick={resetAll} className="min-h-11 px-4 rounded-full bg-slate-100 dark:bg-slate-800 text-sm font-bold flex items-center gap-1.5 cursor-pointer">
+              <RotateCcw className="w-4 h-4" /> Tout réinitialiser
+            </button>
+          </div>
+        </div>
+      ) : f.viewMode === 'map' ? (
+        <div className="rounded-[28px] overflow-hidden border border-fmc-line/80 dark:border-slate-800">
+          <CoachMap
+            coaches={rows.filter((r) => !r.remoteOnly).map((r) => r.coach)}
+            userLocation={f.center}
+            radiusKm={f.center && f.mode !== 'online' ? f.radiusKm : undefined}
+            height="calc(100vh - 360px)"
+            onSearchThisArea={(center) =>
+              set({ center: { latitude: center.lat, longitude: center.lng }, centerLabel: 'Zone de la carte', centerSource: 'city' })
+            }
+          />
+          {remoteCount > 0 && (
+            <button onClick={() => set({ viewMode: 'list' })} className="w-full min-h-11 text-sm font-semibold bg-white dark:bg-slate-900 cursor-pointer">
+              + {remoteCount} coach{remoteCount > 1 ? 's' : ''} disponible{remoteCount > 1 ? 's' : ''} en visio (liste)
+            </button>
+          )}
         </div>
       ) : (
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-lg font-medium text-slate-600 dark:text-slate-300">
-              {filteredCoaches.length} coach{filteredCoaches.length > 1 ? 's' : ''}{' '}
-              {userLocation ? 'à proximité' : 'disponible' + (filteredCoaches.length > 1 ? 's' : '')}
-            </span>
-            <label className="relative text-sm text-slate-500 flex items-center gap-1">
-              Trier par :
-              <span className="font-semibold text-fmc-green-ink">{sortLabels[sortBy]}</span>
-              <select
-                aria-label="Trier par"
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-                className="absolute inset-0 opacity-0 cursor-pointer"
-              >
-                <option value="recommended">Popularité</option>
-                {userLocation && <option value="distance">Distance</option>}
-                <option value="rating">Note</option>
-                <option value="price_asc">Prix croissant</option>
-                <option value="price_desc">Prix décroissant</option>
-              </select>
-            </label>
-          </div>
-
-          {filteredCoaches.length > 0 ? (
-            <div className="space-y-5">
-              {filteredCoaches.map((coach) => (
-                <CoachCard key={coach.id} coach={coach} userLocation={userLocation} />
-              ))}
-            </div>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.97 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="bg-white dark:bg-slate-900 rounded-[28px] border border-fmc-line/80 dark:border-slate-800 p-6 text-center mt-2"
-            >
-              <span className="w-14 h-14 rounded-2xl bg-fmc-bg dark:bg-slate-800 text-fmc-green-ink flex items-center justify-center mx-auto mb-3">
-                <MapPin className="w-7 h-7" />
-              </span>
-              <h3 className="font-semibold text-lg mb-1">Aucun coach trouvé</h3>
-              <p className="text-sm text-slate-500 max-w-xs mx-auto mb-5">
-                Élargissez votre zone ou découvrez nos coachs disponibles en visio partout en France.
-              </p>
-              <div className="flex flex-col gap-2">
-                <button
-                  onClick={() => {
-                    setRadiusKm(50);
-                    setSelectedFormats(['online']);
-                  }}
-                  className="h-12 rounded-full bg-fmc-green text-fmc-navy font-bold text-sm cursor-pointer"
-                >
-                  Voir les coachs en visio
-                </button>
-                <button onClick={resetFilters} className="h-11 text-sm font-semibold text-slate-500 cursor-pointer">
-                  Réinitialiser les filtres
-                </button>
-              </div>
-            </motion.div>
-          )}
+        <div className="space-y-4">
+          {rows.map((r, i) => (
+            <React.Fragment key={r.coach.id}>
+              {r.remoteOnly && (i === 0 || !rows[i - 1].remoteOnly) && (
+                <h3 className="text-sm font-semibold text-slate-500 pt-2 flex items-center gap-1.5">
+                  <Video className="w-4 h-4" /> Disponibles en visio, partout
+                </h3>
+              )}
+              <CoachCard
+                coach={r.coach}
+                userLocation={r.remoteOnly ? null : f.center}
+                note={r.remoteOnly ? 'Hors rayon — séances en visio' : f.availabilityDays ? `${freeSlotsByCoach.get(r.coach.id)} créneau(x) libre(s)` : undefined}
+              />
+            </React.Fragment>
+          ))}
         </div>
       )}
 
-      {/* Bouton flottant carte / liste */}
-      <div className="fixed left-0 right-0 max-w-md mx-auto bottom-[calc(5.5rem+var(--sab))] z-30 flex justify-center pointer-events-none">
-        <button
-          id="btn-toggle-map"
-          onClick={() => setViewMode(viewMode === 'list' ? 'map' : 'list')}
-          className="pointer-events-auto h-14 px-7 rounded-full bg-fmc-green text-white font-semibold text-base flex items-center gap-2.5 shadow-[0_10px_30px_rgba(0,214,100,0.35)] active:scale-95 transition cursor-pointer"
-        >
-          {viewMode === 'list' ? <MapIcon className="w-5 h-5" /> : <List className="w-5 h-5" />}
-          {viewMode === 'list' ? 'Voir la carte' : 'Voir la liste'}
-        </button>
-      </div>
-
-      {/* Advanced Filters Modal */}
+      {/* Feuille de filtres */}
       <AnimatePresence>
-        {showFiltersModal && (
-          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4">
+        {showFilters && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-black/50 flex items-end justify-center" onClick={() => setShowFilters(false)}>
             <motion.div
-              initial={{ y: '100%' }}
+              initial={{ y: 60 }}
               animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="bg-white dark:bg-slate-900 w-full max-w-md rounded-t-[32px] sm:rounded-[32px] p-6 pb-[calc(1.5rem+var(--sab))] shadow-2xl max-h-[88vh] overflow-y-auto"
+              exit={{ y: 60 }}
+              onClick={(e) => e.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Filtres"
+              className="w-full max-w-md bg-white dark:bg-slate-900 rounded-t-[28px] px-5 pt-4 pb-[calc(1.25rem+var(--sab))] max-h-[88vh] overflow-y-auto"
             >
-              {/* Modal Header */}
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <div className="flex items-center gap-2">
-                  <SlidersHorizontal className="w-5 h-5 text-[#00B050]" />
-                  <h2 className="text-base font-extrabold text-[#0F172A]">Filtres de recherche</h2>
-                </div>
-                <button
-                  onClick={() => setShowFiltersModal(false)}
-                  className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center transition cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold">Filtres</h2>
+                <button onClick={() => setShowFilters(false)} aria-label="Fermer" className="w-11 h-11 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center cursor-pointer">
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
-              {/* Ville */}
-              <div className="py-4 border-b border-slate-100 dark:border-slate-800">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Ville</label>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={requestUserLocation}
-                    className={`h-9 px-3.5 rounded-full text-sm font-semibold border transition cursor-pointer flex items-center gap-1.5 ${
-                      userLocation && !activeCityFilter ? 'bg-fmc-green border-fmc-green text-white' : 'border-fmc-line text-slate-700 dark:text-slate-200'
-                    }`}
-                  >
-                    <Navigation className="w-3.5 h-3.5" />
-                    Autour de moi
-                  </button>
-                  {CITY_PRESETS.slice(0, 8).map((city) => (
-                    <button
-                      key={city.name}
-                      type="button"
-                      onClick={() => handleSelectCityPreset(city.name)}
-                      className={`h-9 px-3.5 rounded-full text-sm font-semibold border transition cursor-pointer ${
-                        activeCityFilter === city.name ? 'bg-fmc-navy border-fmc-navy text-white' : 'border-fmc-line text-slate-700 dark:text-slate-200'
-                      }`}
+              <FilterGroup title="Objectif">
+                {OBJECTIVE_OPTIONS.map((o) => (
+                  <Pill key={o} active={f.objective === o} onClick={() => set({ objective: f.objective === o ? null : o })}>{o}</Pill>
+                ))}
+              </FilterGroup>
+
+              <FilterGroup title="Niveau">
+                {(Object.keys(LEVEL_LABELS) as CoachLevel[]).map((l) => (
+                  <Pill key={l} active={f.level === l} onClick={() => set({ level: f.level === l ? null : l })}>{LEVEL_LABELS[l]}</Pill>
+                ))}
+              </FilterGroup>
+
+              <FilterGroup title="Mode de séance">
+                {(['any', 'online', 'in_person'] as const).map((m) => (
+                  <Pill key={m} active={f.mode === m} onClick={() => set({ mode: m })}>
+                    {m === 'any' ? 'Tous' : m === 'online' ? 'Visio' : 'Présentiel'}
+                  </Pill>
+                ))}
+              </FilterGroup>
+              {f.mode !== 'online' && (
+                <FilterGroup title="Lieu de la séance">
+                  {IN_PERSON.map((fmt) => (
+                    <Pill
+                      key={fmt}
+                      active={f.formats.includes(fmt)}
+                      onClick={() => set({ formats: f.formats.includes(fmt) ? f.formats.filter((x) => x !== fmt) : [...f.formats, fmt] })}
                     >
-                      {city.name}
-                    </button>
+                      {FORMAT_LABELS[fmt]}
+                    </Pill>
                   ))}
-                </div>
-              </div>
+                </FilterGroup>
+              )}
 
-              {/* Formats Filter */}
-              <div className="py-4 border-b border-slate-100">
-                <label className="text-xs font-black text-slate-800 uppercase tracking-wider block mb-2">
-                  Format de séance
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { id: 'online', label: 'En ligne / Visio', icon: '💻' },
-                    { id: 'home', label: 'À domicile', icon: '🏠' },
-                    { id: 'coach_location', label: 'Chez le coach', icon: '📍' },
-                    { id: 'partner_gym', label: 'En salle partenaire', icon: '🏋️' },
-                    { id: 'outdoor', label: 'En extérieur / Parc', icon: '🌳' },
-                    { id: 'corporate', label: 'En entreprise', icon: '🏢' }
-                  ].map((fmt) => {
-                    const isSelected = selectedFormats.includes(fmt.id as CoachingFormat);
-                    return (
-                      <button
-                        key={fmt.id}
-                        type="button"
-                        onClick={() => toggleFormat(fmt.id as CoachingFormat)}
-                        className={`p-2.5 rounded-xl border text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
-                          isSelected
-                            ? 'bg-[#00D664]/15 border-[#00D664] text-[#008A3E]'
-                            : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
-                        }`}
-                      >
-                        <span>{fmt.icon}</span>
-                        <span className="truncate">{fmt.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+              <FilterGroup title={`Budget par séance${f.maxPrice !== null ? ` : jusqu'à ${f.maxPrice} €` : ''}`}>
+                {[30, 50, 70, 100].map((p) => (
+                  <Pill key={p} active={f.maxPrice === p} onClick={() => set({ maxPrice: f.maxPrice === p ? null : p })}>≤ {p} €</Pill>
+                ))}
+              </FilterGroup>
 
-              {/* Price Max Slider */}
-              <div className="py-4 border-b border-slate-100">
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-black text-slate-800 uppercase tracking-wider">
-                    Tarif horaire maximum
-                  </label>
-                  <span className="text-sm font-black text-[#008A3E]">{maxPrice} €/h</span>
-                </div>
-                <input
-                  type="range"
-                  min="40"
-                  max="200"
-                  step="5"
-                  value={maxPrice}
-                  onChange={(e) => setMaxPrice(Number(e.target.value))}
-                  className="w-full accent-[#00D664] h-2 bg-slate-200 rounded-lg cursor-pointer"
-                />
-                <div className="flex justify-between text-[10px] font-bold text-slate-400 mt-1">
-                  <span>40 €</span>
-                  <span>100 €</span>
-                  <span>200 €</span>
-                </div>
-              </div>
+              <FilterGroup title="Disponibilité réelle">
+                {([0, 3, 7, 14] as const).map((d) => (
+                  <Pill key={d} active={f.availabilityDays === d} onClick={() => set({ availabilityDays: d })}>
+                    {d === 0 ? 'Peu importe' : `Créneau libre sous ${d} j`}
+                  </Pill>
+                ))}
+              </FilterGroup>
 
-              {/* Verified Coach Checkbox */}
-              <div className="py-3 border-b border-slate-100 flex items-center justify-between">
-                <div>
-                  <span className="text-xs font-extrabold text-[#0F172A] block">
-                    Coachs vérifiés uniquement ✓
-                  </span>
-                  <span className="text-[11px] text-slate-500 font-medium">
-                    Diplômes et assurances validés par l'équipe Find My Coach
-                  </span>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={onlyVerified}
-                  onChange={(e) => setOnlyVerified(e.target.checked)}
-                  className="w-5 h-5 accent-[#00D664] rounded cursor-pointer"
-                />
-              </div>
+              <FilterGroup title="Confiance">
+                <Pill active={f.onlyVerified} onClick={() => set({ onlyVerified: !f.onlyVerified })}>Profils vérifiés</Pill>
+                <Pill active={f.minRating >= 4.5} onClick={() => set({ minRating: f.minRating >= 4.5 ? 0 : 4.5 })}>Note 4,5+</Pill>
+              </FilterGroup>
 
-              {/* Min Rating */}
-              <div className="py-4 border-b border-slate-100">
-                <label className="text-xs font-black text-slate-800 uppercase tracking-wider block mb-2">
-                  Note minimale
-                </label>
-                <div className="flex gap-2">
-                  {[
-                    { val: 0, label: 'Toutes' },
-                    { val: 4.5, label: '★ 4.5+' },
-                    { val: 4.8, label: '★ 4.8+' },
-                    { val: 5.0, label: '★ 5.0' }
-                  ].map((r) => (
-                    <button
-                      key={r.val}
-                      type="button"
-                      onClick={() => setMinRating(r.val)}
-                      className={`flex-1 py-2 rounded-xl text-xs font-bold border transition cursor-pointer ${
-                        minRating === r.val
-                          ? 'bg-[#0F172A] text-white border-[#0F172A]'
-                          : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
-                      }`}
-                    >
-                      {r.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <FilterGroup title="Trier par">
+                {(['relevance', 'distance', 'price', 'rating'] as const).map((s) => (
+                  <Pill key={s} active={f.sortBy === s} disabled={s === 'distance' && !f.center} onClick={() => set({ sortBy: s })}>
+                    {s === 'relevance' ? 'Pertinence' : s === 'distance' ? 'Distance' : s === 'price' ? 'Prix' : 'Note'}
+                  </Pill>
+                ))}
+              </FilterGroup>
 
-              {/* Availability Filter */}
-              <div className="py-4">
-                <label className="text-xs font-black text-slate-800 uppercase tracking-wider block mb-2">
-                  Disponibilité
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { id: 'all', label: 'Indifférent' },
-                    { id: 'today', label: 'Aujourd’hui' },
-                    { id: 'tomorrow', label: 'Demain' }
-                  ].map((av) => (
-                    <button
-                      key={av.id}
-                      type="button"
-                      onClick={() => setAvailabilityFilter(av.id as any)}
-                      className={`py-2 rounded-xl text-xs font-bold border transition cursor-pointer ${
-                        availabilityFilter === av.id
-                          ? 'bg-[#00D664] text-[#0F172A] border-[#00D664]'
-                          : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
-                      }`}
-                    >
-                      {av.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Modal Actions */}
-              <div className="flex items-center gap-2 pt-3 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={resetFilters}
-                  className="px-4 py-3 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-2xl text-xs font-bold transition cursor-pointer flex items-center gap-1"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Réinitialiser</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowFiltersModal(false)}
-                  className="flex-1 py-3 bg-[#00D664] text-[#0F172A] hover:bg-[#00B050] rounded-2xl text-xs font-black shadow-md transition cursor-pointer"
-                >
-                  Appliquer ({filteredCoaches.length} résultat{filteredCoaches.length > 1 ? 's' : ''})
+              <div className="flex gap-2 mt-2">
+                <button onClick={resetAll} className="flex-1 min-h-12 rounded-full bg-slate-100 dark:bg-slate-800 font-semibold cursor-pointer">Réinitialiser</button>
+                <button onClick={() => setShowFilters(false)} className="flex-1 min-h-12 rounded-full bg-fmc-green text-fmc-navy font-bold cursor-pointer">
+                  Voir {rows.length} coach{rows.length > 1 ? 's' : ''}
                 </button>
               </div>
             </motion.div>
-          </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
   );
 };
+
+const FilterGroup: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
+  <section className="mb-5">
+    <h3 className="text-sm font-semibold mb-2">{title}</h3>
+    <div className="flex flex-wrap gap-2">{children}</div>
+  </section>
+);
+
+const Pill: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { active?: boolean }> = ({ active, className = '', children, ...props }) => (
+  <button
+    type="button"
+    {...props}
+    aria-pressed={!!active}
+    className={`min-h-11 px-3.5 rounded-full text-sm font-semibold border transition cursor-pointer disabled:opacity-40 ${
+      active ? 'bg-fmc-green border-fmc-green text-fmc-navy' : 'border-fmc-line dark:border-slate-700'
+    } ${className}`}
+  >
+    {children}
+  </button>
+);
