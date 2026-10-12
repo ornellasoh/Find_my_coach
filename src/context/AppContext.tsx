@@ -109,16 +109,18 @@ const buildNewCoachProfile = (user: User, category?: string): CoachProfile => {
     id: isSupabaseEnabled ? `coach-${user.id}` : uniqueId('coach'),
     userId: user.id,
     name: user.name,
-    title: 'Nouveau Coach Certifié',
-    bio: 'Bienvenue sur mon profil Find My Coach. Je personnalise mes séances selon vos objectifs de performance et santé.',
-    photo: user.avatar,
-    rating: 5.0,
+    // Valeurs réelles d'un compte neuf : aucune note, aucune expérience ni tarif inventés.
+    // La fiche n'apparaît dans la recherche qu'une fois complétée (tarif > 0) dans l'éditeur.
+    title: category || 'Coach',
+    bio: '',
+    photo: user.avatar || '',
+    rating: 0,
     reviewCount: 0,
-    experienceYears: 2,
-    hourlyRate: 70,
+    experienceYears: 0,
+    hourlyRate: 0,
     isElite: false,
     isAvailable: true,
-    location: `${city} & En ligne`,
+    location: city,
     city,
     latitude: user.latitude ?? 48.8566,
     longitude: user.longitude ?? 2.3522,
@@ -127,8 +129,8 @@ const buildNewCoachProfile = (user: User, category?: string): CoachProfile => {
     formats: ['online', 'coach_location', 'home'],
     isOnlineCoaching: true,
     isInPersonCoaching: true,
-    verificationStatus: 'pending',
-    specialties: category ? [category] : ['Fitness', 'Motivation', 'Mobilité'],
+    verificationStatus: 'unverified',
+    specialties: category ? [category] : [],
     category: category || 'Sport & Fitness',
     languages: ['Français'],
     certifications: [],
@@ -156,6 +158,12 @@ interface AppContextType {
   authLoading: boolean;
   /** true si l'app est connectée à Supabase (sinon : mode démo local) */
   isOnline: boolean;
+  /** Droits administrateur vérifiés par le serveur (table admin_users), jamais déduits côté client */
+  isAdmin: boolean;
+  /** Erreur de chargement du compte (affichée avec « Réessayer », jamais masquée par des zéros) */
+  loadError: string | null;
+  retryLoad: () => void;
+  addGoal: (goal: { title: string; targetValue: number; unit: string; category?: string }) => void;
   updateUserProfile: (updates: Partial<User>) => void;
   
   // Coaches
@@ -318,6 +326,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDarkMode);
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', isDarkMode ? '#0B0F19' : '#F6F9FA');
   }, [isDarkMode]);
 
   // Persistent or seed state
@@ -588,6 +597,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (extraParams?.bookingId) {
       setSelectedBookingId(extraParams.bookingId);
     }
+    if (screen === 'admin_dashboard' && !isAdminUser) return; // l'écran admin n'est jamais ouvert sans droits serveur
     
     setScreenHistory((prev) => [...prev, screen]);
     setCurrentScreen(screen);
@@ -625,7 +635,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         becomeCoach();
         return;
       }
-      if (role === 'admin' && currentUser.role !== 'admin') return;
+      if (role === 'admin' && !isAdminUser) return; // droits vérifiés par le serveur
       const screen: AppScreen = role === 'coach' ? 'coach_dashboard' : role === 'admin' ? 'admin_dashboard' : 'home';
       setCurrentScreen(screen);
       setScreenHistory([screen]);
@@ -698,9 +708,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       name,
       email,
       role,
-      avatar: role === 'coach' 
-        ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80'
-        : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400&auto=format&fit=crop&q=80',
+      avatar: '',
       createdAt: new Date().toISOString(),
       status: 'active',
       phone: extra?.phone,
@@ -944,8 +952,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const newBooking: Booking = {
       id: bookingId,
       clientId: currentUser?.id || 'guest-client',
-      clientName: currentUser?.name || 'Alex Rivers',
-      clientAvatar: currentUser?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400',
+      clientName: currentUser?.name || 'Client',
+      clientAvatar: currentUser?.avatar || '',
       clientEmail: currentUser?.email || 'alex.rivers@gmail.com',
       coachId: draft.coach.id,
       coachName: draft.coach.name,
@@ -1262,6 +1270,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     : 0;
 
   // Goals
+  const addGoal = (g: { title: string; targetValue: number; unit: string; category?: string }) => {
+    if (!currentUser) return;
+    const goal: Goal = {
+      id: uniqueId('goal'),
+      userId: currentUser.id,
+      title: g.title,
+      targetValue: g.targetValue,
+      currentValue: 0,
+      unit: g.unit,
+      percentage: 0,
+      status: 'active',
+      category: g.category || 'Personnel',
+    };
+    setGoals((prev) => [goal, ...prev]);
+  };
+
   const updateGoalProgress = (goalId: string, newCurrentValue: number) => {
     setGoals((prev) =>
       prev.map((g) => {
@@ -1310,9 +1334,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [authLoading, setAuthLoading] = useState<boolean>(isSupabaseEnabled);
   const [remoteReady, setRemoteReady] = useState(false);
   const loadedUserRef = React.useRef<string | null>(null);
+  const retryRef = React.useRef<() => void>(() => {});
 
   const uid = currentUser?.id;
-  const isAdminUser = currentUser?.role === 'admin';
+  const [serverAdmin, setServerAdmin] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  // En ligne : uniquement l'avis du serveur ; en mode démo : rôle local
+  const isAdminUser = isSupabaseEnabled ? serverAdmin : currentUser?.role === 'admin';
   const myCoachIds = coaches.filter((c) => c.userId === uid).map((c) => c.id);
   const syncOn = isSupabaseEnabled && remoteReady && !!uid;
 
@@ -1380,7 +1408,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           // commission (séance) + frais Stripe sur les frais de déplacement
           commissionAmount: Math.round((gross - net) * 100) / 100,
           netAmount: net,
-          status: 'pending' as const,
+          // Séance effectuée = revenu acquis (Stripe reverse au coach) ; séance confirmée = à venir
+          status: b.bookingStatus === 'completed' ? ('paid' as const) : ('pending' as const),
         };
       });
     const clientsMap = new Map<string, CoachClientSummary>();
@@ -1464,7 +1493,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const landing: AppScreen =
       user.role === 'coach' ? (myCoach && !myCoach.isProfileComplete ? 'coach_profile_edit' : 'coach_dashboard')
-      : user.role === 'admin' ? 'admin_dashboard'
       : 'home';
     setCurrentScreen(landing);
     setScreenHistory(user.role === 'coach' && landing === 'coach_profile_edit' ? ['coach_dashboard', landing] : [landing]);
@@ -1476,6 +1504,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const handleSession = async (authUserId: string | null) => {
       if (!authUserId) {
         loadedUserRef.current = null;
+        setServerAdmin(false);
+        setLoadError(null);
         clearAppData();
         setCurrentUser(null);
         setCurrentScreen('onboarding');
@@ -1487,13 +1517,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       loadedUserRef.current = authUserId;
       setAuthLoading(true);
       try {
+        setLoadError(null);
         let profile = await fetchProfile(authUserId);
         if (!profile) {
           // le profil est créé par un trigger : on laisse un court délai après l'inscription
           await new Promise((r) => setTimeout(r, 1200));
           profile = await fetchProfile(authUserId);
         }
-        if (!profile) throw new Error('Profil introuvable');
+        if (!profile) {
+          // Réparation sûre : la base recrée le profil manquant à partir du compte Auth (uniquement le sien)
+          const { error: repairErr } = await supabase!.rpc('ensure_my_profile');
+          if (!repairErr) profile = await fetchProfile(authUserId);
+        }
+        if (!profile) throw new Error('Votre profil est introuvable.');
+        // Rôle administrateur : vérifié côté serveur (table protégée admin_users)
+        const { data: adminFlag } = await supabase!.rpc('is_admin');
+        setServerAdmin(adminFlag === true);
         // Inscription via Google / Apple en ayant choisi « Je suis coach »
         const { takePendingRole } = await import('../lib/oauth');
         if (takePendingRole() === 'coach' && profile.role === 'client') {
@@ -1505,14 +1544,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       } catch (err) {
         console.error('[supabase] chargement du compte impossible', err);
         loadedUserRef.current = null;
-        setCurrentUser(null);
-        setCurrentScreen('onboarding');
-        setScreenHistory(['onboarding']);
+        // La session reste valide : on affiche l'erreur avec « Réessayer » plutôt qu'un écran vide ou des zéros
+        setLoadError(
+          err instanceof Error && /fetch|network|réseau/i.test(err.message)
+            ? 'Connexion impossible. Vérifiez votre réseau puis réessayez.'
+            : `Impossible de charger votre compte${err instanceof Error && err.message ? ` (${err.message})` : ''}.`,
+        );
       } finally {
         setAuthLoading(false);
       }
     };
 
+    retryRef.current = () => {
+      supabase!.auth.getSession().then(({ data }) => handleSession(data.session?.user?.id ?? null));
+    };
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
         // différé : ne pas appeler Supabase directement dans ce callback
@@ -1667,6 +1712,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         resetPassword,
         authLoading,
         isOnline: isSupabaseEnabled,
+        isAdmin: isAdminUser,
+        loadError,
+        retryLoad: () => retryRef.current(),
+        addGoal,
         updateUserProfile,
         coaches,
         selectedCoach,

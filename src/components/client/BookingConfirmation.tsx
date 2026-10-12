@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Avatar } from '../ui/Avatar';
 import { useApp } from '../../context/AppContext';
 import { 
   CheckCircle, 
@@ -98,11 +99,7 @@ END:VCALENDAR`;
         {/* Booking Card summary */}
         <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs space-y-3.5">
           <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
-            <img
-              src={b.coachPhoto}
-              alt={b.coachName}
-              className="w-12 h-12 rounded-xl object-cover border border-slate-200"
-            />
+            <Avatar src={b.coachPhoto} name={b.coachName} className="w-12 h-12 rounded-xl border border-slate-200" />
             <div>
               <h3 className="font-extrabold text-sm text-[#0F172A]">{b.coachName}</h3>
               <p className="text-xs text-[#008A3E] font-semibold">{b.coachTitle}</p>

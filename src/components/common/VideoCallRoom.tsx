@@ -1,4 +1,5 @@
 import React from 'react';
+import { Avatar } from '../ui/Avatar';
 import { motion } from 'motion/react';
 import { Calendar, ChevronRight, X } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
@@ -54,7 +55,7 @@ export const VideoCallRoom: React.FC<VideoCallRoomProps> = ({ booking, onClose }
         </div>
 
         <div className="flex items-center gap-3 mb-4">
-          <img src={partnerPhoto} alt="" className="w-12 h-12 rounded-2xl object-cover" />
+          <Avatar src={partnerPhoto} name={partnerName} className="w-12 h-12 rounded-2xl" />
           <div className="min-w-0">
             <p className="font-semibold truncate">{partnerName}</p>
             <p className="text-sm text-slate-500 flex items-center gap-1.5">

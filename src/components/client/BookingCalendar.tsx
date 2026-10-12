@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Avatar } from '../ui/Avatar';
 import { useApp, BookingDraft } from '../../context/AppContext';
 import {
   ChevronLeft,
@@ -146,12 +147,12 @@ const BookingCalendarContent: React.FC<{ coach: CoachProfile }> = ({ coach }) =>
 
       {/* Coach */}
       <Card className="p-5 flex items-center gap-4 mb-8">
-        <img src={coach.photo} alt={coach.name} className="w-14 h-14 rounded-full object-cover bg-slate-100 shrink-0" />
+        <Avatar src={coach.photo} name={coach.name} className="w-14 h-14 rounded-full bg-slate-100 shrink-0" />
         <div className="flex-1 min-w-0">
           <h2 className="font-semibold text-base truncate">{coach.name}</h2>
           <p className="text-sm text-slate-500 truncate">{coach.title}</p>
         </div>
-        <Rating value={coach.rating} className="shrink-0" />
+        <Rating value={coach.rating} count={coach.reviewCount} className="shrink-0" />
       </Card>
 
       {/* Calendrier */}

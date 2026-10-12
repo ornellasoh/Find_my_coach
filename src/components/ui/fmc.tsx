@@ -161,10 +161,11 @@ export const SearchField: React.FC<React.InputHTMLAttributes<HTMLInputElement> &
   </label>
 );
 
-export const Rating: React.FC<{ value: number; className?: string }> = ({ value, className }) => (
+/** Note d'un coach ; « Nouveau » quand `count` vaut 0 (aucun avis publié). */
+export const Rating: React.FC<{ value: number; count?: number; className?: string }> = ({ value, count, className }) => (
   <span className={cx('inline-flex items-center gap-1 text-sm font-semibold tabular-nums', className)}>
     <Star className="w-4 h-4 fill-fmc-green text-fmc-green" />
-    {value.toFixed(1)}
+    {count === 0 ? 'Nouveau' : value.toFixed(1).replace('.', ',')}
   </span>
 );
 

@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { isSupabaseEnabled } from '../../lib/supabase';
+import { Avatar } from '../ui/Avatar';
 import { useApp } from '../../context/AppContext';
 import { 
   Sparkles, 
@@ -46,7 +48,7 @@ export const CoachAIAgentView: React.FC = () => {
     startChatWithClient 
   } = useApp();
 
-  const coach = coaches.find((c) => c.userId === currentUser?.id) || coaches[0];
+  const coach = coaches.find((c) => c.userId === currentUser?.id) || (isSupabaseEnabled ? undefined : coaches[0]);
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('program');
 
@@ -315,11 +317,7 @@ export const CoachAIAgentView: React.FC = () => {
       {activeTab !== 'chat' && (
         <div className="bg-white dark:bg-slate-800/90 rounded-2xl p-3 border border-slate-200 dark:border-slate-700 shadow-xs mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <img
-              src={targetClient?.clientAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80'}
-              alt={targetClient?.clientName}
-              className="w-10 h-10 rounded-xl object-cover border border-slate-200 dark:border-slate-600"
-            />
+            <Avatar src={targetClient?.clientAvatar} name={targetClient?.clientName} className="w-10 h-10 rounded-xl border border-slate-200 dark:border-slate-600" />
             <div>
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                 Client ciblé

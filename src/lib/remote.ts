@@ -97,7 +97,8 @@ export async function fetchSnapshot(): Promise<RemoteSnapshot> {
   if (firstError?.error) throw firstError.error;
 
   // Coachs de démonstration : masqués au lancement (réglage « show_demo_coaches » dans app_settings)
-  const showDemo = ((settings.data || []) as { key: string; value: unknown }[]).find((r) => r.key === 'show_demo_coaches')?.value !== false;
+  // Par défaut (réglage absent ou illisible) : pas de coachs de démonstration dans l'app connectée.
+  const showDemo = ((settings.data || []) as { key: string; value: unknown }[]).find((r) => r.key === 'show_demo_coaches')?.value === true;
   const isRealAccount = (id?: string) => !!id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
   const allCoaches = rowsToData(coaches.data as { data: CoachProfile }[]);
 
@@ -133,10 +134,8 @@ export const profileToUser = (p: ProfileRow): User => ({
   role: p.role,
   name: p.name,
   email: p.email,
-  avatar:
-    p.avatar ||
-    p.data?.avatar ||
-    `https://ui-avatars.com/api/?name=${encodeURIComponent(p.name || 'FMC')}&background=00D664&color=0F172A&bold=true&size=256`,
+  // Pas de photo générée : sans photo choisie, l'app affiche les initiales (composant Avatar)
+  avatar: p.avatar || p.data?.avatar || '',
 });
 
 export async function fetchProfile(userId: string): Promise<User | null> {

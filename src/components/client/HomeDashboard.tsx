@@ -1,4 +1,5 @@
 import React from 'react';
+import { Avatar } from '../ui/Avatar';
 import { useApp } from '../../context/AppContext';
 import {
   Search,
@@ -13,6 +14,7 @@ import {
 } from 'lucide-react';
 import { CoachFeatureCard } from '../common/CoachCard';
 import { NextSessionCard } from './NextSessionCard';
+import { isBookableCoach } from '../../utils/coachTrust';
 import { Chip, Screen, SearchField, SectionHeader } from '../ui/fmc';
 
 const getCategoryIcon = (slug: string) => {
@@ -41,12 +43,12 @@ export const HomeDashboard: React.FC = () => {
   } = useApp();
 
 
-  const activeCoaches = coaches.filter((c) => c.isActive);
+  const activeCoaches = coaches.filter(isBookableCoach);
   const selectedCat = categories.find((cat) => cat.slug === selectedCategory);
 
   const featuredCoaches = activeCoaches
     .filter((c) => !selectedCat || c.category === selectedCat.name || c.specialties.includes(selectedCat.name))
-    .sort((a, b) => Number(b.isElite) - Number(a.isElite) || b.rating - a.rating)
+    .sort((a, b) => b.reviewCount - a.reviewCount || b.rating - a.rating)
     .slice(0, 3);
 
   return (
@@ -63,11 +65,7 @@ export const HomeDashboard: React.FC = () => {
           aria-label="Mon profil"
           className="shrink-0 p-[3px] rounded-full bg-fmc-green cursor-pointer active:scale-95 transition"
         >
-          <img
-            src={currentUser?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80'}
-            alt="Profil"
-            className="w-14 h-14 rounded-full object-cover border-[3px] border-fmc-bg dark:border-[#0B0F19]"
-          />
+          <Avatar src={currentUser?.avatar} name={currentUser?.name} className="w-14 h-14 rounded-full border-[3px] border-fmc-bg dark:border-[#0B0F19]" />
         </button>
       </header>
 

@@ -1,7 +1,7 @@
 // Annule une réservation et rembourse automatiquement via Stripe.
 // Client : annulation gratuite jusqu'à CLIENT_CANCEL_HOURS avant la séance.
 // Coach / admin : annulation possible à tout moment, toujours remboursée intégralement.
-import { admin, corsHeaders, getUser, json, notify, stripe } from '../_shared/common.ts';
+import { admin, corsHeaders, getUser, isAdminUser, json, notify, stripe } from '../_shared/common.ts';
 import { setBooking } from '../_shared/confirm.ts';
 
 const CLIENT_CANCEL_HOURS = 24;
@@ -26,8 +26,7 @@ Deno.serve(async (req) => {
 
     const { data: row } = await admin.from('bookings').select('*').eq('id', booking_id).maybeSingle();
     if (!row) return json({ error: 'Réservation introuvable' }, 404);
-    const { data: profile } = await admin.from('profiles').select('role').eq('id', user.id).maybeSingle();
-    const isAdmin = profile?.role === 'admin';
+    const isAdmin = await isAdminUser(user.id);
     const isClient = row.client_id === user.id;
     const isCoach = row.coach_user_id === user.id;
     if (!isAdmin && !isClient && !isCoach) return json({ error: 'Réservation introuvable' }, 404);

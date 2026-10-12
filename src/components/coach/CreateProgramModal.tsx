@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { isSupabaseEnabled } from '../../lib/supabase';
 import { useApp } from '../../context/AppContext';
 import { 
   X, 
@@ -21,7 +22,7 @@ interface CreateProgramModalProps {
 
 export const CreateProgramModal: React.FC<CreateProgramModalProps> = ({ client, onClose }) => {
   const { currentUser, coaches, addWorkoutProgram } = useApp();
-  const coach = coaches.find((c) => c.userId === currentUser?.id) || coaches[0];
+  const coach = coaches.find((c) => c.userId === currentUser?.id) || (isSupabaseEnabled ? undefined : coaches[0]);
 
   const [title, setTitle] = useState('Programme Personnalisé');
   const [objective, setObjective] = useState('Renforcement musculaire & Endurance');

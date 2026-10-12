@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { isSupabaseEnabled } from '../../lib/supabase';
 import { useApp } from '../../context/AppContext';
 import { 
   ArrowLeft, 
@@ -27,7 +28,7 @@ export const CoachFinancials: React.FC = () => {
     isOnline
   } = useApp();
 
-  const coachProfile = coaches.find(c => c.userId === currentUser?.id) || coaches[0];
+  const coachProfile = coaches.find(c => c.userId === currentUser?.id) || (isSupabaseEnabled ? undefined : coaches[0]);
   const coachPayouts = payouts.filter(p => p.coachId === coachProfile?.id);
 
   const totalEarnedNet = coachPayouts
@@ -38,7 +39,7 @@ export const CoachFinancials: React.FC = () => {
     .filter(p => p.status === 'pending')
     .reduce((acc, p) => acc + p.netAmount, 0);
 
-  const availableForPayout = totalEarnedNet > 0 ? totalEarnedNet : 153.0; // demo available amount
+  const availableForPayout = totalEarnedNet;
 
   const [payoutRequested, setPayoutRequested] = useState(false);
 
@@ -126,7 +127,7 @@ export const CoachFinancials: React.FC = () => {
         <div className="absolute top-0 right-0 w-32 h-32 bg-[#00D664]/10 rounded-full blur-2xl pointer-events-none" />
         
         <span className="text-xs font-bold text-slate-400 block uppercase tracking-wider">
-          Solde Disponible au virement
+          {isOnline ? 'Revenus nets des séances effectuées' : 'Solde disponible au virement'}
         </span>
         <div className="text-3xl font-black text-white mt-1 mb-3">
           {availableForPayout.toFixed(2)} €
@@ -138,12 +139,13 @@ export const CoachFinancials: React.FC = () => {
             <span className="text-amber-400 font-black">{pendingNet.toFixed(2)} €</span>
           </div>
           <div>
-            <span className="text-slate-400 block">Total versé à ce jour</span>
+            <span className="text-slate-400 block">{isOnline ? 'Total des séances effectuées' : 'Total versé à ce jour'}</span>
             <span className="text-[#00FD83] font-black">{totalEarnedNet.toFixed(2)} €</span>
           </div>
         </div>
 
-        {/* Payout Trigger CTA */}
+        {/* Virement manuel : mode démo uniquement (en ligne, Stripe reverse automatiquement) */}
+        {!isOnline && (
         <button
           onClick={handlePayout}
           disabled={payoutRequested || availableForPayout <= 0}
@@ -156,6 +158,7 @@ export const CoachFinancials: React.FC = () => {
           <ArrowDownLeft className="w-4 h-4 stroke-[2.5]" />
           <span>{payoutRequested ? 'Demande de virement envoyée ✅' : 'Demander le virement SEPA'}</span>
         </button>
+        )}
       </div>
 
       {/* Commission Transparency Card */}
@@ -167,16 +170,16 @@ export const CoachFinancials: React.FC = () => {
           </h2>
         </div>
         <p className="text-xs text-slate-600 leading-relaxed mb-3">
-          Vous percevez <strong className="text-[#008A3E]">85% du tarif brut</strong> de chaque séance. La commission de 15% couvre la garantie de paiement, l’assurance professionnelle Allianz, les frais bancaires et l’infrastructure visio HD.
+          Vous percevez <strong className="text-[#008A3E]">85% du tarif brut</strong> de chaque séance. La commission de 15 % couvre le paiement sécurisé, les frais bancaires et le fonctionnement de la plateforme. Les virements sont faits automatiquement par Stripe sur le compte bancaire que vous avez renseigné.
         </p>
 
         <div className="bg-slate-50 rounded-xl p-2.5 flex items-center justify-between text-xs border border-slate-200/80 font-bold">
-          <span className="text-slate-600">Sur une séance à 85 € :</span>
+          <span className="text-slate-600">Exemple, séance à 85 € :</span>
           <span className="text-[#008A3E]">Net perçu = 72,25 €</span>
         </div>
       </div>
 
-      {/* Bank Account / IBAN Management */}
+      {!isOnline && (
       <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs mb-4">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
@@ -209,6 +212,7 @@ export const CoachFinancials: React.FC = () => {
           </div>
         )}
       </div>
+      )}
 
       {/* Transaction History */}
       <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs space-y-3">
@@ -241,7 +245,7 @@ export const CoachFinancials: React.FC = () => {
                         : 'bg-amber-100 text-amber-800'
                     }`}
                   >
-                    {t.status === 'paid' ? 'Versé ✓' : 'En attente'}
+                    {t.status === 'paid' ? (isOnline ? 'Séance effectuée' : 'Versé ✓') : 'Séance à venir'}
                   </span>
                 </div>
               </div>

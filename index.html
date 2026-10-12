@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="FindMyCoach" />
-    <meta name="theme-color" content="#F2F4F7" />
+    <meta name="theme-color" content="#F6F9FA" />
     <title>FindMyCoach — Votre coach, partout et tout le temps</title>
     <meta name="description" content="Plateforme de mise en relation avec des coachs certifiés en fitness, bien-être, nutrition et performance." />
     <meta property="og:title" content="FindMyCoach — Votre coach, partout et tout le temps" />
@@ -17,8 +17,24 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&display=swap" rel="stylesheet">
+    <script>
+      // Applique le thème avant l'affichage (évite le flash clair au démarrage)
+      (function () {
+        try {
+          var m = localStorage.getItem('fmc_theme_mode');
+          if (m !== 'light' && m !== 'dark' && m !== 'system') {
+            var l = localStorage.getItem('fmc_theme_dark_v2');
+            m = l === null ? 'system' : (JSON.parse(l) ? 'dark' : 'light');
+          }
+          var d = m === 'dark' || (m === 'system' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
+          if (d) document.documentElement.classList.add('dark');
+          var t = document.querySelector('meta[name="theme-color"]');
+          if (t) t.setAttribute('content', d ? '#0B0F19' : '#F6F9FA');
+        } catch (e) {}
+      })();
+    </script>
   </head>
-  <body class="bg-[#F0F3F5] text-[#0F172A] font-sans antialiased selection:bg-[#00D664]/30 selection:text-[#00B050]">
+  <body class="bg-[#F0F3F5] dark:bg-[#060911] text-[#0F172A] dark:text-slate-100 font-sans antialiased selection:bg-[#00D664]/30 selection:text-[#00B050]">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Avatar } from '../ui/Avatar';
 import { useApp } from '../../context/AppContext';
 import { 
   ArrowLeft, 
@@ -33,7 +34,7 @@ export const CheckoutPayment: React.FC = () => {
   const [cardNumber, setCardNumber] = useState('4242 •••• •••• 4242');
   const [cardExpiry, setCardExpiry] = useState('12/26');
   const [cardCvc, setCardCvc] = useState('888');
-  const [cardHolder, setCardHolder] = useState(currentUser?.name || 'Alex Dupont');
+  const [cardHolder, setCardHolder] = useState(currentUser?.name || '');
   const [promoCode, setPromoCode] = useState('');
   const [appliedDiscount, setAppliedDiscount] = useState<number>(0);
   const [promoError, setPromoError] = useState('');
@@ -136,7 +137,7 @@ export const CheckoutPayment: React.FC = () => {
 
       {/* Séance */}
       <Card className="p-5 flex items-center gap-4 mb-8">
-        <img src={coach.photo} alt={coach.name} className="w-[70px] h-[70px] rounded-[20px] object-cover bg-slate-100 shrink-0" />
+        <Avatar src={coach.photo} name={coach.name} className="w-[70px] h-[70px] rounded-[20px] bg-slate-100 shrink-0" />
         <div className="min-w-0">
           <p className="text-xs font-semibold text-fmc-green-ink truncate">{sessionType.name}</p>
           <h2 className="text-lg font-semibold leading-tight truncate mt-0.5">Coach {coach.name}</h2>

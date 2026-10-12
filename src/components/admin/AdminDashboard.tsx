@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Avatar } from '../ui/Avatar';
 import { ThemePicker } from '../common/ThemePicker';
 import { useApp } from '../../context/AppContext';
 import { 
@@ -16,6 +17,7 @@ import {
 } from 'lucide-react';
 import { Logo } from '../common/Logo';
 import { AdminIssues, AdminVerifications } from './AdminModeration';
+import { AdminStatsCards } from './AdminStatsCards';
 
 export const AdminDashboard: React.FC = () => {
   const { 
@@ -26,17 +28,13 @@ export const AdminDashboard: React.FC = () => {
     toggleCoachActiveStatus, 
     resetAllData, 
     goBack,
+    isOnline,
     logout,
     loginAs
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'overview' | 'coaches' | 'reviews' | 'bookings' | 'verif' | 'issues'>('overview');
 
-  // Metrics
-  const totalVolume = bookings.reduce((sum, b) => sum + (b.bookingStatus !== 'cancelled' ? b.total : 0), 0);
-  const platformRevenue = totalVolume * 0.15; // 15% platform commission
-  const completedCount = bookings.filter(b => b.bookingStatus === 'completed').length;
-  const activeCoachesCount = coaches.filter(c => c.isActive).length;
 
   return (
     <div className="min-h-screen bg-[#F6F9FA] text-[#0F172A] pb-28 max-w-md mx-auto px-4 pt-3">
@@ -59,7 +57,7 @@ export const AdminDashboard: React.FC = () => {
 
         <h1 className="text-base font-extrabold text-[#0F172A]">Panneau d'Administration</h1>
 
-        <button
+        {isOnline ? <span className="w-9" /> : <button
           onClick={() => {
             if (window.confirm('Réinitialiser toutes les données de test aux valeurs par défaut ?')) resetAllData();
           }}
@@ -67,35 +65,11 @@ export const AdminDashboard: React.FC = () => {
           title="Réinitialiser"
         >
           <RefreshCw className="w-4 h-4" />
-        </button>
+        </button>}
       </div>
 
-      {/* 4 Stats Cards */}
-      <div className="grid grid-cols-2 gap-2.5 mb-4">
-        <div className="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-xs">
-          <span className="text-[11px] text-slate-400 block font-medium">GMV Total Transigé</span>
-          <span className="text-lg font-black text-[#008A3E] block mt-0.5">{totalVolume.toFixed(2)} €</span>
-          <span className="text-[10px] text-slate-400">sur {bookings.length} réservations</span>
-        </div>
-
-        <div className="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-xs">
-          <span className="text-[11px] text-slate-400 block font-medium">Commissions FMC</span>
-          <span className="text-lg font-black text-amber-500 block mt-0.5">{platformRevenue.toFixed(2)} €</span>
-          <span className="text-[10px] text-slate-400">15% commission nette</span>
-        </div>
-
-        <div className="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-xs">
-          <span className="text-[11px] text-slate-400 block font-medium">Coachs Référencés</span>
-          <span className="text-lg font-black text-[#0F172A] block mt-0.5">{activeCoachesCount} / {coaches.length}</span>
-          <span className="text-[10px] text-[#008A3E] font-bold">100% profils certifiés</span>
-        </div>
-
-        <div className="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-xs">
-          <span className="text-[11px] text-slate-400 block font-medium">Séances Terminées</span>
-          <span className="text-lg font-black text-[#0F172A] block mt-0.5">{completedCount}</span>
-          <span className="text-[10px] text-slate-400">Taux complétion 92%</span>
-        </div>
-      </div>
+      {/* Chiffres réels (serveur), jamais estimés */}
+      <AdminStatsCards localBookings={bookings} localCoaches={coaches} />
 
       {/* Tabs */}
       <div className="flex bg-white border border-slate-200 p-1 rounded-2xl mb-4 text-xs font-extrabold shadow-2xs">
@@ -154,17 +128,13 @@ export const AdminDashboard: React.FC = () => {
           {coaches.map((coach) => (
             <div key={coach.id} className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <img
-                  src={coach.photo}
-                  alt={coach.name}
-                  className="w-12 h-12 rounded-xl object-cover border border-slate-200"
-                />
+                <Avatar src={coach.photo} name={coach.name} className="w-12 h-12 rounded-xl border border-slate-200" />
                 <div>
                   <h3 className="font-extrabold text-[#0F172A] text-sm">{coach.name}</h3>
                   <p className="text-xs text-slate-500">{coach.title} • {coach.hourlyRate}€/h</p>
                   <div className="flex items-center gap-1 mt-0.5 text-xs text-amber-500 font-bold">
                     <Star className="w-3.5 h-3.5 fill-current" />
-                    <span>{coach.rating} ({coach.reviewCount} avis)</span>
+                    <span>{coach.reviewCount ? `${coach.rating} (${coach.reviewCount} avis)` : 'Aucun avis'}</span>
                   </div>
                 </div>
               </div>

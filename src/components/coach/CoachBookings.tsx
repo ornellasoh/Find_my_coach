@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { isSupabaseEnabled } from '../../lib/supabase';
+import { Avatar } from '../ui/Avatar';
 import { useApp } from '../../context/AppContext';
 import { coachNet } from '../../utils/payout';
 import { 
@@ -29,7 +31,7 @@ export const CoachBookings: React.FC = () => {
     setActiveChatPartner
   } = useApp();
 
-  const coach = coaches.find(c => c.userId === currentUser?.id) || coaches[0];
+  const coach = coaches.find(c => c.userId === currentUser?.id) || (isSupabaseEnabled ? undefined : coaches[0]);
   const coachBookings = bookings.filter(b => b.coachId === coach?.id);
 
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -130,11 +132,7 @@ export const CoachBookings: React.FC = () => {
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <img
-                    src={b.clientAvatar}
-                    alt={b.clientName}
-                    className="w-11 h-11 rounded-2xl object-cover border border-slate-200"
-                  />
+                  <Avatar src={b.clientAvatar} name={b.clientName} className="w-11 h-11 rounded-2xl border border-slate-200" />
                   <div>
                     <h3 className="font-extrabold text-[#0F172A] text-sm">{b.clientName}</h3>
                     <p className="text-xs text-slate-500">{b.clientEmail}</p>

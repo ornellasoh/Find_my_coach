@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { ratingLabel } from '../../utils/coachTrust';
+import { Avatar } from '../ui/Avatar';
 import { useApp } from '../../context/AppContext';
 import { 
   ArrowLeft, 
@@ -22,7 +24,7 @@ import {
   FileCheck2
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { isVerifiedCoach, isRealCoach, levelsText, approximateZone } from '../../utils/coachTrust';
+import { isVerifiedCoach, isRealCoach, levelsText, approximateZone, isDemoCoachOnline, isBookableCoach } from '../../utils/coachTrust';
 import { PrimaryButton, Rating, SectionHeader, StickyAction, formatDateFr, formatEuro } from '../ui/fmc';
 
 export const CoachProfileView: React.FC = () => {
@@ -85,7 +87,7 @@ export const CoachProfileView: React.FC = () => {
     <div className="min-h-screen bg-fmc-bg dark:bg-[#0B0F19] text-fmc-navy dark:text-slate-100 pb-36 max-w-md mx-auto relative">
       {/* Photo plein cadre */}
       <div className="relative h-[420px] w-full bg-slate-200 dark:bg-slate-900 overflow-hidden">
-        <img src={coach.coverPhoto || coach.photo} alt={coach.name} className="w-full h-full object-cover grayscale-[35%]" />
+        <Avatar src={coach.coverPhoto || coach.photo} name={coach.name} className="w-full h-full text-7xl" />
         <div className="absolute inset-0 bg-linear-to-b from-black/10 via-transparent via-45% to-fmc-bg dark:to-[#0B0F19]" />
 
         <div className="absolute top-4 left-5 right-5 flex items-center justify-between z-10">
@@ -130,8 +132,8 @@ export const CoachProfileView: React.FC = () => {
         {/* Chiffres clés */}
         <div className="grid grid-cols-3 gap-3">
           {[
-            { label: 'Note', value: coach.rating.toFixed(1), sub: `${coach.reviewCount} avis` },
-            { label: 'Expérience', value: `${coach.experienceYears} ans`, sub: 'Certifié' },
+            { label: 'Note', value: ratingLabel(coach), sub: coach.reviewCount ? `${coach.reviewCount} avis` : 'aucun avis' },
+            { label: 'Expérience', value: coach.experienceYears ? `${coach.experienceYears} an${coach.experienceYears > 1 ? 's' : ''}` : '—', sub: coach.experienceYears ? 'd’expérience' : 'non précisée' },
             { label: 'Prix', value: `${coach.hourlyRate} €`, sub: 'par heure' },
           ].map((stat) => (
             <div key={stat.label} className="bg-fmc-dark rounded-2xl px-3 py-3 text-center">
@@ -335,7 +337,11 @@ export const CoachProfileView: React.FC = () => {
       </div>
 
       <StickyAction>
-        {coach.userId === currentUser?.id ? (
+        {isDemoCoachOnline(coach) || !isBookableCoach(coach) && coach.userId !== currentUser?.id ? (
+          <p className="text-center text-sm text-slate-500 dark:text-slate-400 py-3">
+            {isDemoCoachOnline(coach) ? 'Profil de démonstration : réservation indisponible.' : 'Ce coach n’accepte pas encore de réservations.'}
+          </p>
+        ) : coach.userId === currentUser?.id ? (
           <PrimaryButton id="btn-edit-own-profile" onClick={() => navigateTo('coach_profile_edit')}>
             C'est votre fiche · Modifier mon profil
           </PrimaryButton>

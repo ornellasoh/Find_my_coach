@@ -1,48 +1,18 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { TrendingUp, Timer, ArrowUp, ChevronRight, Check, Sparkles, CalendarCheck } from 'lucide-react';
+import { Timer, ChevronRight, Check, CalendarCheck, Plus, Target, TrendingUp } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Card, Screen, SectionHeader } from '../ui/fmc';
+import { Avatar } from '../ui/Avatar';
 
-// Indice d'activité des 7 derniers jours (démo)
-const WEEK = [
-  { label: 'L', value: 42 },
-  { label: 'M', value: 55 },
-  { label: 'M', value: 50 },
-  { label: 'J', value: 72 },
-  { label: 'V', value: 64 },
-  { label: 'S', value: 85 },
-  { label: 'D', value: 95 },
-];
-
-// Séances par mois (démo)
-const MONTHS = [
-  { label: 'Mai', value: 5 },
-  { label: 'Juin', value: 8 },
-  { label: 'Juil', value: 6 },
-  { label: 'Août', value: 10 },
-  { label: 'Sept', value: 7 },
-  { label: 'Oct', value: 9 },
-];
-
-/** Courbe lissée (Catmull-Rom → Bézier) pour le graphique de performance. */
-const smoothPath = (pts: { x: number; y: number }[]) =>
-  pts.reduce((d, p, i, a) => {
-    if (i === 0) return `M ${p.x} ${p.y}`;
-    const p0 = a[i - 2] || a[i - 1];
-    const p1 = a[i - 1];
-    const p3 = a[i + 1] || p;
-    const c1 = { x: p1.x + (p.x - p0.x) / 6, y: p1.y + (p.y - p0.y) / 6 };
-    const c2 = { x: p.x - (p3.x - p1.x) / 6, y: p.y - (p3.y - p1.y) / 6 };
-    return `${d} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${p.x} ${p.y}`;
-  }, '');
+const MONTH_LABELS = ['Janv', 'Févr', 'Mars', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc'];
 
 const ProgressRing: React.FC<{ percent: number }> = ({ percent }) => {
   const r = 16;
   const c = 2 * Math.PI * r;
   return (
     <span className="w-14 h-14 rounded-2xl bg-fmc-dark flex items-center justify-center shrink-0">
-      <svg width="40" height="40" viewBox="0 0 40 40" className="-rotate-90">
+      <svg width="40" height="40" viewBox="0 0 40 40" className="-rotate-90" aria-hidden="true">
         <circle cx="20" cy="20" r={r} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="4" />
         <circle
           cx="20"
@@ -53,130 +23,187 @@ const ProgressRing: React.FC<{ percent: number }> = ({ percent }) => {
           strokeWidth="4"
           strokeLinecap="round"
           strokeDasharray={c}
-          strokeDashoffset={c * (1 - Math.min(100, percent) / 100)}
+          strokeDashoffset={c * (1 - Math.min(100, Math.max(0, percent)) / 100)}
         />
       </svg>
     </span>
   );
 };
 
+/**
+ * Progression du client : uniquement ses vraies séances et ses propres objectifs.
+ * Un compte neuf voit 0 séance et un état vide (aucune donnée de démonstration).
+ */
 export const ProgressDashboard: React.FC = () => {
-  const { goals, updateGoalProgress, bookings, currentUser, navigateTo } = useApp();
+  const { goals, updateGoalProgress, addGoal, bookings, currentUser, navigateTo } = useApp();
   const [activeGoalToUpdate, setActiveGoalToUpdate] = useState<string | null>(null);
   const [newValueInput, setNewValueInput] = useState<number>(0);
+  const [showNewGoal, setShowNewGoal] = useState(false);
+  const [goalTitle, setGoalTitle] = useState('');
+  const [goalTarget, setGoalTarget] = useState<number>(10);
+  const [goalUnit, setGoalUnit] = useState('séances');
+  const [goalError, setGoalError] = useState('');
 
-  const firstName = currentUser?.name?.split(' ')[0] || 'Alex';
-  const initials = (currentUser?.name || 'Alex Rivers')
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
+  const firstName = currentUser?.name?.trim().split(/\s+/)[0] || '';
+  const myGoals = goals.filter((g) => g.userId === currentUser?.id);
 
-  const completedCount = bookings.filter((b) => b.clientId === currentUser?.id && b.bookingStatus === 'completed').length;
-  const upcomingCount = bookings.filter((b) => b.clientId === currentUser?.id && b.bookingStatus === 'confirmed').length;
-  const totalHours = completedCount + 8;
-
-  // Géométrie du graphique
-  const W = 300;
-  const H = 150;
-  const max = 100;
-  const pts = WEEK.map((d, i) => ({ x: 6 + (i * (W - 12)) / (WEEK.length - 1), y: H - 8 - (d.value / max) * (H - 30) }));
-  const line = smoothPath(pts);
-  const area = `${line} L ${pts[pts.length - 1].x} ${H} L ${pts[0].x} ${H} Z`;
-  const growth = (((WEEK[6].value - WEEK[0].value) / WEEK[0].value) * 100) / 8; // indice hebdo lissé
-  const monthMax = Math.max(...MONTHS.map((m) => m.value));
+  const stats = useMemo(() => {
+    const mine = bookings.filter((b) => b.clientId === currentUser?.id);
+    const completed = mine.filter((b) => b.bookingStatus === 'completed');
+    const upcoming = mine.filter((b) => b.bookingStatus === 'confirmed').length;
+    const minutes = completed.reduce((s, b) => s + (b.sessionType?.durationMinutes || 60), 0);
+    // Séances effectuées sur les 6 derniers mois (mois en cours inclus)
+    const now = new Date();
+    const months = Array.from({ length: 6 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      return { key, label: MONTH_LABELS[d.getMonth()], value: completed.filter((b) => b.date.startsWith(key)).length };
+    });
+    return { completed: completed.length, upcoming, hours: Math.round((minutes / 60) * 10) / 10, months };
+  }, [bookings, currentUser?.id]);
+  const monthMax = Math.max(1, ...stats.months.map((m) => m.value));
 
   const handleUpdate = (goalId: string) => {
     updateGoalProgress(goalId, newValueInput);
     setActiveGoalToUpdate(null);
   };
 
+  const createGoal = () => {
+    setGoalError('');
+    if (!goalTitle.trim()) return setGoalError('Donnez un nom à votre objectif.');
+    if (!(goalTarget > 0)) return setGoalError('La valeur cible doit être supérieure à 0.');
+    addGoal({ title: goalTitle.trim(), targetValue: goalTarget, unit: goalUnit.trim() || 'unités' });
+    setGoalTitle('');
+    setShowNewGoal(false);
+  };
+
   return (
     <Screen>
       <header className="flex items-start justify-between gap-4 pt-2 mb-6">
         <div>
-          <h1 className="text-[32px] leading-tight font-semibold tracking-tight">Votre Progression</h1>
-          <p className="text-base text-slate-500 mt-1">Continuez ainsi, {firstName} !</p>
+          <h1 className="text-[32px] leading-tight font-semibold tracking-tight">Votre progression</h1>
+          <p className="text-base text-slate-500 dark:text-slate-400 mt-1">
+            {stats.completed > 0 ? `Continuez ainsi${firstName ? `, ${firstName}` : ''} !` : 'Vos séances et objectifs apparaîtront ici.'}
+          </p>
         </div>
-        <button
-          onClick={() => navigateTo('profile')}
-          aria-label="Mon profil"
-          className="w-14 h-14 rounded-full border-2 border-fmc-green flex items-center justify-center text-lg font-medium shrink-0 cursor-pointer"
-        >
-          {initials}
+        <button onClick={() => navigateTo('profile')} aria-label="Mon profil" className="shrink-0 rounded-full cursor-pointer">
+          <Avatar src={currentUser?.avatar} name={currentUser?.name} className="w-14 h-14 rounded-full border-2 border-fmc-green" />
         </button>
       </header>
 
-      {/* Indice de performance */}
-      <Card className="p-6 mb-4 shadow-[0_10px_40px_rgba(0,214,100,0.12)]">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-semibold">Indice de Performance</h2>
-            <p className="text-xs text-slate-500 mt-0.5">Croissance de l'activité hebdomadaire</p>
-          </div>
-          <span className="px-3 py-1 rounded-full bg-fmc-dark text-fmc-green text-sm font-semibold tabular-nums">
-            +{growth.toFixed(1).replace('.', ',')}%
-          </span>
-        </div>
-
-        <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto mt-6" role="img" aria-label="Activité des 7 derniers jours">
-          <defs>
-            <linearGradient id="perfFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#00D664" stopOpacity="0.28" />
-              <stop offset="100%" stopColor="#00D664" stopOpacity="0.12" />
-            </linearGradient>
-          </defs>
-          <path d={area} fill="url(#perfFill)" />
-          <path d={line} fill="none" stroke="#00D664" strokeWidth="3" strokeLinecap="round" />
-          {pts.map((p, i) => (
-            <circle key={i} cx={p.x} cy={p.y} r="5" fill="#00D664" />
-          ))}
-        </svg>
-        <div className="flex justify-between text-xs text-slate-500 mt-2 px-0.5">
-          {WEEK.map((d, i) => (
-            <span key={i} className="w-3 text-center">{d.label}</span>
-          ))}
-        </div>
-
-        <div className="flex items-center justify-between mt-6 text-sm">
-          <span className="text-fmc-navy dark:text-slate-300">7 derniers jours</span>
-          <button
-            onClick={() => navigateTo('workout_programs')}
-            className="flex items-center gap-1.5 font-semibold text-fmc-green-ink cursor-pointer"
-          >
-            <TrendingUp className="w-4 h-4" />
-            Voir mes programmes
-          </button>
-        </div>
-      </Card>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 gap-4 mb-8">
+      {/* Chiffres réels */}
+      <div className="grid grid-cols-2 gap-4 mb-6">
         <Card className="p-5">
-          <span className="text-sm text-slate-500 flex items-center gap-1.5">
+          <span className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
             <Timer className="w-4 h-4 text-fmc-green-ink" /> Entraînement
           </span>
-          <span className="text-[28px] font-medium tabular-nums block mt-1">{totalHours} h</span>
-          <span className="text-xs font-semibold text-fmc-green-ink flex items-center gap-1">
-            <ArrowUp className="w-3.5 h-3.5" /> 8 %
+          <span className="text-[28px] font-medium tabular-nums block mt-1">
+            {String(stats.hours).replace('.', ',')} h
           </span>
+          <span className="text-xs text-slate-500 dark:text-slate-400">séances effectuées</span>
         </Card>
         <Card className="p-5">
-          <span className="text-sm text-slate-500 flex items-center gap-1.5">
+          <span className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
             <CalendarCheck className="w-4 h-4 text-fmc-green-ink" /> Séances
           </span>
-          <span className="text-[28px] font-medium tabular-nums block mt-1">{completedCount + 8}</span>
-          <span className="text-xs font-semibold text-fmc-green-ink">
-            {upcomingCount} à venir
-          </span>
+          <span className="text-[28px] font-medium tabular-nums block mt-1">{stats.completed}</span>
+          <span className="text-xs font-semibold text-fmc-green-ink">{stats.upcoming} à venir</span>
         </Card>
       </div>
 
+      {/* Régularité */}
+      <Card className="p-6 mb-8">
+        <h2 className="text-lg font-semibold mb-1">Régularité des séances</h2>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mb-6">Séances effectuées, 6 derniers mois</p>
+        {stats.completed === 0 ? (
+          <div className="text-center py-6">
+            <p className="text-sm text-slate-500 dark:text-slate-400">Aucune séance effectuée pour l'instant.</p>
+            <button
+              onClick={() => navigateTo('search')}
+              className="mt-4 min-h-11 px-5 rounded-full bg-fmc-green text-fmc-navy text-sm font-bold cursor-pointer"
+            >
+              Trouver un coach
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-end justify-around h-40" role="img" aria-label="Séances effectuées par mois">
+            {stats.months.map((m, i) => (
+              <div key={m.key} className="flex flex-col items-center gap-2 h-full justify-end">
+                <span className="text-xs font-semibold tabular-nums text-slate-500 dark:text-slate-400">{m.value}</span>
+                <motion.div
+                  initial={{ height: 0 }}
+                  animate={{ height: `${(m.value / monthMax) * 110}px` }}
+                  transition={{ duration: 0.5, delay: i * 0.05 }}
+                  className={`w-8 rounded-t-md ${m.value ? 'bg-fmc-green' : 'bg-slate-200 dark:bg-slate-700'}`}
+                  style={{ minHeight: 4 }}
+                />
+                <span className="text-xs text-slate-500 dark:text-slate-400">{m.label}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
       {/* Objectifs */}
-      <SectionHeader title="Objectifs Actifs" className="[&_h2]:text-2xl" />
+      <SectionHeader
+        title="Mes objectifs"
+        action={showNewGoal ? undefined : 'Ajouter'}
+        onAction={() => setShowNewGoal(true)}
+        className="[&_h2]:text-2xl"
+      />
+      {showNewGoal && (
+        <Card className="p-4 mb-3 space-y-3">
+          <input
+            value={goalTitle}
+            onChange={(e) => setGoalTitle(e.target.value)}
+            maxLength={80}
+            placeholder="Ex. Courir 10 km, 12 séances ce trimestre…"
+            className="w-full h-12 px-3 rounded-xl bg-fmc-bg dark:bg-slate-800 text-[15px] focus:outline-none focus:ring-2 focus:ring-fmc-green/50"
+          />
+          <div className="flex gap-2">
+            <input
+              type="number"
+              inputMode="decimal"
+              min={1}
+              value={goalTarget}
+              onChange={(e) => setGoalTarget(Number(e.target.value))}
+              aria-label="Valeur cible"
+              className="w-24 h-12 px-3 rounded-xl bg-fmc-bg dark:bg-slate-800 text-center font-semibold focus:outline-none focus:ring-2 focus:ring-fmc-green/50"
+            />
+            <input
+              value={goalUnit}
+              onChange={(e) => setGoalUnit(e.target.value)}
+              maxLength={20}
+              aria-label="Unité"
+              className="flex-1 h-12 px-3 rounded-xl bg-fmc-bg dark:bg-slate-800 text-[15px] focus:outline-none focus:ring-2 focus:ring-fmc-green/50"
+            />
+          </div>
+          {goalError && <p className="text-sm text-rose-600">{goalError}</p>}
+          <div className="flex gap-2">
+            <button onClick={() => setShowNewGoal(false)} className="flex-1 min-h-11 rounded-full bg-slate-100 dark:bg-slate-800 font-semibold cursor-pointer">
+              Annuler
+            </button>
+            <button onClick={createGoal} className="flex-1 min-h-11 rounded-full bg-fmc-green text-fmc-navy font-bold cursor-pointer">
+              Créer l'objectif
+            </button>
+          </div>
+        </Card>
+      )}
       <div className="space-y-3 mb-8">
-        {goals.map((goal) => {
+        {myGoals.length === 0 && !showNewGoal && (
+          <Card className="p-6 text-center">
+            <Target className="w-8 h-8 text-fmc-green-ink mx-auto mb-2" />
+            <p className="font-semibold">Aucun objectif pour l'instant</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Fixez-vous un objectif et suivez vos progrès.</p>
+            <button
+              onClick={() => setShowNewGoal(true)}
+              className="mt-4 min-h-11 px-5 rounded-full bg-fmc-green text-fmc-navy text-sm font-bold inline-flex items-center gap-1.5 cursor-pointer"
+            >
+              <Plus className="w-4 h-4" /> Ajouter un objectif
+            </button>
+          </Card>
+        )}
+        {myGoals.map((goal) => {
           const isEditing = activeGoalToUpdate === goal.id;
           return (
             <Card key={goal.id} className="p-4">
@@ -191,7 +218,7 @@ export const ProgressDashboard: React.FC = () => {
                 <ProgressRing percent={goal.percentage} />
                 <span className="flex-1 min-w-0">
                   <span className="font-semibold block truncate">{goal.title}</span>
-                  <span className="text-xs text-slate-500 block mt-0.5 tabular-nums">
+                  <span className="text-xs text-slate-500 dark:text-slate-400 block mt-0.5 tabular-nums">
                     Actuel : {goal.currentValue} {goal.unit} • Objectif : {goal.targetValue} {goal.unit}
                   </span>
                 </span>
@@ -207,7 +234,7 @@ export const ProgressDashboard: React.FC = () => {
                   animate={{ opacity: 1, height: 'auto' }}
                   className="flex items-center gap-2 mt-4 pt-4 border-t border-fmc-line/80 dark:border-slate-800"
                 >
-                  <label className="text-sm text-slate-500 flex-1">Nouvelle valeur ({goal.unit})</label>
+                  <label className="text-sm text-slate-500 dark:text-slate-400 flex-1">Nouvelle valeur ({goal.unit})</label>
                   <input
                     type="number"
                     inputMode="decimal"
@@ -229,41 +256,15 @@ export const ProgressDashboard: React.FC = () => {
         })}
       </div>
 
-      {/* Régularité */}
-      <Card className="p-6 mb-8">
-        <h2 className="text-lg font-semibold mb-6">Régularité des séances</h2>
-        <div className="flex items-end justify-around h-40">
-          {MONTHS.map((m, i) => (
-            <div key={m.label} className="flex flex-col items-center gap-2 h-full justify-end">
-              <span className="text-xs font-semibold tabular-nums text-slate-500">{m.value}</span>
-              <motion.div
-                initial={{ height: 0 }}
-                animate={{ height: `${(m.value / monthMax) * 100}%` }}
-                transition={{ duration: 0.5, delay: i * 0.05 }}
-                className="w-8 rounded-t-md bg-fmc-green max-h-[110px]"
-                style={{ height: `${(m.value / monthMax) * 110}px` }}
-              />
-              <span className="text-xs text-slate-500">{m.label}</span>
-            </div>
-          ))}
-        </div>
-      </Card>
-
-      {/* Coach IA */}
       <button
         onClick={() => navigateTo('workout_programs')}
         className="w-full text-left rounded-[28px] p-6 bg-linear-to-br from-black via-fmc-dark to-[#00B050] text-white flex items-center gap-4 cursor-pointer active:scale-[0.99] transition"
       >
         <div className="flex-1">
-          <p className="font-semibold text-lg">Programmes Coach IA</p>
-          <p className="text-sm text-white/75 mt-1 leading-snug">
-            Vos plans d'entraînement et de récupération personnalisés.
-          </p>
-          <span className="inline-block mt-4 px-4 py-2 rounded-full bg-fmc-green text-fmc-navy text-sm font-bold">
-            Voir mes programmes
-          </span>
+          <p className="font-semibold text-lg">Mes programmes</p>
+          <p className="text-sm text-white/75 mt-1 leading-snug">Les programmes envoyés par vos coachs.</p>
         </div>
-        <Sparkles className="w-10 h-10 text-fmc-green shrink-0" />
+        <TrendingUp className="w-10 h-10 text-fmc-green shrink-0" />
       </button>
     </Screen>
   );

@@ -1,5 +1,7 @@
 import type { CoachProfile } from '../types';
 import { LEVEL_LABELS } from './searchFilters';
+import { isSupabaseEnabled } from '../lib/supabase';
+import { realPhoto } from './initials';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -26,7 +28,7 @@ export interface ChecklistItem {
 /** Liste d'aide pour compléter le profil coach. */
 export function profileChecklist(c: CoachProfile, hasDocument: boolean, hasSlots: boolean): ChecklistItem[] {
   return [
-    { key: 'photo', label: 'Photo de profil', done: !!c.photo && !/unsplash\.com\/photo-1534528741775/.test(c.photo) },
+    { key: 'photo', label: 'Photo de profil', done: !!realPhoto(c.photo) },
     { key: 'bio', label: 'Présentation (au moins 120 caractères)', done: (c.bio ?? '').trim().length >= 120 },
     { key: 'methods', label: 'Votre méthode de travail', done: (c.methods ?? '').trim().length >= 40 },
     { key: 'specialties', label: 'Spécialités', done: (c.specialties ?? []).length > 0 },
@@ -42,3 +44,17 @@ export function profileChecklist(c: CoachProfile, hasDocument: boolean, hasSlots
 }
 
 export const levelsText = (c: CoachProfile) => (c.levels ?? []).map((l) => LEVEL_LABELS[l]).join(', ');
+
+/** Note affichée : « Nouveau » tant qu'aucun avis n'a été publié (jamais de 5,0 par défaut). */
+export const ratingLabel = (c: Pick<CoachProfile, 'rating' | 'reviewCount'>) =>
+  c.reviewCount > 0 ? c.rating.toFixed(1).replace('.', ',') : 'Nouveau';
+
+/**
+ * Fiche visible dans la recherche et réservable : active, complétée, avec un tarif.
+ * En ligne, les profils de démonstration (sans vrai compte) ne sont jamais réservables.
+ */
+export const isBookableCoach = (c: CoachProfile) =>
+  c.isActive && c.hourlyRate > 0 && c.isProfileComplete !== false && (!isSupabaseEnabled || isRealCoach(c));
+
+/** Profil d'exemple affiché en ligne (réglage show_demo_coaches) : lecture seule. */
+export const isDemoCoachOnline = (c: Pick<CoachProfile, 'userId'>) => isSupabaseEnabled && !isRealCoach(c);

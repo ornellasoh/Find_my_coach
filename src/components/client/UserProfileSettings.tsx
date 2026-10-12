@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Avatar } from '../ui/Avatar';
 import { ThemePicker } from '../common/ThemePicker';
 import { DeleteAccount } from '../common/DeleteAccount';
 import { useApp } from '../../context/AppContext';
@@ -43,13 +44,14 @@ export const UserProfileSettings: React.FC = () => {
     setIsNotificationDrawerOpen,
     isDarkMode,
     toggleDarkMode,
-    isOnline
+    isOnline,
+    isAdmin
   } = useApp();
 
   const [isEditing, setIsEditing] = useState(false);
-  const [name, setName] = useState(currentUser?.name || 'Alex Dupont');
-  const [email, setEmail] = useState(currentUser?.email || 'alex.dupont@gmail.com');
-  const [phone, setPhone] = useState(currentUser?.phone || '+33 6 12 34 56 78');
+  const [name, setName] = useState(currentUser?.name || '');
+  const [email, setEmail] = useState(currentUser?.email || '');
+  const [phone, setPhone] = useState(currentUser?.phone || '');
 
   const clientBookingsCount = bookings.filter(
     b => b.clientId === currentUser?.id && b.bookingStatus === 'completed'
@@ -64,10 +66,11 @@ export const UserProfileSettings: React.FC = () => {
   const myBookings = bookings.filter((b) => b.clientId === currentUser?.id);
   const pastBookings = myBookings.filter((b) => b.bookingStatus === 'completed').slice(0, 2);
   const coachesCount = new Set(myBookings.map((b) => b.coachId)).size;
-  const avgProgress = goals.length
-    ? Math.round(goals.reduce((sum, g) => sum + Math.min(100, g.percentage), 0) / goals.length)
+  const myGoals = goals.filter((g) => g.userId === currentUser?.id);
+  const avgProgress = myGoals.length
+    ? Math.round(myGoals.reduce((sum, g) => sum + Math.min(100, g.percentage), 0) / myGoals.length)
     : 0;
-  const memberSince = currentUser?.memberSince || (currentUser?.createdAt ? currentUser.createdAt.slice(0, 4) : '2025');
+  const memberSince = currentUser?.memberSince || (currentUser?.createdAt ? currentUser.createdAt.slice(0, 4) : '');
 
   const Row: React.FC<{
     icon: React.ReactNode;
@@ -108,26 +111,22 @@ export const UserProfileSettings: React.FC = () => {
         <div className="text-center">
           <button onClick={() => setIsEditing(true)} className="relative inline-block cursor-pointer" aria-label="Modifier la photo">
             <span className="block p-1 rounded-full bg-fmc-green">
-              <img
-                src={currentUser?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80'}
-                alt={currentUser?.name || 'Avatar'}
-                className="w-28 h-28 rounded-full object-cover border-4 border-fmc-dark"
-              />
+              <Avatar src={currentUser?.avatar} name={currentUser?.name} className="w-28 h-28 rounded-full border-4 border-fmc-dark" />
             </span>
             <span className="absolute bottom-1 right-1 w-8 h-8 rounded-full bg-white text-fmc-navy flex items-center justify-center shadow">
               <Camera className="w-4 h-4" />
             </span>
           </button>
-          <h1 className="text-[34px] font-semibold tracking-tight mt-3">{currentUser?.name || 'Alex Rivers'}</h1>
+          <h1 className="text-[34px] font-semibold tracking-tight mt-3">{currentUser?.name || 'Mon profil'}</h1>
           <p className="text-base text-slate-500 mt-1">
-            {currentUser?.isPremium ? 'Membre Premium' : 'Membre'} depuis {memberSince}
+            {currentUser?.isPremium ? 'Membre Premium' : 'Membre'}{memberSince ? ` depuis ${memberSince}` : ''}
           </p>
         </div>
 
         <div className="grid grid-cols-3 gap-3 mt-6">
           {[
-            { id: 'btn-profile-bookings', value: clientBookingsCount + 2, label: 'Séances', go: () => navigateTo('bookings') },
-            { id: 'btn-profile-coaches', value: coachesCount || favorites.length, label: 'Coachs', go: () => navigateTo('search') },
+            { id: 'btn-profile-bookings', value: clientBookingsCount, label: 'Séances', go: () => navigateTo('bookings') },
+            { id: 'btn-profile-coaches', value: coachesCount, label: 'Coachs', go: () => navigateTo('search') },
             { id: 'btn-profile-goals', value: `${avgProgress}%`, label: 'Progression', go: () => navigateTo('progress') },
           ].map((stat) => (
             <Card key={stat.label} id={stat.id} onClick={stat.go} className="py-4 text-center cursor-pointer active:scale-[0.98]">
@@ -151,7 +150,7 @@ export const UserProfileSettings: React.FC = () => {
             <div className="space-y-3">
               {pastBookings.map((b) => (
                 <Card key={b.id} className="p-4 flex items-center gap-4">
-                  <img src={b.coachPhoto} alt={b.coachName} className="w-16 h-16 rounded-2xl object-cover bg-slate-100 shrink-0" />
+                  <Avatar src={b.coachPhoto} name={b.coachName} className="w-16 h-16 rounded-2xl bg-slate-100 shrink-0" />
                   <span className="flex-1 min-w-0">
                     <span className="font-semibold block truncate">{b.coachName}</span>
                     <span className="text-sm text-slate-500 block tabular-nums">
@@ -176,8 +175,8 @@ export const UserProfileSettings: React.FC = () => {
             subtitle={isOnline && currentUser?.role === 'client' ? 'Proposez vos séances sur Find My Coach' : 'Gérer créneaux, clients et revenus'}
             onClick={() => loginAs('coach')}
           />
-          {(!isOnline || currentUser?.role === 'admin') && (
-            <Row icon={<Shield className="w-5 h-5" />} title="Administration" subtitle="Accès réservé à l'équipe" onClick={() => loginAs('admin')} />
+          {isAdmin && (
+            <Row icon={<Shield className="w-5 h-5" />} title="Administration" subtitle="Accès réservé à l'équipe" onClick={() => (isOnline ? navigateTo('admin_dashboard') : loginAs('admin'))} />
           )}
           <Row
             icon={<HelpCircle className="w-5 h-5" />}

@@ -20,12 +20,12 @@ Deno.serve(async (req) => {
   const [{ data: recipient }, { data: sender }, { data: tokens }] = await Promise.all([
     admin.from('profiles').select('notify_push').eq('id', msg.recipient_id).maybeSingle(),
     admin.from('profiles').select('name').eq('id', msg.sender_id).maybeSingle(),
-    admin.from('push_tokens').select('token').eq('user_id', msg.recipient_id),
+    admin.from('push_tokens').select('token, platform').eq('user_id', msg.recipient_id),
   ]);
   if (recipient?.notify_push === false || !tokens?.length) return json({ skipped: 'aucun appareil' });
 
   const preview = String(msg.text ?? '').slice(0, 140);
-  const dead = await sendPush(tokens.map((t) => t.token), sender?.name ?? 'Nouveau message', preview, {
+  const dead = await sendPush(tokens, sender?.name ?? 'Nouveau message', preview, {
     type: 'message',
     senderId: msg.sender_id,
   });

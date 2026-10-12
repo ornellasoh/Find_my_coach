@@ -1,4 +1,5 @@
 import React from 'react';
+import { AI_AGENT_ENABLED } from '../../lib/features';
 import { useApp } from '../../context/AppContext';
 import { 
   Home, 
@@ -66,7 +67,8 @@ export const BottomNav: React.FC = () => {
             )}
           </button>
 
-          <button
+          {AI_AGENT_ENABLED && (
+<button
             id="nav-coach-ai-agent"
             onClick={() => navigateTo('coach_ai_agent')}
             className={`flex flex-col items-center gap-1 transition-colors relative py-1 px-1.5 ${
@@ -79,6 +81,7 @@ export const BottomNav: React.FC = () => {
             </div>
             <span className="text-[10px] tracking-tight font-extrabold text-[#008A3E] dark:text-[#00D664]">Agent IA</span>
           </button>
+)}
 
           <button
             id="nav-coach-clients"

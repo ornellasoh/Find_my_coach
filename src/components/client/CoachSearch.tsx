@@ -26,7 +26,7 @@ import {
   RADIUS_OPTIONS,
   type SearchFilters,
 } from '../../utils/searchFilters';
-import { isVerifiedCoach } from '../../utils/coachTrust';
+import { isBookableCoach, isVerifiedCoach } from '../../utils/coachTrust';
 
 const IN_PERSON: CoachingFormat[] = ['home', 'coach_location', 'outdoor', 'partner_gym', 'corporate'];
 const FORMAT_LABELS: Record<CoachingFormat, string> = {
@@ -160,7 +160,7 @@ export const CoachSearch: React.FC = () => {
     const cat = categories.find((c) => c.slug === selectedCategory);
     const out: Row[] = [];
     for (const c of coaches) {
-      if (!c.isActive) continue;
+      if (!isBookableCoach(c)) continue;
       if (q) {
         const hay = [c.name, c.title, c.category, c.city, ...(c.specialties ?? []), ...(c.objectives ?? [])].join(' ').toLowerCase();
         if (!hay.includes(q)) continue;

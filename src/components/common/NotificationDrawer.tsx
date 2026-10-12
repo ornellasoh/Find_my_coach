@@ -1,3 +1,4 @@
+import { PushDiagnostic } from './PushDiagnostic';
 import React, { useEffect, useState } from 'react';
 import { fetchNotificationPrefs, saveNotificationPrefs } from '../../lib/push';
 import { isSupabaseEnabled } from '../../lib/supabase';
@@ -187,6 +188,7 @@ export const NotificationDrawer: React.FC = () => {
                   </span>
                 </button>
               ))}
+              <PushDiagnostic />
             </div>
           )}
         </motion.div>

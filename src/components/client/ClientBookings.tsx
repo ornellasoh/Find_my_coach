@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Avatar } from '../ui/Avatar';
 import { useApp } from '../../context/AppContext';
 import { 
   Calendar, 
@@ -175,11 +176,7 @@ export const ClientBookings: React.FC = () => {
                   className="flex items-center gap-3 cursor-pointer"
                   onClick={() => navigateTo('coach_profile', { coachId: b.coachId })}
                 >
-                  <img
-                    src={b.coachPhoto}
-                    alt={b.coachName}
-                    className="w-12 h-12 rounded-xl object-cover border border-slate-200"
-                  />
+                  <Avatar src={b.coachPhoto} name={b.coachName} className="w-12 h-12 rounded-xl border border-slate-200" />
                   <div>
                     <h3 className="font-extrabold text-[#0F172A] text-sm hover:text-[#008A3E] transition">
                       {b.coachName}

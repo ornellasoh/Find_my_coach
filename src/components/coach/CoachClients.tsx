@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { isSupabaseEnabled } from '../../lib/supabase';
+import { Avatar } from '../ui/Avatar';
 import { useApp } from '../../context/AppContext';
 import { 
   ArrowLeft, 
@@ -33,7 +35,7 @@ export const CoachClients: React.FC = () => {
     startChatWithClient
   } = useApp();
 
-  const coachProfile = coaches.find(c => c.userId === currentUser?.id) || coaches[0];
+  const coachProfile = coaches.find(c => c.userId === currentUser?.id) || (isSupabaseEnabled ? undefined : coaches[0]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedClient, setSelectedClient] = useState<CoachClientSummary | null>(null);
   const [editingNote, setEditingNote] = useState('');
@@ -116,11 +118,7 @@ export const CoachClients: React.FC = () => {
               className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs hover:border-[#00D664] transition cursor-pointer flex items-center justify-between"
             >
               <div className="flex items-center gap-3">
-                <img
-                  src={client.clientAvatar}
-                  alt={client.clientName}
-                  className="w-12 h-12 rounded-2xl object-cover border border-slate-200"
-                />
+                <Avatar src={client.clientAvatar} name={client.clientName} className="w-12 h-12 rounded-2xl border border-slate-200" />
                 <div>
                   <h3 className="font-extrabold text-sm text-[#0F172A]">{client.clientName}</h3>
                   <p className="text-[11px] text-slate-500">{client.clientEmail}</p>
@@ -158,11 +156,7 @@ export const CoachClients: React.FC = () => {
               {/* Modal Header */}
               <div className="flex items-start justify-between pb-3 border-b border-slate-100">
                 <div className="flex items-center gap-3">
-                  <img
-                    src={selectedClient.clientAvatar}
-                    alt={selectedClient.clientName}
-                    className="w-14 h-14 rounded-2xl object-cover border-2 border-[#00D664]/40"
-                  />
+                  <Avatar src={selectedClient.clientAvatar} name={selectedClient.clientName} className="w-14 h-14 rounded-2xl border-2 border-[#00D664]/40" />
                   <div>
                     <h2 className="text-base font-black text-[#0F172A]">{selectedClient.clientName}</h2>
                     <p className="text-xs text-slate-500">{selectedClient.clientEmail}</p>

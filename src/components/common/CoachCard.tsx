@@ -1,4 +1,6 @@
 import React from 'react';
+import { ratingLabel } from '../../utils/coachTrust';
+import { Avatar } from '../ui/Avatar';
 import { isRealCoach, isVerifiedCoach } from '../../utils/coachTrust';
 import { CoachProfile } from '../../types';
 import { useApp } from '../../context/AppContext';
@@ -40,11 +42,7 @@ export const CoachCard: React.FC<CoachCardProps> = ({ coach, userLocation, note 
     >
       <div className="flex gap-4">
         <div className="relative shrink-0">
-          <img
-            src={coach.photo}
-            alt={coach.name}
-            className="w-[88px] h-[88px] rounded-[22px] object-cover bg-slate-100"
-          />
+          <Avatar src={coach.photo} name={coach.name} className="w-[88px] h-[88px] rounded-[22px] bg-slate-100" />
           {isVerifiedCoach(coach) && (
             <span
               title="Coach vérifié"
@@ -58,7 +56,7 @@ export const CoachCard: React.FC<CoachCardProps> = ({ coach, userLocation, note 
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <h3 className="text-lg font-semibold leading-tight truncate">{coach.name}</h3>
-            <Rating value={coach.rating} className="shrink-0 pt-0.5" />
+            <Rating value={coach.rating} count={coach.reviewCount} className="shrink-0 pt-0.5" />
           </div>
           <p className="text-sm font-medium text-fmc-green-ink mt-1 truncate">{coach.category || coach.title}</p>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1.5 flex items-center gap-1.5 min-w-0">
@@ -136,11 +134,11 @@ export const CoachFeatureCard: React.FC<{ coach: CoachProfile }> = ({ coach }) =
       className="bg-white dark:bg-slate-900 rounded-[28px] border border-fmc-line/70 dark:border-slate-800 overflow-hidden cursor-pointer active:scale-[0.99] transition"
     >
       <div className="relative h-48 bg-fmc-dark">
-        <img src={coach.coverPhoto || coach.photo} alt={coach.name} className="w-full h-full object-cover" />
+        <Avatar src={coach.coverPhoto || coach.photo} name={coach.name} className="w-full h-full text-5xl" />
         <div className="absolute inset-x-0 top-0 h-20 bg-linear-to-b from-black/45 to-transparent" />
         <span className="absolute top-4 left-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/55 backdrop-blur-md text-white text-sm font-semibold tabular-nums">
           <Star className="w-3.5 h-3.5 fill-fmc-green text-fmc-green" />
-          {coach.rating.toFixed(1)}
+          {ratingLabel(coach)}
         </span>
         {coach.isElite && isRealCoach(coach) && (
           <span className="absolute top-4 right-4 px-2.5 py-1 rounded-full bg-fmc-green text-fmc-navy text-[11px] font-bold uppercase tracking-wide">

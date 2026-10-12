@@ -131,8 +131,8 @@ export async function deliver(userId: string, type: string, title: string, messa
 
     if (profile.notify_push !== false && pushEnabled()) {
       jobs.push((async () => {
-        const { data: rows } = await admin.from('push_tokens').select('token').eq('user_id', userId);
-        const dead = await sendPush((rows ?? []).map((r) => r.token), title, message, { type, bookingId: bookingId ?? '' });
+        const { data: rows } = await admin.from('push_tokens').select('token, platform').eq('user_id', userId);
+        const dead = await sendPush(rows ?? [], title, message, { type, bookingId: bookingId ?? '' });
         if (dead.length) await admin.from('push_tokens').delete().in('token', dead);
       })());
     }
@@ -148,6 +148,12 @@ export async function deliver(userId: string, type: string, title: string, messa
   } catch (err) {
     console.error('notify', err);
   }
+}
+
+/** Administrateur ? (table protégée admin_users, jamais le rôle du profil) */
+export async function isAdminUser(userId: string): Promise<boolean> {
+  const { data } = await admin.from('admin_users').select('user_id').eq('user_id', userId).maybeSingle();
+  return !!data;
 }
 
 /** Vérifie l'en-tête secret des appels internes (tâches planifiées, déclencheurs de la base). */

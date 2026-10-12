@@ -14,6 +14,10 @@ alter table public.profiles disable trigger profiles_protect_role;
 update public.profiles set role = 'coach' where id = '33333333-3333-3333-3333-333333333333';
 update public.profiles set role = 'admin' where id = '55555555-5555-5555-5555-555555555555';
 alter table public.profiles enable trigger profiles_protect_role;
+-- Droits administrateur : table protégée admin_users (migration bêta) ; ignoré si la table n'existe pas encore
+do $$ begin
+  execute 'insert into public.admin_users (user_id) values (''55555555-5555-5555-5555-555555555555'') on conflict do nothing';
+exception when undefined_table then null; end $$;
 
 create or replace function pg_temp.as_user(uid text) returns void language plpgsql as $$
 begin

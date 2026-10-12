@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import { AI_AGENT_ENABLED } from '../../lib/features';
+import { isSupabaseEnabled } from '../../lib/supabase';
+import { Avatar } from '../ui/Avatar';
 import { useApp } from '../../context/AppContext';
 import { 
   Calendar, 
@@ -43,7 +46,7 @@ export const CoachDashboard: React.FC = () => {
   } = useApp();
 
   // Find coach profile for current user
-  const coachProfile = coaches.find(c => c.userId === currentUser?.id) || coaches[0];
+  const coachProfile = coaches.find(c => c.userId === currentUser?.id) || (isSupabaseEnabled ? undefined : coaches[0]);
   const coachBookings = bookings.filter(b => b.coachId === coachProfile?.id);
   const upcomingBookings = coachBookings.filter(b => b.bookingStatus === 'confirmed');
   const completedBookings = coachBookings.filter(b => b.bookingStatus === 'completed');
@@ -78,11 +81,7 @@ export const CoachDashboard: React.FC = () => {
       <div className="flex items-center justify-between py-1 mb-4">
         <div className="flex items-center gap-3">
           <div className="relative">
-            <img
-              src={coachProfile?.photo || currentUser?.avatar}
-              alt="Coach Avatar"
-              className="w-13 h-13 rounded-2xl object-cover border-2 border-[#00D664]/50 shadow-xs"
-            />
+            <Avatar src={coachProfile?.photo || currentUser?.avatar} name={coachProfile?.name || currentUser?.name} className="w-13 h-13 rounded-2xl border-2 border-[#00D664]/50 shadow-xs" />
             {coachProfile?.verificationStatus === 'verified' && (
               <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-[#00D664] text-[#0F172A] rounded-full flex items-center justify-center text-[10px] shadow-xs">
                 ✓
@@ -171,7 +170,7 @@ export const CoachDashboard: React.FC = () => {
           </div>
           <div className="mt-2">
             <div className="text-xl font-black text-[#0F172A]">
-              {coachProfile?.rating.toFixed(1)} <span className="text-xs text-slate-400 font-normal">/5</span>
+              {coachProfile && coachProfile.reviewCount > 0 ? <>{coachProfile.rating.toFixed(1)} <span className="text-xs text-slate-400 font-normal">/5</span></> : <span className="text-sm">Aucun avis</span>}
             </div>
             <span className="text-[10px] text-slate-400 font-medium">
               {coachReviews.length} avis certifié{coachReviews.length > 1 ? 's' : ''}
@@ -194,11 +193,7 @@ export const CoachDashboard: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3 my-2">
-            <img
-              src={nextImminentBooking.clientAvatar}
-              alt={nextImminentBooking.clientName}
-              className="w-12 h-12 rounded-2xl object-cover border-2 border-white/20"
-            />
+            <Avatar src={nextImminentBooking.clientAvatar} name={nextImminentBooking.clientName} className="w-12 h-12 rounded-2xl border-2 border-white/20" />
             <div>
               <h3 className="font-extrabold text-base text-white">{nextImminentBooking.clientName}</h3>
               <p className="text-xs text-slate-300">
@@ -248,7 +243,8 @@ export const CoachDashboard: React.FC = () => {
       )}
 
       {/* Featured AI Agent for Coach Card */}
-      <div 
+      {AI_AGENT_ENABLED && (
+<div 
         onClick={() => navigateTo('coach_ai_agent')}
         className="bg-gradient-to-r from-[#0F172A] via-[#1E293B] to-[#0F172A] text-white rounded-3xl p-4 shadow-md mb-4 cursor-pointer hover:border-[#00D664] border border-slate-700 transition active:scale-98 relative overflow-hidden group"
       >
@@ -274,6 +270,7 @@ export const CoachDashboard: React.FC = () => {
           <span className="px-2 py-0.5 bg-white/10 rounded-md flex items-center gap-1">💬 Relances 1-clic</span>
         </div>
       </div>
+)}
 
       {/* Business Tool Modules */}
       <div className="space-y-2.5 mb-5">
@@ -282,7 +279,8 @@ export const CoachDashboard: React.FC = () => {
         </h2>
 
         {/* Agent IA & Programmation */}
-        <div
+        {AI_AGENT_ENABLED && (
+<div
           onClick={() => navigateTo('coach_ai_agent')}
           className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs hover:border-[#00D664] transition cursor-pointer flex items-center justify-between"
         >
@@ -304,6 +302,7 @@ export const CoachDashboard: React.FC = () => {
           </div>
           <ChevronRight className="w-4 h-4 text-slate-400" />
         </div>
+)}
 
         {/* Planning & Dispos */}
         <div

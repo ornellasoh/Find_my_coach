@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { ratingLabel } from '../../utils/coachTrust';
+import { Avatar } from '../ui/Avatar';
 import { isVerifiedCoach } from '../../utils/coachTrust';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -325,11 +327,7 @@ export const CoachMap: React.FC<CoachMapProps> = ({
             <div className="flex items-start gap-3">
               {/* Photo */}
               <div className="relative shrink-0">
-                <img
-                  src={activeCoach.photo}
-                  alt={activeCoach.name}
-                  className="w-14 h-14 rounded-xl object-cover border border-slate-100 shadow-xs"
-                />
+                <Avatar src={activeCoach.photo} name={activeCoach.name} className="w-14 h-14 rounded-xl border border-slate-100 shadow-xs" />
                 {isVerifiedCoach(activeCoach) && (
                   <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-[#00D664] text-[#0F172A] rounded-full flex items-center justify-center text-[10px] shadow-xs">
                     ✓
@@ -345,7 +343,7 @@ export const CoachMap: React.FC<CoachMapProps> = ({
                   </h3>
                   <div className="flex items-center gap-0.5 text-[#EAB308] text-xs font-bold shrink-0">
                     <Star className="w-3 h-3 fill-current" />
-                    <span>{activeCoach.rating.toFixed(1)}</span>
+                    <span>{ratingLabel(activeCoach)}</span>
                     <span className="text-[10px] text-slate-400 font-normal">
                       ({activeCoach.reviewCount})
                     </span>

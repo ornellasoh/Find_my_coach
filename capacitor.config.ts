@@ -26,6 +26,10 @@ const config: CapacitorConfig = {
       style: 'LIGHT',
       backgroundColor: '#F6F9FA',
     },
+    PushNotifications: {
+      // iPhone : affiche aussi la notification quand l'app est ouverte
+      presentationOptions: ['badge', 'sound', 'alert'],
+    },
     Keyboard: {
       resize: 'native',
     },

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Avatar } from '../ui/Avatar';
 import { useApp } from '../../context/AppContext';
 import { 
   X, 
@@ -76,10 +77,14 @@ export const ChatModal: React.FC<ChatModalProps> = ({ partner, onClose }) => {
   const { currentUser, navigateTo, isOnline } = useApp();
   const partnerUserId = partner?.userId || partner?.id || '';
   // Messagerie réelle si connecté à Supabase et que l'interlocuteur a un compte
-  const live = isOnline && !!supabase && !!currentUser && !!partnerUserId;
+  const isRealAccountId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(partnerUserId);
+  const live = isOnline && !!supabase && !!currentUser && isRealAccountId;
+  // En ligne, un profil de démonstration n'a pas de vrai compte : pas de messagerie simulée
+  const unavailable = isOnline && !live;
+  const [loadError, setLoadError] = useState('');
 
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
-    if (live) return [];
+    if (live || (isOnline && !!supabase)) return [];
     const key = `fmc_chat_${partner?.id || 'default'}`;
     const saved = localStorage.getItem(key);
     return saved ? JSON.parse(saved) : INITIAL_DEMO_MESSAGES.default;
@@ -122,7 +127,11 @@ export const ChatModal: React.FC<ChatModalProps> = ({ partner, onClose }) => {
       .order('created_at', { ascending: true })
       .limit(200)
       .then(({ data, error }) => {
-        if (error) return console.warn('[supabase] messages', error.message);
+        if (error) {
+          setLoadError('Impossible de charger la conversation. Vérifiez votre connexion puis rouvrez-la.');
+          return;
+        }
+        setLoadError('');
         setMessages(((data || []) as MessageRow[]).map(toMsg));
         supabase!.from('messages').update({ read: true }).eq('recipient_id', me).eq('sender_id', partnerUserId).eq('read', false).then(() => {});
       });
@@ -147,6 +156,10 @@ export const ChatModal: React.FC<ChatModalProps> = ({ partner, onClose }) => {
     const text = textToSend || inputText;
     if (!text.trim()) return;
     setSendError('');
+    if (unavailable) {
+      setSendError('Messagerie indisponible avec ce profil.');
+      return;
+    }
 
     if (live && supabase && currentUser) {
       if (!textToSend) setInputText('');
@@ -226,11 +239,7 @@ export const ChatModal: React.FC<ChatModalProps> = ({ partner, onClose }) => {
       <div className="bg-white/90 backdrop-blur-xl border-b border-slate-200/80 px-4 py-3 flex items-center justify-between z-10 shadow-xs">
         <div className="flex items-center gap-3">
           <div className="relative">
-            <img
-              src={partner.avatar}
-              alt={partner.name}
-              className="w-10 h-10 rounded-full object-cover border border-slate-200"
-            />
+            <Avatar src={partner.avatar} name={partner.name} className="w-10 h-10 rounded-full border border-slate-200" />
             <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#00D664] border-2 border-white rounded-full" />
           </div>
 
@@ -242,7 +251,7 @@ export const ChatModal: React.FC<ChatModalProps> = ({ partner, onClose }) => {
               <CheckCircle2 className="w-3.5 h-3.5 text-[#008A3E]" />
             </div>
             <p className="text-[11px] text-slate-500 font-medium">
-              {partner.title || 'En ligne actuellement'}
+              {partner.title || ''}
             </p>
           </div>
         </div>
@@ -264,6 +273,15 @@ export const ChatModal: React.FC<ChatModalProps> = ({ partner, onClose }) => {
           </span>
         </div>
 
+        {unavailable && (
+          <p className="text-center text-sm text-slate-500 px-4 py-6">
+            Ce profil est un exemple de démonstration : la messagerie n'est pas disponible.
+          </p>
+        )}
+        {loadError && <p className="text-center text-sm text-rose-600 px-4">{loadError}</p>}
+        {live && !loadError && messages.length === 0 && (
+          <p className="text-center text-sm text-slate-500 px-4 py-6">Aucun message pour l'instant. Écrivez le premier !</p>
+        )}
         {messages.map((msg) => {
           const isMe = msg.senderId === (currentUser?.id || 'user') || msg.senderId === 'user';
           return (

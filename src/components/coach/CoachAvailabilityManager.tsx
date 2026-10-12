@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { isSupabaseEnabled } from '../../lib/supabase';
 import { useApp } from '../../context/AppContext';
 import { 
   ArrowLeft, 
@@ -38,7 +39,7 @@ export const CoachAvailabilityManager: React.FC = () => {
     goBack 
   } = useApp();
 
-  const coach = coaches.find(c => c.userId === currentUser?.id) || coaches[0];
+  const coach = coaches.find(c => c.userId === currentUser?.id) || (isSupabaseEnabled ? undefined : coaches[0]);
   const coachSlots = availabilities.filter(a => a.coachId === coach?.id);
 
   // New single slot form state

@@ -14,6 +14,7 @@ import { VideoCallRoom } from './components/common/VideoCallRoom';
 import { ChatModal } from './components/common/ChatModal';
 import { BookingDetail } from './components/common/BookingDetail';
 import { AnimatePresence } from 'motion/react';
+import { AI_AGENT_ENABLED } from './lib/features';
 import { LogoIcon } from './components/common/Logo';
 
 // Screens
@@ -42,7 +43,7 @@ import { CoachAIAgentView } from './components/coach/CoachAIAgentView';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 
 const MainRouter: React.FC = () => {
-  const { currentScreen, activeVideoBooking, setActiveVideoBooking, activeChatPartner, setActiveChatPartner, authLoading } = useApp();
+  const { currentScreen, activeVideoBooking, setActiveVideoBooking, activeChatPartner, setActiveChatPartner, authLoading, isAdmin, loadError, retryLoad, logout } = useApp();
 
   if (authLoading) {
     return (
@@ -51,6 +52,24 @@ const MainRouter: React.FC = () => {
           <LogoIcon size={54} />
         </div>
         <span className="w-6 h-6 rounded-full border-[3px] border-fmc-green/30 border-t-fmc-green animate-spin" aria-label="Chargement" />
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen bg-fmc-bg dark:bg-[#0B0F19] text-fmc-navy dark:text-slate-100 flex flex-col items-center justify-center gap-4 px-8 text-center">
+        <div className="w-20 h-20 rounded-[24px] bg-fmc-dark flex items-center justify-center">
+          <LogoIcon size={44} />
+        </div>
+        <p className="text-lg font-semibold">Chargement impossible</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400 max-w-xs">{loadError}</p>
+        <button onClick={retryLoad} className="min-h-12 px-6 rounded-full bg-fmc-green text-fmc-navy font-bold cursor-pointer">
+          Réessayer
+        </button>
+        <button onClick={logout} className="min-h-11 px-6 rounded-full text-sm font-semibold text-slate-500 cursor-pointer">
+          Se déconnecter
+        </button>
       </div>
     );
   }
@@ -93,11 +112,12 @@ const MainRouter: React.FC = () => {
       case 'coach_clients':
         return <CoachClients />;
       case 'coach_ai_agent':
-        return <CoachAIAgentView />;
+        return AI_AGENT_ENABLED ? <CoachAIAgentView /> : <CoachDashboard />;
       case 'booking_detail':
         return <BookingDetail />;
       case 'admin_dashboard':
-        return <AdminDashboard />;
+        // Écran réservé : en ligne, `isAdmin` vient du serveur ; les données restent protégées par la base (RLS)
+        return isAdmin ? <AdminDashboard /> : <HomeDashboard />;
       default:
         return <HomeDashboard />;
     }

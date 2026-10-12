@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Avatar } from '../ui/Avatar';
 import {
   AlertTriangle,
   CalendarClock,
@@ -314,7 +315,7 @@ export const BookingDetail: React.FC = () => {
       {/* Résumé */}
       <Card className="p-4 mb-3">
         <div className="flex items-start gap-3">
-          <img src={partnerPhoto} alt="" className="w-14 h-14 rounded-2xl object-cover" />
+          <Avatar src={partnerPhoto} name={partnerName} className="w-14 h-14 rounded-2xl" />
           <div className="flex-1 min-w-0">
             <p className="font-semibold truncate">{partnerName}</p>
             <p className="text-sm text-slate-500 truncate">{isClient ? booking.coachTitle : 'Client'}</p>

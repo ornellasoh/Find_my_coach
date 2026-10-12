@@ -10,7 +10,7 @@ do $$ begin
 create extension if not exists pgcrypto;
 create schema if not exists extensions;
 create schema if not exists auth;
-create table if not exists auth.users (id uuid primary key, email text, raw_user_meta_data jsonb);
+create table if not exists auth.users (id uuid primary key, email text, raw_user_meta_data jsonb, raw_app_meta_data jsonb, created_at timestamptz default now(), email_confirmed_at timestamptz default now(), last_sign_in_at timestamptz);
 create or replace function auth.jwt() returns jsonb language sql stable as $$
   select nullif(current_setting('request.jwt.claims', true), '')::jsonb $$;
 create or replace function auth.uid() returns uuid language sql stable as $$

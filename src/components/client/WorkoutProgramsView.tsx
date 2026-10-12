@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Avatar } from '../ui/Avatar';
 import { useApp } from '../../context/AppContext';
 import { 
   Dumbbell, 
@@ -146,11 +147,7 @@ export const WorkoutProgramsView: React.FC = () => {
       >
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex items-center gap-3">
-            <img
-              src={activeProgram.coachAvatar}
-              alt={activeProgram.coachName}
-              className="w-12 h-12 rounded-2xl object-cover border border-slate-200 dark:border-slate-700 shadow-2xs"
-            />
+            <Avatar src={activeProgram.coachAvatar} name={activeProgram.coachName} className="w-12 h-12 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xs" />
             <div>
               <span className="px-2 py-0.5 bg-[#00D664]/15 text-[#008A3E] dark:text-[#00D664] rounded-full text-[10px] font-extrabold uppercase tracking-wide inline-block mb-1">
                 {activeProgram.difficulty} • {activeProgram.durationWeeks} Semaines

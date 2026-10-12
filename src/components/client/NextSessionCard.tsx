@@ -1,4 +1,5 @@
 import React from 'react';
+import { Avatar } from '../ui/Avatar';
 import { motion } from 'motion/react';
 import { CalendarX, ChevronRight, Clock, CreditCard, MapPin, MessageSquare, Navigation, Search, Video } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
@@ -77,7 +78,7 @@ export const NextSessionCard: React.FC = () => {
       </div>
 
       <div className="flex items-center gap-3">
-        <img src={next.coachPhoto} alt="" className="w-12 h-12 rounded-2xl object-cover" />
+        <Avatar src={next.coachPhoto} name={next.coachName} className="w-12 h-12 rounded-2xl" />
         <div className="flex-1 min-w-0">
           <p className="font-semibold truncate">{next.coachName}</p>
           <p className="text-sm text-white/70 flex items-center gap-1.5 tabular-nums">

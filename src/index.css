@@ -176,3 +176,13 @@ html.dark :is(.shadow-xs, .shadow-sm, .shadow-2xs) { box-shadow: 0 1px 2px rgba(
 
 /* Carte (Leaflet) : tuiles légèrement assombries */
 html.dark .leaflet-tile-pane { filter: brightness(0.8) contrast(1.1) saturate(0.85); }
+
+/* Avatar à initiales : taille du texte proportionnelle à l'avatar (container queries),
+   avec une taille fixe de repli pour les WebView anciennes. */
+.fmc-av-1, .fmc-av-2 { font-size: 0.95em; }
+.fmc-av-icon { width: 55%; height: 55%; }
+@supports (font-size: 1cqmin) {
+  .fmc-av-2 { font-size: 38cqmin; }
+  .fmc-av-1 { font-size: 46cqmin; }
+  .fmc-av-icon { width: 50cqmin; height: 50cqmin; }
+}

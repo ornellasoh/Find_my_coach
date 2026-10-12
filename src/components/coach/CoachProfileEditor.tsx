@@ -1,4 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { isSupabaseEnabled } from '../../lib/supabase';
+import { realPhoto } from '../../utils/initials';
+import { Avatar } from '../ui/Avatar';
 import { uploadProfilePhoto } from '../../lib/photos';
 import { ThemePicker } from '../common/ThemePicker';
 import { DeleteAccount } from '../common/DeleteAccount';
@@ -40,20 +43,20 @@ export const CoachProfileEditor: React.FC = () => {
     loginAs
   } = useApp();
   
-  const coach = coaches.find(c => c.userId === currentUser?.id) || coaches[0];
+  const coach = coaches.find(c => c.userId === currentUser?.id) || (isSupabaseEnabled ? undefined : coaches[0]);
 
   const [title, setTitle] = useState(coach?.title || '');
   const [bio, setBio] = useState(coach?.bio || '');
   const [hourlyRate, setHourlyRate] = useState(coach?.hourlyRate || 80);
   const [city, setCity] = useState(coach?.city || 'Paris');
-  const [postalCode, setPostalCode] = useState(coach?.postalCode || '75008');
+  const [postalCode, setPostalCode] = useState(coach?.postalCode || '');
   const [address, setAddress] = useState(coach?.address || '');
   const [radiusKm, setRadiusKm] = useState(coach?.interventionRadiusKm || 15);
   const [interventionZone, setInterventionZone] = useState(
-    coach?.interventionZone || 'Paris intra-muros et 15 km aux alentours'
+    coach?.interventionZone || ''
   );
   
-  const [experienceYears, setExperienceYears] = useState(coach?.experienceYears || 5);
+  const [experienceYears, setExperienceYears] = useState(coach?.experienceYears ?? 0);
   const [specialties, setSpecialties] = useState<string[]>(coach?.specialties || []);
   const [newSpecialty, setNewSpecialty] = useState('');
   const [certifications, setCertifications] = useState<string[]>(coach?.certifications || []);
@@ -267,11 +270,7 @@ export const CoachProfileEditor: React.FC = () => {
             className="relative w-20 h-20 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shrink-0 cursor-pointer"
             aria-label="Changer la photo"
           >
-            {coach?.photo ? (
-              <img src={coach.photo} alt="Photo de profil" className="w-full h-full object-cover" />
-            ) : (
-              <Camera className="w-7 h-7 text-slate-400 m-auto" />
-            )}
+            <Avatar src={coach?.photo} name={coach?.name || currentUser?.name} className="w-full h-full" />
             {photoBusy && (
               <span className="absolute inset-0 bg-black/40 flex items-center justify-center">
                 <span className="w-6 h-6 border-2 border-white/40 border-t-white rounded-full animate-spin" />
@@ -289,7 +288,7 @@ export const CoachProfileEditor: React.FC = () => {
               className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#00D664] text-[#0F172A] text-xs font-bold cursor-pointer disabled:opacity-60"
             >
               <Camera className="w-3.5 h-3.5" />
-              {photoBusy ? 'Envoi…' : coach?.photo ? 'Changer la photo' : 'Ajouter une photo'}
+              {photoBusy ? 'Envoi…' : realPhoto(coach?.photo) ? 'Changer la photo' : 'Ajouter une photo'}
             </button>
             {photoError && <p className="text-[11px] text-rose-500 font-semibold mt-1.5">{photoError}</p>}
           </div>
