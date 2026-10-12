@@ -1,372 +1,201 @@
+import React from 'react';
+import { Calendar, ChevronRight, MapPin, MessageSquare, ShieldCheck, Star, Video } from 'lucide-react';
 import { CampaignBanner } from '../common/CampaignBanner';
-import React, { useState } from 'react';
 import { isSupabaseEnabled } from '../../lib/supabase';
 import { Avatar } from '../ui/Avatar';
+import { Card, IconTile, Screen, SectionHeader } from '../ui/fmc';
 import { useApp } from '../../context/AppContext';
-import { 
-  Calendar, 
-  Clock, 
-  DollarSign, 
-  Star, 
-  TrendingUp, 
-  Video, 
-  UserCheck, 
-  Plus, 
-  ChevronRight,
-  ShieldCheck,
-  CheckCircle2,
-  ExternalLink,
-  MapPin,
-  Users,
-  Wallet,
-  Settings,
-  Award,
-  Phone,
-  MessageSquare,
-  FileCheck
-} from 'lucide-react';
-import { motion } from 'motion/react';
-import { Logo } from '../common/Logo';
 
+/** « mar. 13 oct. » (ou « Aujourd'hui » / « Demain ») à partir d'une date AAAA-MM-JJ. */
+const dayLabel = (iso: string) => {
+  const d = new Date(`${iso}T12:00:00`);
+  if (Number.isNaN(d.getTime())) return iso;
+  const today = new Date();
+  const tomorrow = new Date(Date.now() + 86_400_000);
+  if (d.toDateString() === today.toDateString()) return "Aujourd'hui";
+  if (d.toDateString() === tomorrow.toDateString()) return 'Demain';
+  return d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+};
+
+/** Accueil du coach : la prochaine séance d'abord, puis l'essentiel en un coup d'œil. */
 export const CoachDashboard: React.FC = () => {
-  const { 
-    currentUser, 
-    coaches, 
-    bookings, 
-    availabilities, 
-    reviews, 
-    payouts,
-    coachClients,
-    navigateTo, 
+  const {
+    currentUser,
+    coaches,
+    bookings,
+    availabilities,
+    reviews,
+    navigateTo,
     openBookingDetail,
     setActiveVideoBooking,
     setActiveChatPartner,
-    isAdmin
+    isAdmin,
   } = useApp();
 
-  // Find coach profile for current user
-  const coachProfile = coaches.find(c => c.userId === currentUser?.id) || (isSupabaseEnabled ? undefined : coaches[0]);
-  const coachBookings = bookings.filter(b => b.coachId === coachProfile?.id);
-  const upcomingBookings = coachBookings.filter(b => b.bookingStatus === 'confirmed');
-  const completedBookings = coachBookings.filter(b => b.bookingStatus === 'completed');
+  const coach = coaches.find((c) => c.userId === currentUser?.id) || (isSupabaseEnabled ? undefined : coaches[0]);
+  const coachBookings = bookings.filter((b) => b.coachId === coach?.id);
+  const upcoming = coachBookings
+    .filter((b) => b.bookingStatus === 'confirmed')
+    .sort((a, b) => `${a.date} ${a.startTime}`.localeCompare(`${b.date} ${b.startTime}`));
+  const next = upcoming[0] || null;
+  // Revenus : séances terminées, commission de 15 % déduite
+  const earnings = coachBookings.filter((b) => b.bookingStatus === 'completed').reduce((sum, b) => sum + b.price, 0) * 0.85;
+  const openSlots = availabilities.filter((a) => a.coachId === coach?.id && !a.isBooked).length;
+  const coachReviews = reviews.filter((r) => r.coachId === coach?.id);
+  const firstName = (coach?.name || currentUser?.name || '').split(' ')[0];
 
-  // Next imminent booking
-  const nextImminentBooking = upcomingBookings[0] || null;
-
-  // Compute coach revenue
-  const totalGross = completedBookings.reduce((acc, b) => acc + b.price, 0);
-  const netEarnings = totalGross * 0.85; // 85% net
-  const pendingPayouts = payouts.filter(p => p.coachId === coachProfile?.id && p.status === 'pending');
-  const pendingAmount = pendingPayouts.reduce((acc, p) => acc + p.netAmount, 0);
-
-  const coachAvailabilities = availabilities.filter(a => a.coachId === coachProfile?.id);
-  const openSlotsCount = coachAvailabilities.filter(a => !a.isBooked).length;
-  const coachReviews = reviews.filter(r => r.coachId === coachProfile?.id);
+  const stats = [
+    { label: 'Séances à venir', value: String(upcoming.length), onClick: () => navigateTo('coach_bookings') },
+    { label: 'Revenus', value: `${earnings.toFixed(0)} €`, onClick: () => navigateTo('coach_financials') },
+    {
+      label: 'Note',
+      value: coach && coach.reviewCount > 0 ? coach.rating.toFixed(1).replace('.', ',') : '–',
+      onClick: undefined,
+    },
+  ];
 
   return (
-    <div className="min-h-screen bg-[#F6F9FA] text-[#0F172A] pb-28 max-w-md mx-auto px-4 pt-3">
-      {/* Top Brand Bar */}
-      <div className="flex items-center justify-between pb-3 pt-1 border-b border-slate-200/60 mb-3">
-        <Logo size="sm" showTagline={false} />
-        <div className="flex items-center gap-1.5">
-          <span className="px-2 py-0.5 bg-[#00D664]/15 text-[#008A3E] text-[10px] font-black rounded-full uppercase tracking-wider border border-[#00D664]/30 flex items-center gap-1">
-            <CheckCircle2 className="w-2.5 h-2.5 stroke-[3]" />
-            Coach Pro
-          </span>
+    <Screen>
+      <header className="flex items-center gap-3 mb-6">
+        <span className="relative shrink-0">
+          <Avatar src={coach?.photo || currentUser?.avatar} name={coach?.name || currentUser?.name} className="w-12 h-12 rounded-full" />
+          {coach?.verificationStatus === 'verified' && (
+            <span className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-fmc-green text-fmc-navy border-2 border-fmc-bg dark:border-[#0B0F19] flex items-center justify-center" title="Profil vérifié">
+              <ShieldCheck className="w-3 h-3" strokeWidth={2.5} />
+            </span>
+          )}
+        </span>
+        <div className="min-w-0">
+          <p className="text-sm text-slate-500">Bonjour</p>
+          <h1 className="text-2xl font-bold tracking-tight leading-tight truncate">{firstName}</h1>
         </div>
-      </div>
-
-      {/* Coach Info Header */}
-      <div className="flex items-center justify-between py-1 mb-4">
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <Avatar src={coachProfile?.photo || currentUser?.avatar} name={coachProfile?.name || currentUser?.name} className="w-13 h-13 rounded-2xl border-2 border-[#00D664]/50 shadow-xs" />
-            {coachProfile?.verificationStatus === 'verified' && (
-              <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-[#00D664] text-[#0F172A] rounded-full flex items-center justify-center text-[10px] shadow-xs">
-                ✓
-              </span>
-            )}
-          </div>
-          <div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
-                Espace Coach
-              </span>
-              {coachProfile?.isElite && (
-                <span className="bg-[#0F172A] text-white text-[9px] font-extrabold px-1.5 py-0.2 rounded-md">
-                  Élite
-                </span>
-              )}
-            </div>
-            <h1 className="text-lg font-black text-[#0F172A] leading-tight">{coachProfile?.name}</h1>
-            <p className="text-xs text-slate-500 font-medium truncate max-w-[200px]">
-              {coachProfile?.title}
-            </p>
-          </div>
-        </div>
-
-        <button
-          onClick={() => navigateTo('coach_profile_edit')}
-          className="p-2.5 bg-white text-slate-700 border border-slate-200 rounded-2xl hover:bg-slate-50 transition cursor-pointer shadow-xs"
-          title="Paramètres du profil"
-        >
-          <Settings className="w-4 h-4" />
-        </button>
-      </div>
+      </header>
 
       {isAdmin && (
         <button
           type="button"
           onClick={() => navigateTo('admin_dashboard')}
-          className="w-full mb-4 p-3.5 rounded-2xl bg-[#0F172A] text-white flex items-center gap-3 cursor-pointer active:scale-[0.99] text-left"
+          className="w-full mb-4 p-3.5 rounded-3xl bg-fmc-navy text-white flex items-center gap-3 cursor-pointer active:scale-[0.98] transition text-left"
         >
-          <span className="w-10 h-10 rounded-xl bg-[#00D664] text-[#0F172A] flex items-center justify-center shrink-0">
+          <span className="w-11 h-11 rounded-2xl bg-fmc-green text-fmc-navy flex items-center justify-center shrink-0">
             <ShieldCheck className="w-5 h-5" />
           </span>
           <span className="flex-1 min-w-0">
-            <span className="block text-sm font-bold">Administration</span>
-            <span className="block text-xs text-slate-300">Coachs, vérifications, signalements, campagnes</span>
+            <span className="block text-[15px] font-semibold">Administration</span>
+            <span className="block text-xs text-slate-300 truncate">Coachs, vérifications, campagnes</span>
           </span>
-          <span aria-hidden="true" className="text-xl text-slate-400">›</span>
+          <ChevronRight className="w-5 h-5 text-slate-400" />
         </button>
       )}
 
       <CampaignBanner className="mb-4" />
 
-      {/* 4 Quick KPI Cards */}
-      <div className="grid grid-cols-2 gap-2.5 mb-4">
-        <div 
-          onClick={() => navigateTo('coach_financials')}
-          className="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-xs hover:border-[#00D664] transition cursor-pointer flex flex-col justify-between"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] text-slate-500 font-bold">Gains Nets</span>
-            <Wallet className="w-4 h-4 text-[#00B050]" />
-          </div>
-          <div className="mt-2">
-            <div className="text-xl font-black text-[#0F172A]">{netEarnings.toFixed(0)} €</div>
-            <span className="text-[10px] text-[#008A3E] font-bold">
-              +{pendingAmount > 0 ? `${pendingAmount.toFixed(0)}€ en attente` : '100% à jour'}
-            </span>
-          </div>
-        </div>
-
-        <div 
-          onClick={() => navigateTo('coach_bookings')}
-          className="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-xs hover:border-[#00D664] transition cursor-pointer flex flex-col justify-between"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] text-slate-500 font-bold">Séances Confirmées</span>
-            <Calendar className="w-4 h-4 text-[#00B050]" />
-          </div>
-          <div className="mt-2">
-            <div className="text-xl font-black text-[#0F172A]">{upcomingBookings.length}</div>
-            <span className="text-[10px] text-slate-400 font-medium">
-              {completedBookings.length} séance{completedBookings.length > 1 ? 's' : ''} terminées
-            </span>
-          </div>
-        </div>
-
-        <div 
-          onClick={() => navigateTo('coach_clients')}
-          className="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-xs hover:border-[#00D664] transition cursor-pointer flex flex-col justify-between"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] text-slate-500 font-bold">Mes Clients</span>
-            <Users className="w-4 h-4 text-[#00B050]" />
-          </div>
-          <div className="mt-2">
-            <div className="text-xl font-black text-[#0F172A]">{coachClients.length}</div>
-            <span className="text-[10px] text-slate-400 font-medium">Fiches suivies</span>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] text-slate-500 font-bold">Note moyenne</span>
-            <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-          </div>
-          <div className="mt-2">
-            <div className="text-xl font-black text-[#0F172A]">
-              {coachProfile && coachProfile.reviewCount > 0 ? <>{coachProfile.rating.toFixed(1)} <span className="text-xs text-slate-400 font-normal">/5</span></> : <span className="text-sm">Aucun avis</span>}
-            </div>
-            <span className="text-[10px] text-slate-400 font-medium">
-              {coachReviews.length} avis certifié{coachReviews.length > 1 ? 's' : ''}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Next Imminent Session Card (Action P0) */}
-      {nextImminentBooking && (
-        <div className="bg-linear-to-br from-[#0F172A] to-[#1E293B] text-white rounded-3xl p-4 shadow-md mb-4 border border-slate-800">
-          <div className="flex items-center justify-between mb-2">
-            <span className="px-2.5 py-0.5 bg-[#00D664] text-[#0F172A] rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#0F172A] animate-ping" />
-              Prochaine séance
-            </span>
-            <span className="text-xs text-slate-300 font-bold">
-              {nextImminentBooking.date === new Date().toISOString().split('T')[0] ? 'Aujourd’hui' : nextImminentBooking.date}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-3 my-2">
-            <Avatar src={nextImminentBooking.clientAvatar} name={nextImminentBooking.clientName} className="w-12 h-12 rounded-2xl border-2 border-white/20" />
-            <div>
-              <h3 className="font-extrabold text-base text-white">{nextImminentBooking.clientName}</h3>
-              <p className="text-xs text-slate-300">
-                {nextImminentBooking.sessionType.name} ({nextImminentBooking.startTime} - {nextImminentBooking.endTime})
-              </p>
-              {nextImminentBooking.format === 'home' && nextImminentBooking.clientAddress && (
-                <p className="text-[11px] text-[#00FD83] flex items-center gap-1 mt-0.5 truncate max-w-[220px]">
-                  <MapPin className="w-3 h-3 shrink-0" />
-                  {nextImminentBooking.clientAddress}
-                </p>
-              )}
+      {/* Prochaine séance */}
+      {next ? (
+        <section className="rounded-[28px] bg-fmc-navy text-white p-5 mb-4" aria-label="Prochaine séance">
+          <p className="text-sm font-semibold text-fmc-green">
+            {dayLabel(next.date)} · <span className="tabular-nums">{next.startTime}</span>
+          </p>
+          <div className="flex items-center gap-3 mt-3">
+            <Avatar src={next.clientAvatar} name={next.clientName} className="w-12 h-12 rounded-full" />
+            <div className="min-w-0">
+              <h2 className="text-lg font-semibold leading-tight truncate">{next.clientName}</h2>
+              <p className="text-sm text-slate-300 truncate">{next.sessionType.name}</p>
             </div>
           </div>
-
-          {/* Action Row */}
-          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/10 flex-wrap">
+          {next.format === 'home' && next.clientAddress && (
+            <p className="text-sm text-slate-300 flex items-center gap-1.5 mt-3">
+              <MapPin className="w-4 h-4 shrink-0" />
+              <span className="truncate">{next.clientAddress}</span>
+            </p>
+          )}
+          <div className="flex items-center gap-2 mt-4">
             <button
-              onClick={() => setActiveChatPartner({
-                id: nextImminentBooking.clientId,
-                name: nextImminentBooking.clientName,
-                avatar: nextImminentBooking.clientAvatar,
-                role: 'client',
-                title: 'Client FMC'
-              })}
-              className="p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1"
-              title="Discuter avec le client"
+              type="button"
+              onClick={() => setActiveVideoBooking(next)}
+              className="flex-1 h-12 rounded-full bg-fmc-green text-fmc-navy text-[15px] font-semibold flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] transition"
             >
-              <MessageSquare className="w-4 h-4 text-[#00FD83]" />
+              {next.format === 'online' ? <Video className="w-5 h-5" /> : <MapPin className="w-5 h-5" />}
+              {next.format === 'online' ? 'Rejoindre la visio' : 'Voir le lieu'}
             </button>
-
             <button
-              onClick={() => setActiveVideoBooking(nextImminentBooking)}
-              className="flex-1 min-h-11 py-2.5 bg-[#00D664] hover:bg-[#00B050] text-[#0F172A] font-black rounded-xl text-xs flex items-center justify-center gap-1.5 transition shadow-xs cursor-pointer active:scale-95"
+              type="button"
+              aria-label={`Écrire à ${next.clientName}`}
+              onClick={() => setActiveChatPartner({ id: next.clientId, name: next.clientName, avatar: next.clientAvatar, role: 'client', title: 'Client' })}
+              className="w-12 h-12 shrink-0 rounded-full bg-white/10 flex items-center justify-center cursor-pointer active:scale-95 transition"
             >
-              {nextImminentBooking.format === 'online' ? <Video className="w-4 h-4 stroke-[2.5]" /> : <MapPin className="w-4 h-4 stroke-[2.5]" />}
-              <span>{nextImminentBooking.format === 'online' ? 'Lien de la séance' : 'Lieu & itinéraire'}</span>
-            </button>
-
-            <button
-              onClick={() => openBookingDetail(nextImminentBooking.id)}
-              className="min-h-11 px-3.5 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition cursor-pointer"
-            >
-              Détails
+              <MessageSquare className="w-5 h-5" />
             </button>
           </div>
-        </div>
+          <button type="button" onClick={() => openBookingDetail(next.id)} className="w-full h-11 mt-1 text-sm font-medium text-slate-300 cursor-pointer">
+            Voir le détail de la séance
+          </button>
+        </section>
+      ) : (
+        <Card className="p-5 mb-4 text-center">
+          <p className="font-semibold">Aucune séance à venir</p>
+          <p className="text-sm text-slate-500 mt-1">Ouvrez des créneaux pour que vos clients puissent réserver.</p>
+          <button
+            type="button"
+            onClick={() => navigateTo('coach_availabilities')}
+            className="mt-4 h-12 px-6 rounded-full bg-fmc-green text-fmc-navy text-[15px] font-semibold cursor-pointer active:scale-[0.98] transition"
+          >
+            Ouvrir des créneaux
+          </button>
+        </Card>
       )}
 
-      {/* Business Tool Modules */}
-      <div className="space-y-2.5 mb-5">
-        <h2 className="text-xs font-black text-slate-500 uppercase tracking-wider px-1">
-          Outils de gestion
-        </h2>
+      {/* L'essentiel */}
+      <Card className="grid grid-cols-3 divide-x divide-fmc-line/80 dark:divide-slate-800 mb-4">
+        {stats.map((s) => {
+          const body = (
+            <>
+              <span className="block text-xl font-bold tabular-nums">{s.value}</span>
+              <span className="block text-xs text-slate-500 mt-0.5">{s.label}</span>
+            </>
+          );
+          return s.onClick ? (
+            <button key={s.label} type="button" onClick={s.onClick} className="py-4 px-2 text-center cursor-pointer active:opacity-60 transition">
+              {body}
+            </button>
+          ) : (
+            <div key={s.label} className="py-4 px-2 text-center">{body}</div>
+          );
+        })}
+      </Card>
 
-        {/* Planning & Dispos */}
-        <div
-          onClick={() => navigateTo('coach_availabilities')}
-          className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs hover:border-[#00D664] transition cursor-pointer flex items-center justify-between"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-[#008A3E] flex items-center justify-center">
-              <Calendar className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="font-extrabold text-sm text-[#0F172A]">Planning & Créneaux</h3>
-              <p className="text-xs text-slate-500">
-                {openSlotsCount} créneaux ouverts • Récurrence hebdo
-              </p>
-            </div>
-          </div>
-          <ChevronRight className="w-4 h-4 text-slate-400" />
-        </div>
+      {/* Mes créneaux */}
+      <Card onClick={() => navigateTo('coach_availabilities')} role="button" className="p-3.5 mb-6 flex items-center gap-3 cursor-pointer active:scale-[0.98]">
+        <IconTile><Calendar className="w-5 h-5" /></IconTile>
+        <span className="flex-1 min-w-0">
+          <span className="block text-[15px] font-semibold">Mes créneaux</span>
+          <span className="block text-sm text-slate-500 tabular-nums">
+            {openSlots > 0 ? `${openSlots} créneau${openSlots > 1 ? 'x' : ''} ouvert${openSlots > 1 ? 's' : ''}` : 'Aucun créneau ouvert'}
+          </span>
+        </span>
+        <ChevronRight className="w-5 h-5 text-slate-400" />
+      </Card>
 
-        {/* Fiches Clients CRM */}
-        <div
-          onClick={() => navigateTo('coach_clients')}
-          className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs hover:border-[#00D664] transition cursor-pointer flex items-center justify-between"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-              <Users className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="font-extrabold text-sm text-[#0F172A]">Suivi & Fiches Clients</h3>
-              <p className="text-xs text-slate-500">
-                Notes de séance, historique, objectifs et coordonnées
-              </p>
-            </div>
-          </div>
-          <ChevronRight className="w-4 h-4 text-slate-400" />
-        </div>
-
-        {/* Revenus & Versements */}
-        <div
-          onClick={() => navigateTo('coach_financials')}
-          className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs hover:border-[#00D664] transition cursor-pointer flex items-center justify-between"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
-              <Wallet className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="font-extrabold text-sm text-[#0F172A]">Revenus & Versements SEPA</h3>
-              <p className="text-xs text-slate-500">
-                Commission 15% transparente • Historique virements
-              </p>
-            </div>
-          </div>
-          <ChevronRight className="w-4 h-4 text-slate-400" />
-        </div>
-
-        {/* Formats, Zones & Certifications */}
-        <div
-          onClick={() => navigateTo('coach_profile_edit')}
-          className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs hover:border-[#00D664] transition cursor-pointer flex items-center justify-between"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center">
-              <FileCheck className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="font-extrabold text-sm text-[#0F172A]">Tarifs, Formats & Diplômes</h3>
-              <p className="text-xs text-slate-500">
-                Domicile, rayon {coachProfile?.interventionRadiusKm || 15}km, packs & documents
-              </p>
-            </div>
-          </div>
-          <ChevronRight className="w-4 h-4 text-slate-400" />
-        </div>
-      </div>
-
-      {/* Recent Reviews received */}
-      <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-extrabold text-[#0F172A]">Derniers avis clients</h2>
-          <span className="text-xs font-bold text-slate-400">{coachReviews.length} avis</span>
-        </div>
-
-        {coachReviews.length === 0 ? (
-          <p className="text-xs text-slate-400 text-center py-2">Aucun avis pour l'instant.</p>
-        ) : (
-          coachReviews.slice(0, 2).map((r) => (
-            <div key={r.id} className="p-3 bg-slate-50 rounded-xl text-xs space-y-1 border border-slate-200">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-[#0F172A]">{r.clientName}</span>
-                <div className="flex items-center gap-0.5 text-amber-500 font-bold">
-                  <Star className="w-3 h-3 fill-current" />
-                  <span>{r.rating}</span>
+      {/* Derniers avis */}
+      {coachReviews.length > 0 && (
+        <section>
+          <SectionHeader title="Derniers avis" />
+          <div className="space-y-2.5">
+            {coachReviews.slice(0, 2).map((r) => (
+              <Card key={r.id} className="p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-semibold truncate">{r.clientName}</span>
+                  <span className="flex items-center gap-1 text-sm font-semibold tabular-nums shrink-0">
+                    <Star className="w-4 h-4 fill-fmc-green text-fmc-green" />
+                    {String(r.rating).replace('.', ',')}
+                  </span>
                 </div>
-              </div>
-              <p className="text-slate-600 leading-snug">"{r.comment}"</p>
-            </div>
-          ))
-        )}
-      </div>
-    </div>
+                <p className="text-sm text-slate-600 dark:text-slate-300 leading-normal mt-1.5">{r.comment}</p>
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
+    </Screen>
   );
 };

@@ -4,8 +4,22 @@
     {
       "name": "demo",
       "runtimeExecutable": "sh",
-      "runtimeArgs": ["-c", "VITE_SUPABASE_URL= VITE_SUPABASE_ANON_KEY= npx vite --port 5199 --strictPort"],
+      "runtimeArgs": [
+        "-c",
+        "VITE_SUPABASE_URL= VITE_SUPABASE_ANON_KEY= npx vite --port 5199 --strictPort"
+      ],
       "port": 5199
+    },
+    {
+      "name": "app",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "--port",
+        "5198",
+        "--strictPort"
+      ],
+      "port": 5198
     }
   ]
 }

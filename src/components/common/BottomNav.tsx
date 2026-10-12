@@ -41,7 +41,7 @@ export const BottomNav: React.FC = () => {
             }`}
           >
             <LayoutDashboard className="w-6 h-6" strokeWidth={2} />
-            <span className="text-[11px]">Dashboard</span>
+            <span className="text-[11px]">Accueil</span>
           </button>
 
           <button

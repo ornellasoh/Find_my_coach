@@ -40,7 +40,7 @@ Vérifier le typage : `npm run lint`
 | Variable | Rôle |
 |---|---|
 | `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` | Projet Supabase. Sans elles, l'app tourne en **mode démo** (données d'exemple locales). |
-| `VITE_MAPTILER_KEY` | Fond de carte MapTiler (facultatif, sinon CARTO). |
+| `VITE_MAPTILER_KEY` | Fond de carte MapTiler (facultatif, sinon OpenStreetMap). |
 | `VITE_PUSH_ENABLED` | `true` une fois Firebase configuré (voir *Notifications push*). |
 
 `.env.mobile` (versionné) contient les valeurs utilisées pour les builds mobiles.

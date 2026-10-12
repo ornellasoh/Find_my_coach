@@ -2,8 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ratingLabel } from '../../utils/coachTrust';
 import { Avatar } from '../ui/Avatar';
 import { isVerifiedCoach } from '../../utils/coachTrust';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import { createAppleEngine, createLeafletEngine, loadMapKit, type MapEngine } from '../../lib/mapEngines';
 import { CoachProfile } from '../../types';
 import { calculateDistanceKm, formatDistance } from '../../utils/geo';
 import { Star, MapPin, CheckCircle2, ArrowRight, Crosshair, Sparkles, Navigation, X } from 'lucide-react';
@@ -34,10 +33,9 @@ export const CoachMap: React.FC<CoachMapProps> = ({
 }) => {
   const { navigateTo, selectCoachForBooking } = useApp();
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
-  const mapInstanceRef = useRef<L.Map | null>(null);
-  const markersLayerRef = useRef<L.LayerGroup | null>(null);
-  const userMarkerRef = useRef<L.Marker | null>(null);
-  const circleLayerRef = useRef<L.Circle | null>(null);
+  // Apple Plans si disponible, sinon OpenStreetMap (voir src/lib/mapEngines.ts)
+  const [engine, setEngine] = useState<MapEngine | null>(null);
+  const userPoint = userLocation ? { lat: userLocation.latitude, lng: userLocation.longitude } : null;
 
   const [activeCoach, setActiveCoach] = useState<CoachProfile | null>(() => {
     if (selectedCoachId) {
@@ -49,127 +47,58 @@ export const CoachMap: React.FC<CoachMapProps> = ({
   const [showSearchAreaBtn, setShowSearchAreaBtn] = useState(false);
   const [mapCenterState, setMapCenterState] = useState<{ lat: number; lng: number } | null>(null);
 
-  // Initialize Map
+  // Création de la carte : on tente Apple Plans, et on bascule sur OpenStreetMap au moindre échec
   useEffect(() => {
-    if (!mapContainerRef.current) return;
-    if (mapInstanceRef.current) return; // already initialized
-
-    // Default center: Paris (or user location if available)
-    const initialLat = userLocation ? userLocation.latitude : 48.8566;
-    const initialLng = userLocation ? userLocation.longitude : 2.3522;
-    const initialZoom = userLocation ? 12 : 11;
-
-    const map = L.map(mapContainerRef.current, {
-      center: [initialLat, initialLng],
-      zoom: initialZoom,
-      zoomControl: false,
-      attributionControl: false
-    });
-
-    // Fond de carte : MapTiler si une clé est fournie (VITE_MAPTILER_KEY), sinon CARTO Voyager (sans clé)
-    const mapTilerKey = import.meta.env.VITE_MAPTILER_KEY as string | undefined;
-    if (mapTilerKey) {
-      L.tileLayer(`https://api.maptiler.com/maps/streets-v2/256/{z}/{x}/{y}{r}.png?key=${mapTilerKey}`, {
-        maxZoom: 19,
-        attribution: '© MapTiler © OpenStreetMap',
-      }).addTo(map);
-    } else {
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        maxZoom: 19,
-        subdomains: 'abcd',
-        attribution: '© CARTO © OpenStreetMap',
-      }).addTo(map);
-    }
-    L.control.attribution({ prefix: false, position: 'bottomleft' }).addTo(map);
-
-    // Recalcule la taille une fois l'écran affiché (évite une carte grise sur mobile/tablette)
-    setTimeout(() => map.invalidateSize(), 250);
-    const onResize = () => map.invalidateSize();
-    window.addEventListener('resize', onResize);
-
-    const markersLayer = L.layerGroup().addTo(map);
-    markersLayerRef.current = markersLayer;
-    mapInstanceRef.current = map;
-
-    // Detect user panning/zooming to show "Rechercher dans cette zone"
-    map.on('moveend', () => {
-      const center = map.getCenter();
-      setMapCenterState({ lat: center.lat, lng: center.lng });
-      setShowSearchAreaBtn(true);
-    });
-
-    return () => {
-      window.removeEventListener('resize', onResize);
-      map.remove();
-      mapInstanceRef.current = null;
+    let alive = true;
+    let created: MapEngine | null = null;
+    const start = (factory: typeof createAppleEngine) => {
+      if (!alive || !mapContainerRef.current) return;
+      created = factory(mapContainerRef.current, {
+        center: userPoint ?? { lat: 48.8566, lng: 2.3522 }, // Paris par défaut
+        hasUser: !!userPoint,
+        onMoveEnd: (center) => {
+          setMapCenterState(center);
+          setShowSearchAreaBtn(true);
+        },
+      });
+      setEngine(created);
     };
+    loadMapKit().then(
+      () => {
+        try { start(createAppleEngine); } catch (err) {
+          console.warn('Apple Plans indisponible, carte de secours', err);
+          if (mapContainerRef.current) mapContainerRef.current.innerHTML = '';
+          start(createLeafletEngine);
+        }
+      },
+      () => start(createLeafletEngine),
+    );
+    return () => {
+      alive = false;
+      created?.destroy();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Update User Marker
+  // Position de l'utilisateur et rayon de recherche
   useEffect(() => {
-    const map = mapInstanceRef.current;
-    if (!map) return;
+    engine?.setUser(userPoint);
+    engine?.setCircle(userPoint, radiusKm);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [engine, userLocation?.latitude, userLocation?.longitude, radiusKm]);
 
-    if (userLocation) {
-      if (userMarkerRef.current) {
-        userMarkerRef.current.setLatLng([userLocation.latitude, userLocation.longitude]);
-      } else {
-        const userIcon = L.divIcon({
-          className: 'custom-user-pin',
+  // Repères des coachs
+  useEffect(() => {
+    if (!engine) return;
+    const located = coaches.filter((c) => c.latitude && c.longitude);
+    engine.setPins(
+      located.map((coach) => {
+        const isSelected = activeCoach?.id === coach.id;
+        return {
+          id: coach.id,
+          lat: coach.latitude,
+          lng: coach.longitude,
           html: `
-            <div class="relative flex items-center justify-center">
-              <span class="animate-ping absolute inline-flex h-7 w-7 rounded-full bg-[#00D664] opacity-50"></span>
-              <span class="relative inline-flex rounded-full h-4 w-4 bg-[#00B050] border-2 border-white shadow-md"></span>
-            </div>
-          `,
-          iconSize: [28, 28],
-          iconAnchor: [14, 14]
-        });
-
-        userMarkerRef.current = L.marker([userLocation.latitude, userLocation.longitude], {
-          icon: userIcon,
-          zIndexOffset: 1000
-        }).addTo(map);
-      }
-    } else if (userMarkerRef.current) {
-      userMarkerRef.current.remove();
-      userMarkerRef.current = null;
-    }
-  }, [userLocation]);
-
-  // Cercle du rayon de recherche
-  useEffect(() => {
-    const map = mapInstanceRef.current;
-    if (!map) return;
-    circleLayerRef.current?.remove();
-    circleLayerRef.current = null;
-    if (userLocation && radiusKm) {
-      circleLayerRef.current = L.circle([userLocation.latitude, userLocation.longitude], {
-        radius: radiusKm * 1000,
-        color: '#00B050',
-        weight: 1.5,
-        fillColor: '#00D664',
-        fillOpacity: 0.06,
-        interactive: false,
-      }).addTo(map);
-    }
-  }, [userLocation, radiusKm]);
-
-  // Update Coach Markers
-  useEffect(() => {
-    const map = mapInstanceRef.current;
-    const markersLayer = markersLayerRef.current;
-    if (!map || !markersLayer) return;
-
-    markersLayer.clearLayers();
-
-    coaches.forEach((coach) => {
-      if (!coach.latitude || !coach.longitude) return;
-
-      const isSelected = activeCoach?.id === coach.id;
-
-      // Custom Pin HTML
-      const pinHtml = `
         <div class="group relative cursor-pointer transform transition duration-200 ${isSelected ? 'scale-110 z-50' : 'hover:scale-105'}">
           <div class="flex items-center gap-1 px-2.5 py-1 rounded-full shadow-md font-extrabold text-xs transition border ${
             isSelected
@@ -179,68 +108,36 @@ export const CoachMap: React.FC<CoachMapProps> = ({
             <span class="text-[10px] text-[#00B050]">⚡</span>
             <span>${coach.hourlyRate}€</span>
           </div>
-          <!-- Pointer arrow -->
           <div class="w-0 h-0 mx-auto border-l-4 border-r-4 border-t-4 ${
             isSelected ? 'border-t-[#0F172A]' : 'border-t-white'
           } border-l-transparent border-r-transparent shadow-xs"></div>
-        </div>
-      `;
-
-      const customIcon = L.divIcon({
-        className: 'custom-coach-marker',
-        html: pinHtml,
-        iconSize: [60, 32],
-        iconAnchor: [30, 32]
-      });
-
-      const marker = L.marker([coach.latitude, coach.longitude], { icon: customIcon });
-
-      marker.on('click', () => {
+        </div>`,
+        };
+      }),
+      (id) => {
+        const coach = coaches.find((c) => c.id === id);
+        if (!coach) return;
         setActiveCoach(coach);
         if (onSelectCoach) onSelectCoach(coach);
-        map.panTo([coach.latitude, coach.longitude], { animate: true, duration: 0.5 });
-      });
+        engine.panTo({ lat: coach.latitude, lng: coach.longitude });
+      },
+    );
 
-      markersLayer.addLayer(marker);
-    });
-
-    // Auto-fit bounds if we have coaches and no selected coach
-    if (coaches.length > 0 && !activeCoach) {
-      const validCoords = coaches
-        .filter((c) => c.latitude && c.longitude)
-        .map((c) => [c.latitude, c.longitude] as [number, number]);
-
-      if (userLocation) {
-        validCoords.push([userLocation.latitude, userLocation.longitude]);
-      }
-
-      if (validCoords.length > 0) {
-        const bounds = L.latLngBounds(validCoords);
-        map.fitBounds(bounds, { padding: [40, 40], maxZoom: 13 });
-      }
+    // Cadre tous les coachs (et l'utilisateur) tant qu'aucun coach n'est sélectionné
+    if (located.length > 0 && !activeCoach) {
+      engine.fit([...located.map((c) => ({ lat: c.latitude, lng: c.longitude })), ...(userPoint ? [userPoint] : [])]);
     }
-  }, [coaches, activeCoach]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [engine, coaches, activeCoach]);
 
-  // Recenter map on user location
   const handleRecenterUser = () => {
-    if (!mapInstanceRef.current || !userLocation) return;
-    mapInstanceRef.current.flyTo([userLocation.latitude, userLocation.longitude], 13, {
-      duration: 0.8
-    });
+    if (engine && userPoint) engine.flyTo(userPoint);
   };
 
-  // Trigger search in area
   const handleSearchThisAreaClick = () => {
-    if (!mapInstanceRef.current) return;
-    const center = mapInstanceRef.current.getCenter();
-    const bounds = mapInstanceRef.current.getBounds();
-    const northEast = bounds.getNorthEast();
-    const radius = calculateDistanceKm(center.lat, center.lng, northEast.lat, northEast.lng);
-
+    if (!engine) return;
     setShowSearchAreaBtn(false);
-    if (onSearchThisArea) {
-      onSearchThisArea({ lat: center.lat, lng: center.lng }, Math.max(2, Math.round(radius)));
-    }
+    if (onSearchThisArea) onSearchThisArea(engine.center(), Math.max(2, Math.round(engine.radiusKm())));
   };
 
   // Calculate distance for active coach
@@ -284,7 +181,7 @@ export const CoachMap: React.FC<CoachMapProps> = ({
         {userLocation && (
           <button
             onClick={handleRecenterUser}
-            className="w-9 h-9 rounded-xl bg-white/95 backdrop-blur-md text-slate-700 shadow-md border border-slate-200/80 flex items-center justify-center hover:bg-[#00D664]/10 hover:text-[#008A3E] transition cursor-pointer"
+            className="w-11 h-11 rounded-xl bg-white/95 backdrop-blur-md text-slate-700 shadow-md border border-slate-200/80 flex items-center justify-center hover:bg-[#00D664]/10 hover:text-[#008A3E] transition cursor-pointer"
             title="Ma position"
           >
             <Crosshair className="w-4 h-4" />
@@ -293,14 +190,16 @@ export const CoachMap: React.FC<CoachMapProps> = ({
 
         <div className="flex flex-col bg-white/95 backdrop-blur-md rounded-xl shadow-md border border-slate-200/80 overflow-hidden">
           <button
-            onClick={() => mapInstanceRef.current?.zoomIn()}
-            className="w-9 h-9 flex items-center justify-center text-slate-700 hover:bg-slate-50 border-b border-slate-100 text-base font-bold cursor-pointer"
+            onClick={() => engine?.zoom(1)}
+            aria-label="Zoomer"
+            className="w-11 h-11 flex items-center justify-center text-slate-700 hover:bg-slate-50 border-b border-slate-100 text-base font-bold cursor-pointer"
           >
             +
           </button>
           <button
-            onClick={() => mapInstanceRef.current?.zoomOut()}
-            className="w-9 h-9 flex items-center justify-center text-slate-700 hover:bg-slate-50 text-base font-bold cursor-pointer"
+            onClick={() => engine?.zoom(-1)}
+            aria-label="Dézoomer"
+            className="w-11 h-11 flex items-center justify-center text-slate-700 hover:bg-slate-50 text-base font-bold cursor-pointer"
           >
             −
           </button>

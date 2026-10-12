@@ -1,4 +1,5 @@
 import { Capacitor, registerPlugin, type PluginListenerHandle } from '@capacitor/core';
+import { App } from '@capacitor/app';
 import { supabase } from './supabase';
 
 /**
@@ -18,6 +19,7 @@ interface PushPlugin {
   addListener(event: 'registration', cb: (t: PushToken) => void): Promise<PluginListenerHandle>;
   addListener(event: 'registrationError', cb: (e: unknown) => void): Promise<PluginListenerHandle>;
   addListener(event: 'pushNotificationActionPerformed', cb: (a: PushAction) => void): Promise<PluginListenerHandle>;
+  removeAllDeliveredNotifications(): Promise<void>;
   removeAllListeners(): Promise<void>;
 }
 
@@ -36,6 +38,12 @@ let lastStatus: PushStatus = 'pending';
 let lastError = '';
 /** État de l'inscription push sur cet appareil (affiché dans les préférences de notification). */
 export const pushStatus = () => ({ status: pushAvailable() ? lastStatus : ('unavailable' as PushStatus), error: lastError });
+
+/** iPhone : à l'ouverture de l'app, remet la pastille rouge de l'icône à zéro et vide les notifications déjà reçues. */
+let badgeListener = false;
+const clearBadge = () => {
+  if (Capacitor.getPlatform() === 'ios') PushNotifications.removeAllDeliveredNotifications().catch(() => { /* ignore */ });
+};
 
 /** Enregistre le jeton pour le compte connecté (un jeton = un seul compte : le dernier connecté). */
 async function saveToken(value: string) {
@@ -76,7 +84,14 @@ export async function registerPush(userId: string, onOpen?: (data: Record<string
       });
     }
     void userId; // le serveur rattache le jeton au compte de la session (jamais à un id fourni par l'app)
-    await PushNotifications.addListener('registration', ({ value }) => saveToken(value));
+    await PushNotifications.addListener('registration', ({ value }) => {
+      clearBadge(); // possible seulement une fois l'iPhone inscrit auprès d'Apple
+      return saveToken(value);
+    });
+    if (!badgeListener) {
+      badgeListener = true;
+      void App.addListener('resume', clearBadge);
+    }
     await PushNotifications.addListener('registrationError', (e) => {
       lastStatus = 'error';
       lastError = String((e as { error?: string })?.error ?? e);
