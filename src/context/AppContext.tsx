@@ -68,6 +68,7 @@ export type AppScreen =
   | 'coach_financials'
   | 'coach_ai_agent'
   | 'booking_detail'
+  | 'messages'
   | 'admin_dashboard';
 
 export interface BookingDraft {
@@ -1323,6 +1324,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setBookingDraft(null);
   };
 
+  // Lien d'un coach (bio Instagram → page findmycoach.io/coach/… → « Ouvrir dans l'app ») :
+  // on ouvre sa fiche dès que la personne est connectée et que les coachs sont chargés.
+  const [pendingCoachId, setPendingCoachId] = useState<string | null>(() => {
+    try { return localStorage.getItem('fmc_pending_coach'); } catch { return null; }
+  });
+  useEffect(() => {
+    const onOpen = (e: Event) => setPendingCoachId((e as CustomEvent<string>).detail);
+    window.addEventListener('fmc:open-coach', onOpen);
+    return () => window.removeEventListener('fmc:open-coach', onOpen);
+  }, []);
+  useEffect(() => {
+    if (!pendingCoachId || !currentUser) return;
+    const c = coaches.find((x) => x.id === pendingCoachId);
+    if (!c) return;
+    try { localStorage.removeItem('fmc_pending_coach'); } catch { /* ignore */ }
+    setPendingCoachId(null);
+    setSelectedCoach(c);
+    setScreenHistory((prev) => [...prev, 'coach_profile']);
+    setCurrentScreen('coach_profile');
+  }, [pendingCoachId, currentUser?.id, coaches]);
+
   // Pont pour l'app native (bouton retour Android) et les tests : window.__fmc
   useEffect(() => {
     (window as any).__fmc = { navigateTo, goBack, canGoBack: screenHistory.length > 1 };
@@ -1461,7 +1483,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Notifications push sur le téléphone (si activées)
     import('../lib/push').then(({ registerPush }) =>
       registerPush(user.id, (data) => {
-        if (data.type === 'message') setCurrentScreen(user.role === 'coach' ? 'coach_clients' : 'bookings');
+        if (data.type === 'message') setCurrentScreen('messages');
         else if (data.bookingId) {
           setSelectedBookingId(data.bookingId);
           setCurrentScreen('booking_detail');

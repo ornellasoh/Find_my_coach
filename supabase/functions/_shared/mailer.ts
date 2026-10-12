@@ -31,6 +31,27 @@ Vous pouvez désactiver ces emails dans l'app : Profil → Notifications.</td></
 </table></td></tr></table></body></html>`;
 }
 
+/** Email libre à la charte (logo + carte blanche). `inner` est du HTML déjà échappé. */
+export function brandEmail(title: string, inner: string, footer = '') {
+  return `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title></head>
+<body style="margin:0;padding:0;background:#F6F9FA;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#0F172A;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F6F9FA;padding:32px 16px;"><tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;">
+<tr><td align="center" style="background:#1D1D1D;border-radius:28px 28px 0 0;padding:24px;">
+<img src="https://seftoygihefwohrioojo.supabase.co/storage/v1/object/public/downloads/brand/logo-email.png" width="200" alt="Find My Coach" style="display:block;width:200px;max-width:100%;height:auto;border:0;"></td></tr>
+<tr><td style="background:#FFFFFF;border:1px solid #E2E8F0;border-top:0;border-radius:0 0 28px 28px;padding:36px 32px;">
+<h1 style="margin:0 0 16px;font-size:24px;line-height:1.3;font-weight:800;color:#0F172A;">${esc(title)}</h1>
+${inner}
+<p style="margin:28px 0 0;font-size:13px;line-height:1.6;color:#64748B;">Une question ? Répondez simplement à cet email.<br><br>À très vite,<br><strong style="color:#0F172A;">Jessie Kouassi, fondateur de Find My Coach</strong></p>
+</td></tr>
+<tr><td align="center" style="padding:24px 16px 0;font-size:12px;line-height:1.7;color:#94A3B8;">
+<strong style="color:#0F172A;">Your Coach Anytime, Anywhere.</strong><br>
+Find My Coach · <a href="https://findmycoach.io" style="color:#94A3B8;">findmycoach.io</a> · <a href="mailto:contact@findmycoach.io" style="color:#94A3B8;">contact@findmycoach.io</a>${footer ? `<br>${footer}` : ''}</td></tr>
+</table></td></tr></table></body></html>`;
+}
+
+export const escapeHtml = esc;
+
 let transporter: ReturnType<typeof nodemailer.createTransport> | null = null;
 
 export async function sendMail(to: string, subject: string, html: string) {

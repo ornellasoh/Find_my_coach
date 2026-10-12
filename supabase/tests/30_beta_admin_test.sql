@@ -112,3 +112,33 @@ select pg_temp.as_user(null);
 select pg_temp.check((select count(*) = 0 from push_tokens where token = 'tok-tablette'), 'déconnexion : jeton supprimé');
 
 \echo '== Tous les tests bêta (admin, profils, push) sont passés'
+
+-- Messagerie : boîte de réception
+select pg_temp.as_user(null);
+insert into public.messages (sender_id, recipient_id, text, created_at) values
+  ('aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-000000000002', 'Bonjour coach', now() - interval '5 min'),
+  ('aaaaaaaa-0000-0000-0000-000000000002', 'aaaaaaaa-0000-0000-0000-000000000001', 'Bonjour Ornella', now() - interval '3 min'),
+  ('aaaaaaaa-0000-0000-0000-000000000002', 'aaaaaaaa-0000-0000-0000-000000000001', 'À demain !', now() - interval '1 min'),
+  ('aaaaaaaa-0000-0000-0000-000000000003', 'aaaaaaaa-0000-0000-0000-000000000002', 'Message privé admin→coach', now());
+select pg_temp.as_user('aaaaaaaa-0000-0000-0000-000000000001');
+select pg_temp.check((select count(*) = 1 from public.my_conversations()), 'messagerie : une seule conversation pour la cliente (pas celles des autres)');
+select pg_temp.check((select partner_name = 'Lucie Dupont' and last_text = 'À demain !' and unread = 2 and not last_from_me from public.my_conversations()), 'messagerie : nom de l''interlocuteur, dernier message et 2 non lus');
+select pg_temp.as_user('aaaaaaaa-0000-0000-0000-000000000002');
+select pg_temp.check((select count(*) = 2 from public.my_conversations()), 'messagerie : le coach voit ses 2 conversations');
+select pg_temp.as_anon();
+select pg_temp.expect_error('select * from public.my_conversations()', 'permission denied');
+select pg_temp.as_user(null);
+
+-- Fiche publique (lien Instagram)
+select pg_temp.as_user(null);
+insert into public.coaches (id, user_id, is_active, city, category, data) values
+  ('coach-aaaaaaaa-0000-0000-0000-000000000002', 'aaaaaaaa-0000-0000-0000-000000000002', true, 'Poitiers', 'Sport & Fitness',
+   '{"id":"coach-aaaaaaaa-0000-0000-0000-000000000002","slug":"lucie-dupont-aaaa","name":"Lucie Dupont","city":"Poitiers","hourlyRate":60,"address":"12 rue secrète","email":"lucie@test.fr"}')
+on conflict (id) do nothing;
+select pg_temp.as_anon();
+select pg_temp.check((select public.public_coach('lucie-dupont-aaaa') ->> 'name' = 'Lucie Dupont'), 'lien public : fiche trouvée par son identifiant court, sans compte');
+select pg_temp.check((select public.public_coach('coach-aaaaaaaa-0000-0000-0000-000000000002') ->> 'appLink' like 'io.findmycoach.app://coach/%'), 'lien public : lien d''ouverture dans l''app');
+select pg_temp.check((select public.public_coach('lucie-dupont-aaaa')::text not like '%secrète%' and public.public_coach('lucie-dupont-aaaa')::text not like '%lucie@test.fr%'), 'lien public : ni adresse ni email exposés');
+select pg_temp.check((select public.public_coach('inconnu') is null), 'lien public : identifiant inconnu → rien');
+select pg_temp.as_user(null);
+\echo == Messagerie et lien public OK

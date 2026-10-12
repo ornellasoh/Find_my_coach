@@ -1,18 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Avatar } from '../ui/Avatar';
 import { useApp } from '../../context/AppContext';
-import { 
-  X, 
-  Send, 
-  CheckCheck, 
-  Sparkles, 
-  Paperclip, 
-  Smile, 
-  Phone, 
-  Video, 
-  CheckCircle2,
-  Calendar
-} from 'lucide-react';
+import { ChevronLeft, Send } from 'lucide-react';
 import { motion } from 'motion/react';
 import { ChatPartner, ChatMessage } from '../../types';
 import { supabase } from '../../lib/supabase';
@@ -66,13 +55,6 @@ const INITIAL_DEMO_MESSAGES: Record<string, ChatMessage[]> = {
   ]
 };
 
-const QUICK_SUGGESTIONS = [
-  'Je serai ponctuel(le) ! ⏱️',
-  'Avez-vous des conseils de repas pré-séance ? 🥗',
-  'Merci pour le super coaching ! ⭐',
-  'Je confirme l’adresse à domicile 🏠'
-];
-
 export const ChatModal: React.FC<ChatModalProps> = ({ partner, onClose }) => {
   const { currentUser, navigateTo, isOnline } = useApp();
   const partnerUserId = partner?.userId || partner?.id || '';
@@ -116,7 +98,7 @@ export const ChatModal: React.FC<ChatModalProps> = ({ partner, onClose }) => {
       senderAvatar: r.sender_id === me ? currentUser.avatar : partner?.avatar || '',
       recipientId: r.recipient_id,
       text: r.text,
-      createdAt: new Date(r.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+      createdAt: r.created_at,
       isRead: r.read,
     });
 
@@ -142,6 +124,8 @@ export const ChatModal: React.FC<ChatModalProps> = ({ partner, onClose }) => {
         const row = payload.new as MessageRow;
         if (row.sender_id !== partnerUserId) return;
         setMessages((prev) => (prev.some((m) => m.id === row.id) ? prev : [...prev, toMsg(row)]));
+        // Conversation ouverte : le message est lu tout de suite
+        supabase!.from('messages').update({ read: true }).eq('id', row.id).then(() => {});
       })
       .subscribe();
     return () => {
@@ -182,7 +166,7 @@ export const ChatModal: React.FC<ChatModalProps> = ({ partner, onClose }) => {
           senderAvatar: currentUser.avatar,
           recipientId: row.recipient_id,
           text: row.text,
-          createdAt: new Date(row.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+          createdAt: row.created_at,
           isRead: false,
         },
       ]);
@@ -196,7 +180,7 @@ export const ChatModal: React.FC<ChatModalProps> = ({ partner, onClose }) => {
       senderAvatar: currentUser?.avatar || '',
       recipientId: partner.id,
       text: text.trim(),
-      createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      createdAt: new Date().toISOString(),
       isRead: true
     };
 
@@ -219,12 +203,30 @@ export const ChatModal: React.FC<ChatModalProps> = ({ partner, onClose }) => {
         senderAvatar: partner.avatar,
         recipientId: currentUser?.id || 'user',
         text: randomReply,
-        createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        createdAt: new Date().toISOString(),
         isRead: true
       };
       setMessages((prev) => [...prev, botMsg]);
     }, 1200);
   };
+
+  const timeOf = (v: string) => {
+    const t = Date.parse(v);
+    return Number.isNaN(t) ? v : new Date(t).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  };
+  const dayOf = (v: string) => {
+    const t = Date.parse(v);
+    if (Number.isNaN(t)) return '';
+    const d = new Date(t);
+    const today = new Date();
+    const yesterday = new Date(Date.now() - 86_400_000);
+    if (d.toDateString() === today.toDateString()) return "Aujourd'hui";
+    if (d.toDateString() === yesterday.toDateString()) return 'Hier';
+    return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+  };
+  const myId = currentUser?.id || 'user';
+  const isMine = (m: ChatMessage) => m.senderId === myId || m.senderId === 'user';
+  const lastMineIndex = messages.reduce((acc, m, i) => (isMine(m) ? i : acc), -1);
 
   return (
     <motion.div
@@ -232,125 +234,104 @@ export const ChatModal: React.FC<ChatModalProps> = ({ partner, onClose }) => {
       initial={{ opacity: 0, y: '100%' }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: '100%' }}
-      transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-      className="fixed inset-0 z-50 bg-[#F2F4F7] flex flex-col max-w-md mx-auto shadow-2xl overflow-hidden"
+      transition={{ type: 'spring', damping: 30, stiffness: 320 }}
+      className="fixed inset-0 z-50 bg-fmc-bg dark:bg-[#0B0F19] text-fmc-navy dark:text-slate-100 flex flex-col max-w-md mx-auto overflow-hidden"
     >
-      {/* Top Header */}
-      <div className="bg-white/90 backdrop-blur-xl border-b border-slate-200/80 px-4 py-3 flex items-center justify-between z-10 shadow-xs">
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <Avatar src={partner.avatar} name={partner.name} className="w-10 h-10 rounded-full border border-slate-200" />
-            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#00D664] border-2 border-white rounded-full" />
-          </div>
-
-          <div>
-            <div className="flex items-center gap-1">
-              <h2 className="text-sm font-extrabold text-[#0F172A] leading-tight">
-                {partner.name}
-              </h2>
-              <CheckCircle2 className="w-3.5 h-3.5 text-[#008A3E]" />
-            </div>
-            <p className="text-[11px] text-slate-500 font-medium">
-              {partner.title || ''}
-            </p>
-          </div>
-        </div>
-
+      {/* En-tête simple : retour, photo, nom */}
+      <header className="flex items-center gap-3 px-3 pt-[calc(0.75rem+var(--sat,0px))] pb-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/70 dark:border-slate-800">
         <button
           id="btn-close-chat"
           onClick={onClose}
-          className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition cursor-pointer"
+          aria-label="Fermer la conversation"
+          className="w-10 h-10 -ml-1 rounded-full flex items-center justify-center text-fmc-navy dark:text-slate-100 cursor-pointer active:scale-95"
         >
-          <X className="w-5 h-5" />
+          <ChevronLeft className="w-7 h-7" />
         </button>
-      </div>
-
-      {/* Messages Scrollable Area */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 no-scrollbar">
-        <div className="flex justify-center my-1">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-200/60 px-3 py-0.5 rounded-full">
-            Aujourd'hui
-          </span>
+        <Avatar src={partner.avatar} name={partner.name} className="w-10 h-10 rounded-full" />
+        <div className="min-w-0">
+          <h2 className="text-base font-semibold leading-tight truncate">{partner.name}</h2>
+          {partner.title && <p className="text-xs text-slate-500 truncate">{partner.title}</p>}
         </div>
+      </header>
 
+      {/* Fil de la conversation */}
+      <div className="flex-1 overflow-y-auto px-4 py-4 no-scrollbar">
         {unavailable && (
-          <p className="text-center text-sm text-slate-500 px-4 py-6">
+          <p className="text-center text-sm text-slate-500 px-4 py-10">
             Ce profil est un exemple de démonstration : la messagerie n'est pas disponible.
           </p>
         )}
-        {loadError && <p className="text-center text-sm text-rose-600 px-4">{loadError}</p>}
+        {loadError && <p className="text-center text-sm text-rose-600 px-4 py-4">{loadError}</p>}
         {live && !loadError && messages.length === 0 && (
-          <p className="text-center text-sm text-slate-500 px-4 py-6">Aucun message pour l'instant. Écrivez le premier !</p>
+          <div className="text-center px-6 py-14">
+            <Avatar src={partner.avatar} name={partner.name} className="w-16 h-16 rounded-full mx-auto" />
+            <p className="font-semibold mt-3">{partner.name}</p>
+            <p className="text-sm text-slate-500 mt-1">Écrivez votre premier message : il recevra une notification.</p>
+          </div>
         )}
-        {messages.map((msg) => {
-          const isMe = msg.senderId === (currentUser?.id || 'user') || msg.senderId === 'user';
-          return (
-            <motion.div
-              key={msg.id}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
-            >
-              <div
-                className={`max-w-[80%] px-3.5 py-2.5 rounded-2xl text-xs leading-relaxed ${
-                  isMe
-                    ? 'bg-[#00D664] text-[#0F172A] font-semibold rounded-br-xs shadow-xs'
-                    : 'bg-white text-slate-800 font-normal rounded-bl-xs border border-slate-200 shadow-xs'
-                }`}
-              >
-                {msg.text}
-              </div>
 
-              <div className="flex items-center gap-1 mt-0.5 px-1 text-[10px] text-slate-400">
-                <span>{msg.createdAt}</span>
-                {isMe && <CheckCheck className="w-3 h-3 text-[#008A3E]" />}
+        {messages.map((msg, i) => {
+          const mine = isMine(msg);
+          const prev = messages[i - 1];
+          const day = dayOf(msg.createdAt);
+          const newDay = day && (!prev || dayOf(prev.createdAt) !== day);
+          const grouped = !newDay && prev && isMine(prev) === mine;
+          return (
+            <React.Fragment key={msg.id}>
+              {newDay && (
+                <p className="text-center text-xs text-slate-400 font-medium my-4 first:mt-0">{day}</p>
+              )}
+              <div className={`flex flex-col ${mine ? 'items-end' : 'items-start'} ${grouped ? 'mt-1' : 'mt-3'}`}>
+                <div
+                  className={`max-w-[78%] px-3.5 py-2 text-[15px] leading-snug whitespace-pre-wrap break-words rounded-[20px] ${
+                    mine
+                      ? 'bg-fmc-green text-fmc-navy rounded-br-md'
+                      : 'bg-white dark:bg-slate-800 text-fmc-navy dark:text-slate-100 rounded-bl-md'
+                  }`}
+                >
+                  {msg.text}
+                </div>
+                {(i === messages.length - 1 || !messages[i + 1] || isMine(messages[i + 1]) !== mine) && (
+                  <span className="text-[11px] text-slate-400 mt-1 px-1 tabular-nums">
+                    {timeOf(msg.createdAt)}
+                    {mine && i === lastMineIndex && live ? (msg.isRead ? ' · Lu' : ' · Envoyé') : ''}
+                  </span>
+                )}
               </div>
-            </motion.div>
+            </React.Fragment>
           );
         })}
-        {sendError && <p className="text-center text-xs font-medium text-rose-500">{sendError}</p>}
+        {sendError && <p className="text-center text-xs font-medium text-rose-500 mt-3">{sendError}</p>}
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Quick Suggestions Carousel */}
-      <div className="bg-white/60 backdrop-blur-md px-3 py-2 border-t border-slate-200/60 overflow-x-auto no-scrollbar flex items-center gap-1.5">
-        {QUICK_SUGGESTIONS.map((sug, idx) => (
-          <button
-            key={idx}
-            onClick={() => handleSend(sug)}
-            className="px-3 py-1.5 bg-white text-slate-700 text-[11px] font-semibold rounded-full border border-slate-200 shadow-2xs hover:border-[#00D664] hover:text-[#008A3E] transition shrink-0 cursor-pointer active:scale-95"
-          >
-            {sug}
-          </button>
-        ))}
-      </div>
-
-      {/* Input Message Bar */}
-      <div className="bg-white px-3 py-3 border-t border-slate-200 flex items-center gap-2">
-        <input
-          type="text"
+      {/* Zone de saisie */}
+      <div className="px-3 pt-2 pb-[calc(0.75rem+var(--sab,0px))] bg-white/95 dark:bg-slate-900/95 border-t border-slate-200/70 dark:border-slate-800 flex items-end gap-2">
+        <textarea
+          rows={1}
           value={inputText}
-          onChange={(e) => setInputText(e.target.value)}
+          onChange={(e) => {
+            setInputText(e.target.value);
+            e.target.style.height = 'auto';
+            e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
+          }}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') {
+            if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();
               handleSend();
             }
           }}
-          placeholder="Envoyer un message..."
-          className="flex-1 bg-slate-100 border border-slate-200 rounded-full px-4 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#00D664] focus:bg-white transition"
+          placeholder="Message"
+          aria-label="Votre message"
+          className="flex-1 resize-none bg-slate-100 dark:bg-slate-800 rounded-[22px] px-4 py-2.5 text-base leading-snug placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-fmc-green/40 max-h-[120px]"
         />
-
         <button
           onClick={() => handleSend()}
           disabled={!inputText.trim()}
-          className={`w-9 h-9 rounded-full flex items-center justify-center transition cursor-pointer ${
-            inputText.trim()
-              ? 'bg-[#00D664] text-[#0F172A] shadow-xs active:scale-90 hover:bg-[#00B050]'
-              : 'bg-slate-100 text-slate-300 cursor-not-allowed'
-          }`}
+          aria-label="Envoyer"
+          className="w-11 h-11 shrink-0 rounded-full flex items-center justify-center bg-fmc-green text-fmc-navy disabled:bg-slate-200 disabled:text-slate-400 dark:disabled:bg-slate-800 transition active:scale-90 cursor-pointer disabled:cursor-not-allowed"
         >
-          <Send className="w-4 h-4" />
+          <Send className="w-5 h-5" />
         </button>
       </div>
     </motion.div>

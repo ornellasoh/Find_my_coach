@@ -58,7 +58,6 @@ export const OBJECTIVE_OPTIONS = [
   'Nutrition',
   'Rééducation douce',
   'Confiance en soi',
-  'Carrière & business',
 ];
 
 export const AUDIENCE_OPTIONS = ['Adultes', 'Seniors', 'Adolescents', 'Femmes enceintes / post-partum', 'Sportifs confirmés', 'Entreprises'];

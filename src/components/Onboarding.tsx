@@ -155,7 +155,7 @@ export const Onboarding: React.FC = () => {
 
             <div className="space-y-6 my-auto py-10 px-1">
               {[
-                { icon: <Award className="w-6 h-6" />, title: 'Mentors experts', text: 'Coachs certifiés en fitness, nutrition, mindset, carrière et business.' },
+                { icon: <Award className="w-6 h-6" />, title: 'Mentors experts', text: 'Coachs certifiés en sport, nutrition et bien-être.' },
                 { icon: <CalendarCheck className="w-6 h-6" />, title: 'Réservation flexible', text: 'Des séances adaptées à votre emploi du temps, en visio ou en présentiel.' },
                 { icon: <TrendingUp className="w-6 h-6" />, title: 'Suivi de progression', text: 'Visualisez votre évolution et atteignez vos objectifs.' },
               ].map((f) => (

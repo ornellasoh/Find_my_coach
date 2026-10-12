@@ -26,6 +26,14 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="io.findmycoach.app" android:host="auth-callback" />
             </intent-filter>
+
+            <!-- Lien d'un coach (page findmycoach.io/coach/… → « Ouvrir dans l'app ») -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="io.findmycoach.app" android:host="coach" />
+            </intent-filter>
         </activity>
 
         <provider

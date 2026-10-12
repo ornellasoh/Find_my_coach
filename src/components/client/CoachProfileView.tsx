@@ -24,7 +24,7 @@ import {
   FileCheck2
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { isVerifiedCoach, isRealCoach, levelsText, approximateZone, isDemoCoachOnline, isBookableCoach } from '../../utils/coachTrust';
+import { isVerifiedCoach, isRealCoach, levelsText, approximateZone, isDemoCoachOnline, isBookableCoach, zoneDescription } from '../../utils/coachTrust';
 import { PrimaryButton, Rating, SectionHeader, StickyAction, formatDateFr, formatEuro } from '../ui/fmc';
 
 export const CoachProfileView: React.FC = () => {
@@ -221,7 +221,7 @@ export const CoachProfileView: React.FC = () => {
             {coach.interventionRadiusKm > 0 && (
               <p className="text-sm text-slate-500 mt-3 flex items-start gap-2">
                 <Navigation className="w-4 h-4 text-fmc-green-ink shrink-0 mt-0.5" />
-                {coach.interventionZone || `Se déplace jusqu'à ${coach.interventionRadiusKm} km autour de ${coach.city}`}
+                {zoneDescription(coach)}
               </p>
             )}
           </section>

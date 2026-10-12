@@ -59,6 +59,8 @@ export interface WeeklyScheduleDay {
 }
 
 export interface CoachProfile {
+  /** Identifiant court et lisible du lien public (findmycoach.io/coach/<slug>) */
+  slug?: string;
   id: string;
   userId: string;
   name: string;

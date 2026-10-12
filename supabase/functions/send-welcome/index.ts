@@ -30,7 +30,7 @@ const TEMPLATE = `<!DOCTYPE html>
         <tr><td style="background:#FFFFFF;border:1px solid #E2E8F0;border-top:0;border-radius:0 0 28px 28px;padding:40px 32px;">
           <p style="margin:0 0 8px;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#00A84F;">Bienvenue dans l'équipe</p>
           <h1 style="margin:0 0 16px;font-size:26px;line-height:1.25;font-weight:800;color:#0F172A;">Bienvenue {{prenom}} 💚</h1>
-          <p style="margin:0 0 14px;font-size:16px;line-height:1.6;color:#334155;">Votre compte <strong>Find My Coach</strong> est activé. Vous faites désormais partie d'une communauté qui croit qu'avec le bon coach, tout le monde peut progresser — en sport, nutrition, bien-être, mindset, carrière ou business.</p>
+          <p style="margin:0 0 14px;font-size:16px;line-height:1.6;color:#334155;">Votre compte <strong>Find My Coach</strong> est activé. Vous faites désormais partie d'une communauté qui croit qu'avec le bon coach, tout le monde peut progresser — en sport, nutrition ou bien-être.</p>
           <p style="margin:24px 0 12px;font-size:16px;font-weight:800;color:#0F172A;">Vos premiers pas</p>
           __STEPS__
           

@@ -12,6 +12,7 @@ import { NewPasswordModal } from './components/common/NewPasswordModal';
 import { ReviewModal } from './components/common/ReviewModal';
 import { VideoCallRoom } from './components/common/VideoCallRoom';
 import { ChatModal } from './components/common/ChatModal';
+import { MessagesInbox } from './components/common/MessagesInbox';
 import { BookingDetail } from './components/common/BookingDetail';
 import { AnimatePresence } from 'motion/react';
 import { AI_AGENT_ENABLED } from './lib/features';
@@ -115,6 +116,8 @@ const MainRouter: React.FC = () => {
         return AI_AGENT_ENABLED ? <CoachAIAgentView /> : <CoachDashboard />;
       case 'booking_detail':
         return <BookingDetail />;
+      case 'messages':
+        return <MessagesInbox />;
       case 'admin_dashboard':
         // Écran réservé : en ligne, `isAdmin` vient du serveur ; les données restent protégées par la base (RLS)
         return isAdmin ? <AdminDashboard /> : <HomeDashboard />;

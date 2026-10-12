@@ -1,3 +1,4 @@
+import { ShareProfileCard } from './ShareProfileCard';
 import React, { useState } from 'react';
 import { AI_AGENT_ENABLED } from '../../lib/features';
 import { isSupabaseEnabled } from '../../lib/supabase';
@@ -114,6 +115,8 @@ export const CoachDashboard: React.FC = () => {
           <Settings className="w-4 h-4" />
         </button>
       </div>
+
+      <ShareProfileCard coach={coachProfile} />
 
       {/* 4 Quick KPI Cards */}
       <div className="grid grid-cols-2 gap-2.5 mb-4">

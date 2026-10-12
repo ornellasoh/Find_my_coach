@@ -9,10 +9,10 @@ import {
   LayoutDashboard, 
   Clock, 
   Wallet, 
-  Activity, 
   Users,
   Settings,
-  Sparkles
+  Sparkles,
+  MessageSquare
 } from 'lucide-react';
 
 export const BottomNav: React.FC = () => {
@@ -82,6 +82,19 @@ export const BottomNav: React.FC = () => {
             <span className="text-[10px] tracking-tight font-extrabold text-[#008A3E] dark:text-[#00D664]">Agent IA</span>
           </button>
 )}
+
+          {!AI_AGENT_ENABLED && (
+          <button
+            id="nav-coach-messages"
+            onClick={() => navigateTo('messages')}
+            className={`flex flex-col items-center gap-1 transition-colors relative py-1 px-1.5 ${
+              currentScreen === 'messages' ? 'text-fmc-green-ink dark:text-fmc-green font-semibold' : 'text-slate-500 dark:text-slate-400 font-medium'
+            }`}
+          >
+            <MessageSquare className="w-6 h-6" strokeWidth={2} />
+            <span className="text-[11px]">Messages</span>
+          </button>
+          )}
 
           <button
             id="nav-coach-clients"
@@ -165,14 +178,14 @@ export const BottomNav: React.FC = () => {
         </button>
 
         <button
-          id="nav-progression"
-          onClick={() => navigateTo('progress')}
+          id="nav-messages"
+          onClick={() => navigateTo('messages')}
           className={`flex flex-col items-center gap-1 transition-colors relative py-1 px-2 ${
-            currentScreen === 'progress' ? 'text-fmc-green-ink dark:text-fmc-green font-semibold' : 'text-slate-500 dark:text-slate-400 font-medium'
+            currentScreen === 'messages' ? 'text-fmc-green-ink dark:text-fmc-green font-semibold' : 'text-slate-500 dark:text-slate-400 font-medium'
           }`}
         >
-          <Activity className="w-6 h-6" strokeWidth={2} />
-          <span className="text-[11px]">Progression</span>
+          <MessageSquare className="w-6 h-6" strokeWidth={2} />
+          <span className="text-[11px]">Messages</span>
         </button>
 
         <button

@@ -1,3 +1,5 @@
+import { NumberInput } from '../ui/NumberInput';
+import { zoneDescription } from '../../utils/coachTrust';
 import React, { useEffect, useRef, useState } from 'react';
 import { isSupabaseEnabled } from '../../lib/supabase';
 import { realPhoto } from '../../utils/initials';
@@ -47,14 +49,11 @@ export const CoachProfileEditor: React.FC = () => {
 
   const [title, setTitle] = useState(coach?.title || '');
   const [bio, setBio] = useState(coach?.bio || '');
-  const [hourlyRate, setHourlyRate] = useState(coach?.hourlyRate || 80);
+  const [hourlyRate, setHourlyRate] = useState<number>(coach?.hourlyRate || 0);
   const [city, setCity] = useState(coach?.city || 'Paris');
   const [postalCode, setPostalCode] = useState(coach?.postalCode || '');
   const [address, setAddress] = useState(coach?.address || '');
   const [radiusKm, setRadiusKm] = useState(coach?.interventionRadiusKm || 15);
-  const [interventionZone, setInterventionZone] = useState(
-    coach?.interventionZone || ''
-  );
   
   const [experienceYears, setExperienceYears] = useState(coach?.experienceYears ?? 0);
   const [specialties, setSpecialties] = useState<string[]>(coach?.specialties || []);
@@ -85,9 +84,9 @@ export const CoachProfileEditor: React.FC = () => {
   const [formats, setFormats] = useState<CoachingFormat[]>(
     coach?.formats || ['online', 'coach_location', 'home']
   );
-  const [homePrice, setHomePrice] = useState(coach?.formatPrices?.home || hourlyRate + 10);
-  const [onlinePrice, setOnlinePrice] = useState(coach?.formatPrices?.online || hourlyRate - 10);
-  const [gymPrice, setGymPrice] = useState(coach?.formatPrices?.partner_gym || hourlyRate);
+  const [homePrice, setHomePrice] = useState<number>(coach?.formatPrices?.home || 0);
+  const [onlinePrice, setOnlinePrice] = useState<number>(coach?.formatPrices?.online || 0);
+  const [gymPrice, setGymPrice] = useState<number>(coach?.formatPrices?.partner_gym || 0);
 
   // Document upload state
   const [feedback, setFeedback] = useState('');
@@ -124,8 +123,16 @@ export const CoachProfileEditor: React.FC = () => {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!coach) return;
-    setSaving(true);
     setSaveError('');
+    if (!(hourlyRate >= 20 && hourlyRate <= 500)) {
+      setSaveError('Indiquez un tarif de base entre 20 € et 500 € de l’heure.');
+      return;
+    }
+    if (homePrice && !(homePrice >= 20 && homePrice <= 500)) {
+      setSaveError('Le tarif à domicile doit être entre 20 € et 500 € de l’heure (ou laissé vide).');
+      return;
+    }
+    setSaving(true);
 
     // Position publique = centre de la commune (zone approximative), à partir du code postal ou de la ville
     let coords: { latitude: number; longitude: number } | null = null;
@@ -155,7 +162,7 @@ export const CoachProfileEditor: React.FC = () => {
       postalCode,
       address,
       interventionRadiusKm: Number(radiusKm),
-      interventionZone,
+      interventionZone: zoneDescription({ city, interventionRadiusKm: radiusKm, formats }),
       experienceYears: Number(experienceYears),
       specialties,
       certifications,
@@ -373,25 +380,25 @@ export const CoachProfileEditor: React.FC = () => {
           <div className="pt-2 grid grid-cols-2 gap-2.5">
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">Tarif de base (€/h)</label>
-              <input
-                type="number"
+              <NumberInput
                 min={20}
                 max={500}
                 required
                 value={hourlyRate}
-                onChange={(e) => setHourlyRate(Number(e.target.value))}
+                onValueChange={setHourlyRate}
+                placeholder="ex. 60"
                 className="w-full px-3 py-2 bg-slate-50 text-xs text-slate-900 rounded-xl border border-slate-300 font-bold focus:outline-none focus:border-[#00D664]"
               />
             </div>
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">Tarif Domicile (€/h)</label>
-              <input
-                type="number"
+              <NumberInput
                 min={20}
                 max={500}
                 value={homePrice}
-                onChange={(e) => setHomePrice(Number(e.target.value))}
+                onValueChange={setHomePrice}
+                placeholder="ex. 60"
                 className="w-full px-3 py-2 bg-slate-50 text-xs text-slate-900 rounded-xl border border-slate-300 font-bold focus:outline-none focus:border-[#00D664]"
               />
             </div>
@@ -459,14 +466,11 @@ export const CoachProfileEditor: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Description de zone affichée</label>
-            <input
-              type="text"
-              value={interventionZone}
-              onChange={(e) => setInterventionZone(e.target.value)}
-              placeholder="ex. Poitiers et 15 km aux alentours"
-              className="w-full px-3 py-2 bg-slate-50 text-xs text-slate-900 rounded-xl border border-slate-300 focus:outline-none focus:border-[#00D664]"
-            />
+            <span className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Zone affichée sur votre fiche</span>
+            <p className="px-3 py-2 bg-slate-50 dark:bg-slate-800 text-xs rounded-xl border border-slate-200 dark:border-slate-700">
+              {zoneDescription({ city, interventionRadiusKm: radiusKm, formats }) || 'Indiquez votre ville'}
+            </p>
+            <p className="text-[11px] text-slate-500 mt-1">Rédigée automatiquement à partir de votre ville, du rayon et des formats choisis.</p>
           </div>
         </div>
 
@@ -577,13 +581,13 @@ export const CoachProfileEditor: React.FC = () => {
           {formats.includes('home') && (
             <div>
               <label className="block text-xs font-bold mb-1">Frais de déplacement à domicile (€)</label>
-              <input
-                type="number"
+              <NumberInput
                 min={0}
                 max={100}
                 step={0.5}
                 value={travelFee}
-                onChange={(e) => setTravelFee(Number(e.target.value))}
+                onValueChange={setTravelFee}
+                placeholder="0"
                 className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 text-sm rounded-xl border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-[#00D664]"
               />
               <p className="text-[11px] text-slate-500 mt-1">Ajoutés au prix des séances à domicile et affichés avant le paiement. Sans commission Find My Coach : ils vous sont reversés, moins les frais bancaires Stripe correspondants (1,5 %).</p>

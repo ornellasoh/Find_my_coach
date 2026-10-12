@@ -29,6 +29,18 @@ export async function initNative() {
   // Retour dans l'app après connexion Google / Apple
   initOAuthListener();
 
+  // Lien d'un coach : io.findmycoach.app://coach/<id> (ou https://findmycoach.io/coach/<id>)
+  const openCoachLink = (url?: string) => {
+    if (!url) return;
+    const m = url.match(/^(?:io\.findmycoach\.app:\/\/coach\/|https:\/\/(?:www\.)?findmycoach\.io\/coach\/)([^/?#]+)/);
+    if (!m) return;
+    const id = decodeURIComponent(m[1]);
+    try { localStorage.setItem('fmc_pending_coach', id); } catch { /* ignore */ }
+    window.dispatchEvent(new CustomEvent('fmc:open-coach', { detail: id }));
+  };
+  App.addListener('appUrlOpen', ({ url }) => openCoachLink(url));
+  App.getLaunchUrl().then((r) => openCoachLink(r?.url)).catch(() => {});
+
   SplashScreen.hide().catch(() => {});
 }
 

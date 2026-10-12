@@ -81,7 +81,7 @@ export async function fetchSnapshot(): Promise<RemoteSnapshot> {
   const fromDate = today.toISOString().slice(0, 10);
 
   const [coaches, availabilities, booked, bookings, reviews, favorites, notifications, goals, programs, settings] = await Promise.all([
-    supabase.from('coaches').select('data'),
+    supabase.from('coaches').select('data, user_id, is_active'),
     supabase.from('availabilities').select('data').gte('date', fromDate).limit(5000),
     supabase.from('booked_slots').select('availability_id').gte('date', fromDate).limit(5000),
     supabase.from('bookings').select('data').order('created_at', { ascending: false }).limit(500),
@@ -100,7 +100,13 @@ export async function fetchSnapshot(): Promise<RemoteSnapshot> {
   // Par défaut (réglage absent ou illisible) : pas de coachs de démonstration dans l'app connectée.
   const showDemo = ((settings.data || []) as { key: string; value: unknown }[]).find((r) => r.key === 'show_demo_coaches')?.value === true;
   const isRealAccount = (id?: string) => !!id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-  const allCoaches = rowsToData(coaches.data as { data: CoachProfile }[]);
+  // Le propriétaire et l'état actif viennent des colonnes de la base (font foi), pas du JSON :
+  // une ancienne fiche en double sans propriétaire ne peut plus être prise pour celle du coach.
+  const allCoaches = ((coaches.data || []) as { data: CoachProfile; user_id: string | null; is_active: boolean }[]).map((r) => ({
+    ...r.data,
+    userId: r.user_id ?? '',
+    isActive: r.is_active,
+  }));
 
   return {
     coaches: showDemo ? allCoaches : allCoaches.filter((c) => isRealAccount(c.userId)),

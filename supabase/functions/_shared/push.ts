@@ -1,5 +1,6 @@
 // Notifications push.
-//  - Android : Firebase Cloud Messaging (HTTP v1). Secret : FCM_SERVICE_ACCOUNT (JSON du compte de service).
+//  - Android : Firebase Cloud Messaging (HTTP v1). Secret : FMC_SERVICE_ACCOUNT (JSON du compte de service Firebase ;
+//              l'ancien nom FCM_SERVICE_ACCOUNT est aussi accepté).
 //  - iPhone  : Apple Push Notification service (APNs), jeton natif renvoyé par l'app.
 //              Secrets : APNS_KEY (contenu du fichier .p8), APNS_KEY_ID, APNS_TEAM_ID,
 //              APNS_TOPIC (io.findmycoach.app par défaut), APNS_ENV (« production » par défaut, « sandbox » pour Xcode).
@@ -21,10 +22,12 @@ const pemToDer = (pem: string) =>
 interface ServiceAccount { project_id: string; client_email: string; private_key: string }
 let fcmCache: { token: string; exp: number } | null = null;
 
+const fcmSecret = () => Deno.env.get('FMC_SERVICE_ACCOUNT') ?? Deno.env.get('FCM_SERVICE_ACCOUNT');
+
 function serviceAccount(): ServiceAccount | null {
-  const raw = Deno.env.get('FCM_SERVICE_ACCOUNT');
+  const raw = fcmSecret();
   if (!raw) return null;
-  try { return JSON.parse(raw); } catch { console.error('FCM_SERVICE_ACCOUNT invalide'); return null; }
+  try { return JSON.parse(raw); } catch { console.error('FMC_SERVICE_ACCOUNT invalide'); return null; }
 }
 
 async function fcmAccessToken(sa: ServiceAccount): Promise<string> {
@@ -53,7 +56,12 @@ async function fcmAccessToken(sa: ServiceAccount): Promise<string> {
 
 async function sendFcm(token: string, title: string, body: string, data: Record<string, string>): Promise<'ok' | 'dead' | string> {
   const sa = serviceAccount();
-  if (!sa) return 'FCM non configuré (secret FCM_SERVICE_ACCOUNT absent)';
+  if (!sa) {
+    return fcmSecret()
+      ? 'clé Firebase illisible : collez TOUT le fichier JSON du compte de service (de { à })'
+      : 'FCM non configuré (secret FMC_SERVICE_ACCOUNT absent)';
+  }
+  if (!sa.private_key || !sa.client_email) return 'mauvais fichier Firebase : il faut le JSON « compte de service » (avec private_key)';
   const access = await fcmAccessToken(sa);
   const res = await fetch(`https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`, {
     method: 'POST',
@@ -119,8 +127,8 @@ async function sendApns(token: string, title: string, body: string, data: Record
 }
 
 // ---------------------------------------------------------------- API commune
-export const pushEnabled = () => !!Deno.env.get('FCM_SERVICE_ACCOUNT') || apnsConfigured();
-export const pushConfig = () => ({ android: !!Deno.env.get('FCM_SERVICE_ACCOUNT'), ios: apnsConfigured() });
+export const pushEnabled = () => !!fcmSecret() || apnsConfigured();
+export const pushConfig = () => ({ android: !!fcmSecret(), ios: apnsConfigured() });
 
 /** Envoie à chaque appareil selon sa plateforme ; renvoie les jetons invalides (à supprimer) et le détail. */
 export async function sendPushDetailed(

@@ -58,3 +58,31 @@ export const isBookableCoach = (c: CoachProfile) =>
 
 /** Profil d'exemple affiché en ligne (réglage show_demo_coaches) : lecture seule. */
 export const isDemoCoachOnline = (c: Pick<CoachProfile, 'userId'>) => isSupabaseEnabled && !isRealCoach(c);
+
+/** Description de la zone d'intervention, générée automatiquement (ville, rayon, formats). */
+export function zoneDescription(c: { city?: string; interventionRadiusKm?: number; formats?: string[] }): string {
+  const city = (c.city ?? '').trim();
+  const f = c.formats ?? [];
+  const r = Number(c.interventionRadiusKm ?? 0);
+  const online = f.includes('online');
+  const onSite = f.some((x) => x !== 'online');
+  if (!onSite) return online ? '100 % en ligne (visio)' : city;
+  let txt: string;
+  if (f.includes('home') && r > 0 && city) txt = `Se déplace à domicile jusqu'à ${r} km autour de ${city}`;
+  else if (city) txt = r > 0 ? `${city} et ${r} km aux alentours` : `Séances à ${city}`;
+  else txt = r > 0 ? `Jusqu'à ${r} km` : '';
+  return online ? `${txt}${txt ? ' · ' : ''}visio possible` : txt;
+}
+
+/** Identifiant lisible du lien public : « ornella-soh-45d1 » (nom sans accents + début de l'identifiant du compte). */
+export function coachSlug(c: { name?: string; userId?: string; id: string }): string {
+  const base = (c.name ?? '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 40);
+  const suffix = (c.userId || c.id).replace(/^coach-/, '').replace(/[^a-z0-9]/gi, '').slice(0, 4).toLowerCase();
+  return base ? `${base}-${suffix}` : c.id;
+}

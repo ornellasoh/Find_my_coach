@@ -90,33 +90,6 @@ export const INITIAL_CATEGORIES: Category[] = [
     count: 22,
     description: 'Yoga, respiration, mobilité, gestion du stress et récupération.',
     subcategories: ['Yoga Vinyasa', 'Méditation', 'Breathwork', 'Gestion du stress', 'Mobilité articulaire']
-  },
-  { 
-    id: 'cat-business', 
-    name: 'Business & Leadership', 
-    slug: 'business', 
-    icon: 'Briefcase', 
-    count: 14,
-    description: 'Entrepreneuriat, négociation, prise de décision et leadership exécutif.',
-    subcategories: ['Entrepreneuriat', 'Leadership', 'Vente & Négociation', 'Stratégie']
-  },
-  { 
-    id: 'cat-mindset', 
-    name: 'Mindset & Discipline', 
-    slug: 'mindset', 
-    icon: 'Brain', 
-    count: 16,
-    description: 'Discipline, confiance en soi, gestion émotionnelle et focus.',
-    subcategories: ['Confiance en soi', 'Discipline mentale', 'Organisation & Focus', 'Productivité']
-  },
-  { 
-    id: 'cat-carriere', 
-    name: 'Carrière & Évolution', 
-    slug: 'carriere', 
-    icon: 'TrendingUp', 
-    count: 12,
-    description: 'Reconversion pro, négociation de salaire et entretiens de haut niveau.',
-    subcategories: ['Recherche d’emploi', 'Préparation Entretien', 'Reconversion pro', 'Prise de parole']
   }
 ];
 
