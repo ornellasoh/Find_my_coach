@@ -16,7 +16,6 @@ import { MessagesInbox } from './components/common/MessagesInbox';
 import { useCampaignEffects } from './lib/campaign';
 import { BookingDetail } from './components/common/BookingDetail';
 import { AnimatePresence } from 'motion/react';
-import { AI_AGENT_ENABLED } from './lib/features';
 import { LogoIcon } from './components/common/Logo';
 
 // Screens
@@ -39,7 +38,6 @@ import { CoachProfileEditor } from './components/coach/CoachProfileEditor';
 import { CoachBookings } from './components/coach/CoachBookings';
 import { CoachFinancials } from './components/coach/CoachFinancials';
 import { CoachClients } from './components/coach/CoachClients';
-import { CoachAIAgentView } from './components/coach/CoachAIAgentView';
 
 // Admin Screen
 import { AdminDashboard } from './components/admin/AdminDashboard';
@@ -114,8 +112,6 @@ const MainRouter: React.FC = () => {
         return <CoachFinancials />;
       case 'coach_clients':
         return <CoachClients />;
-      case 'coach_ai_agent':
-        return AI_AGENT_ENABLED ? <CoachAIAgentView /> : <CoachDashboard />;
       case 'booking_detail':
         return <BookingDetail />;
       case 'messages':

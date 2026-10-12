@@ -150,3 +150,23 @@ select pg_temp.as_user('aaaaaaaa-0000-0000-0000-000000000001');
 select pg_temp.expect_error('select * from public.admin_list()', 'Réservé aux administrateurs');
 select pg_temp.as_user(null);
 \echo == Équipe admin OK
+
+-- Statistiques du lien d'un coach
+select pg_temp.as_anon();
+select pg_temp.check((select public.coach_link_visit('lucie-dupont-aaaa') ->> 'name' = 'Lucie Dupont'), 'lien coach : visite comptée sans compte, fiche renvoyée');
+select pg_temp.check((select public.coach_link_visit('inconnu') is null), 'lien coach : identifiant inconnu → rien');
+select pg_temp.expect_error('select count(*) from public.coach_link_events', 'permission denied');
+select pg_temp.as_user('aaaaaaaa-0000-0000-0000-000000000001');
+select pg_temp.check((select public.coach_link_signup('lucie-dupont-aaaa')), 'lien coach : nouveau compte attribué au coach');
+select pg_temp.check((select not public.coach_link_signup('lucie-dupont-aaaa')), 'lien coach : un compte n''est compté qu''une fois');
+select pg_temp.check((select (public.coach_link_stats() ->> 'visits')::int = 0), 'lien coach : un client ne voit aucune statistique');
+select pg_temp.as_user('aaaaaaaa-0000-0000-0000-000000000002');
+select pg_temp.check((select not public.coach_link_signup('lucie-dupont-aaaa')), 'lien coach : le coach ne se compte pas lui-même');
+select pg_temp.check((select (public.coach_link_stats() ->> 'visits')::int = 1 and (public.coach_link_stats() ->> 'signups')::int = 1), 'lien coach : le coach voit 1 visite et 1 compte créé');
+select pg_temp.as_user(null);
+insert into public.beta_testers (email, source) values ('Admin@test.fr', 'coach:coach-aaaaaaaa-0000-0000-0000-000000000002');
+select pg_temp.as_user('aaaaaaaa-0000-0000-0000-000000000003');
+select pg_temp.check((select public.coach_link_from_invite() = 'coach-aaaaaaaa-0000-0000-0000-000000000002'), 'lien coach : compte créé avec l''email laissé sur le lien → attribué, fiche du coach renvoyée');
+select pg_temp.check((select public.coach_link_from_invite() is null), 'lien coach : la fiche n''est ouverte automatiquement qu''une fois');
+select pg_temp.as_user(null);
+\echo == Statistiques du lien coach OK

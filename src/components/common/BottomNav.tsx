@@ -1,5 +1,4 @@
 import React from 'react';
-import { AI_AGENT_ENABLED } from '../../lib/features';
 import { useApp } from '../../context/AppContext';
 import { 
   Home, 
@@ -11,7 +10,6 @@ import {
   Wallet, 
   Users,
   Settings,
-  Sparkles,
   MessageSquare
 } from 'lucide-react';
 
@@ -67,23 +65,6 @@ export const BottomNav: React.FC = () => {
             )}
           </button>
 
-          {AI_AGENT_ENABLED && (
-<button
-            id="nav-coach-ai-agent"
-            onClick={() => navigateTo('coach_ai_agent')}
-            className={`flex flex-col items-center gap-1 transition-colors relative py-1 px-1.5 ${
-              currentScreen === 'coach_ai_agent' ? 'text-fmc-green-ink dark:text-fmc-green font-semibold' : 'text-slate-500 dark:text-slate-400 font-medium'
-            }`}
-          >
-            <div className="relative">
-              <Sparkles className="w-5 h-5 stroke-[2.2] text-[#008A3E] dark:text-[#00D664]" />
-              <span className="absolute -top-1 -right-1.5 w-2 h-2 bg-[#00D664] rounded-full animate-pulse" />
-            </div>
-            <span className="text-[10px] tracking-tight font-extrabold text-[#008A3E] dark:text-[#00D664]">Agent IA</span>
-          </button>
-)}
-
-          {!AI_AGENT_ENABLED && (
           <button
             id="nav-coach-messages"
             onClick={() => navigateTo('messages')}
@@ -94,7 +75,6 @@ export const BottomNav: React.FC = () => {
             <MessageSquare className="w-6 h-6" strokeWidth={2} />
             <span className="text-[11px]">Messages</span>
           </button>
-          )}
 
           <button
             id="nav-coach-clients"

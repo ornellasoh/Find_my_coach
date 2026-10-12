@@ -40,6 +40,7 @@ import {
 } from '../data/mockData';
 import { findCityByName } from '../utils/geo';
 import { supabase, isSupabaseEnabled, authErrorFr, authRedirect } from '../lib/supabase';
+import { coachSlug } from '../utils/coachTrust';
 import { fetchProfile, fetchSnapshot, saveProfile, useRemoteSync } from '../lib/remote';
 import { DEFAULT_SEARCH_FILTERS, type SearchFilters } from '../utils/searchFilters';
 import { coachNet } from '../utils/payout';
@@ -66,7 +67,6 @@ export type AppScreen =
   | 'coach_bookings'
   | 'coach_clients'
   | 'coach_financials'
-  | 'coach_ai_agent'
   | 'booking_detail'
   | 'messages'
   | 'admin_dashboard';
@@ -1334,10 +1334,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     window.addEventListener('fmc:open-coach', onOpen);
     return () => window.removeEventListener('fmc:open-coach', onOpen);
   }, []);
+  // Bêta par email : compte créé avec l'adresse laissée sur la page du lien d'un coach → on ouvre sa fiche (une seule fois)
+  useEffect(() => {
+    if (!currentUser || !supabase || pendingCoachId) return;
+    let alive = true;
+    supabase.rpc('coach_link_from_invite').then(({ data }) => {
+      if (alive && typeof data === 'string' && data) setPendingCoachId(data);
+    }, () => {});
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.id]);
   useEffect(() => {
     if (!pendingCoachId || !currentUser) return;
-    const c = coaches.find((x) => x.id === pendingCoachId);
+    const c = coaches.find((x) => x.id === pendingCoachId || x.slug === pendingCoachId || coachSlug(x) === pendingCoachId);
     if (!c) return;
+    // Statistiques du lien : compte créé grâce à ce coach (la base ne retient que les comptes récents, une seule fois)
+    if (supabase) supabase.rpc('coach_link_signup', { p_ref: c.id }).then(() => {}, () => {});
     try { localStorage.removeItem('fmc_pending_coach'); } catch { /* ignore */ }
     setPendingCoachId(null);
     setSelectedCoach(c);

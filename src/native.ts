@@ -29,10 +29,10 @@ export async function initNative() {
   // Retour dans l'app après connexion Google / Apple
   initOAuthListener();
 
-  // Lien d'un coach : io.findmycoach.app://coach/<id> (ou https://findmycoach.io/coach/<id>)
+  // Lien d'un coach : io.findmycoach.app://coach/<id ou identifiant court> (ou https://…findmycoach.io/coach/…)
   const openCoachLink = (url?: string) => {
     if (!url) return;
-    const m = url.match(/^(?:io\.findmycoach\.app:\/\/coach\/|https:\/\/(?:www\.)?findmycoach\.io\/coach\/)([^/?#]+)/);
+    const m = url.match(/^(?:io\.findmycoach\.app:\/\/coach\/|https:\/\/(?:[a-z0-9-]+\.)?findmycoach\.io\/coach\/)([^/?#]+)/);
     if (!m) return;
     const id = decodeURIComponent(m[1]);
     try { localStorage.setItem('fmc_pending_coach', id); } catch { /* ignore */ }

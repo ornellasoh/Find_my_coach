@@ -1,7 +1,5 @@
-import { ShareProfileCard } from './ShareProfileCard';
 import { CampaignBanner } from '../common/CampaignBanner';
 import React, { useState } from 'react';
-import { AI_AGENT_ENABLED } from '../../lib/features';
 import { isSupabaseEnabled } from '../../lib/supabase';
 import { Avatar } from '../ui/Avatar';
 import { useApp } from '../../context/AppContext';
@@ -22,9 +20,7 @@ import {
   Users,
   Wallet,
   Settings,
-  Sparkles,
   Award,
-  ArrowUpRight,
   Phone,
   MessageSquare,
   FileCheck
@@ -136,7 +132,6 @@ export const CoachDashboard: React.FC = () => {
       )}
 
       <CampaignBanner className="mb-4" />
-      <ShareProfileCard coach={coachProfile} />
 
       {/* 4 Quick KPI Cards */}
       <div className="grid grid-cols-2 gap-2.5 mb-4">
@@ -265,67 +260,11 @@ export const CoachDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Featured AI Agent for Coach Card */}
-      {AI_AGENT_ENABLED && (
-<div 
-        onClick={() => navigateTo('coach_ai_agent')}
-        className="bg-gradient-to-r from-[#0F172A] via-[#1E293B] to-[#0F172A] text-white rounded-3xl p-4 shadow-md mb-4 cursor-pointer hover:border-[#00D664] border border-slate-700 transition active:scale-98 relative overflow-hidden group"
-      >
-        <div className="absolute top-0 right-0 -mt-2 -mr-2 w-32 h-32 bg-[#00D664]/15 rounded-full blur-2xl pointer-events-none" />
-        <div className="flex items-center justify-between mb-2">
-          <span className="px-2.5 py-0.5 bg-[#00D664]/20 text-[#00FD83] border border-[#00D664]/30 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
-            <Sparkles className="w-3 h-3 text-[#00FD83]" />
-            Copilote IA Gemini
-          </span>
-          <span className="text-[11px] font-black text-[#00FD83] flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
-            Lancer <ArrowUpRight className="w-3.5 h-3.5" />
-          </span>
-        </div>
-
-        <h3 className="text-base font-black text-white">Agent IA de Préparation & Nutrition</h3>
-        <p className="text-xs text-slate-300 mt-0.5 font-medium leading-relaxed">
-          Générez des cycles d'exercices personnalisés, calculez les cibles métaboliques et débriefez vos séances.
-        </p>
-
-        <div className="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-white/10 text-[10px] font-bold text-slate-200 flex-wrap">
-          <span className="px-2 py-0.5 bg-white/10 rounded-md flex items-center gap-1">🏋️ Cycles personnalisés</span>
-          <span className="px-2 py-0.5 bg-white/10 rounded-md flex items-center gap-1">🥗 Calculateur TMB & DEJ</span>
-          <span className="px-2 py-0.5 bg-white/10 rounded-md flex items-center gap-1">💬 Relances 1-clic</span>
-        </div>
-      </div>
-)}
-
       {/* Business Tool Modules */}
       <div className="space-y-2.5 mb-5">
         <h2 className="text-xs font-black text-slate-500 uppercase tracking-wider px-1">
           Outils de gestion
         </h2>
-
-        {/* Agent IA & Programmation */}
-        {AI_AGENT_ENABLED && (
-<div
-          onClick={() => navigateTo('coach_ai_agent')}
-          className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs hover:border-[#00D664] transition cursor-pointer flex items-center justify-between"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-purple-600" />
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <h3 className="font-extrabold text-sm text-[#0F172A]">Agent IA & Programmation</h3>
-                <span className="px-1.5 py-0.2 bg-[#00D664]/20 text-[#008A3E] text-[9px] font-black rounded-md">
-                  Gemini
-                </span>
-              </div>
-              <p className="text-xs text-slate-500">
-                Génération de séances, macros TMB & relances 1-clic
-              </p>
-            </div>
-          </div>
-          <ChevronRight className="w-4 h-4 text-slate-400" />
-        </div>
-)}
 
         {/* Planning & Dispos */}
         <div

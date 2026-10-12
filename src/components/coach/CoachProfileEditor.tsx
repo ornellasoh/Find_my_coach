@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { CoachingFormat, CoachLevel } from '../../types';
 import { CoachDocumentsPanel } from './CoachDocumentsPanel';
+import { ShareProfileCard } from './ShareProfileCard';
 import { fetchMyPrivateAddress } from '../../lib/sessions';
 import { searchPlaces } from '../../utils/geo';
 import { profileChecklist } from '../../utils/coachTrust';
@@ -242,6 +243,8 @@ export const CoachProfileEditor: React.FC = () => {
           <span>{feedback}</span>
         </div>
       )}
+
+      <ShareProfileCard coach={coach} />
 
       {/* Profil à compléter */}
       {checklist.length > 0 && doneCount < checklist.length && (

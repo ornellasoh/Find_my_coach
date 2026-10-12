@@ -107,31 +107,28 @@ export const MessagesInbox: React.FC = () => {
       )}
 
       {items && items.length > 0 && (
-        <ul className="space-y-2.5">
-          {items.map((c) => (
-            <li key={c.partner_id}>
-              <Card onClick={() => open(c)} className="p-3.5 flex items-center gap-3 cursor-pointer active:scale-[0.99]">
-                <Avatar src={c.partner_avatar} name={c.partner_name} className="w-12 h-12 rounded-full" />
-                <span className="flex-1 min-w-0">
-                  <span className="flex items-baseline justify-between gap-2">
-                    <span className={`truncate ${c.unread ? 'font-bold' : 'font-semibold'}`}>{c.partner_name}</span>
-                    <span className="text-xs text-slate-500 shrink-0 tabular-nums">{when(c.last_at)}</span>
-                  </span>
-                  <span className="flex items-center justify-between gap-2 mt-0.5">
-                    <span className={`text-sm truncate ${c.unread ? 'text-fmc-navy dark:text-slate-100 font-medium' : 'text-slate-500'}`}>
-                      {c.last_from_me ? 'Vous : ' : ''}{c.last_text}
+        <Card className="overflow-hidden">
+          <ul className="divide-y divide-slate-200/70 dark:divide-slate-800">
+            {items.map((c) => (
+              <li key={c.partner_id}>
+                <button type="button" onClick={() => open(c)} className="w-full text-left px-3.5 py-3 flex items-center gap-3 cursor-pointer active:bg-slate-100 dark:active:bg-slate-800 transition-colors">
+                  <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${c.unread ? 'bg-fmc-green' : ''}`} aria-hidden="true" />
+                  <Avatar src={c.partner_avatar} name={c.partner_name} className="w-12 h-12 rounded-full" />
+                  <span className="flex-1 min-w-0">
+                    <span className="flex items-baseline justify-between gap-2">
+                      <span className={`truncate ${c.unread ? 'font-bold' : 'font-semibold'}`}>{c.partner_name}</span>
+                      <span className="text-xs text-slate-500 shrink-0 tabular-nums">{when(c.last_at)}</span>
                     </span>
-                    {c.unread > 0 && (
-                      <span className="min-w-5 h-5 px-1.5 rounded-full bg-fmc-green text-fmc-navy text-[11px] font-bold flex items-center justify-center tabular-nums shrink-0">
-                        {c.unread}
-                      </span>
-                    )}
+                    <span className={`block text-sm truncate mt-0.5 ${c.unread ? 'text-fmc-navy dark:text-slate-100 font-medium' : 'text-slate-500'}`}>
+                      {c.last_from_me ? 'Vous : ' : ''}{c.last_text}
+                      {c.unread > 0 && <span className="sr-only"> — {c.unread} non lu{c.unread > 1 ? 's' : ''}</span>}
+                    </span>
                   </span>
-                </span>
-              </Card>
-            </li>
-          ))}
-        </ul>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </Card>
       )}
     </Screen>
   );

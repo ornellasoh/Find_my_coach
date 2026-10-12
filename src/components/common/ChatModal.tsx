@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Avatar } from '../ui/Avatar';
 import { useApp } from '../../context/AppContext';
-import { ChevronLeft, Send } from 'lucide-react';
+import { ArrowUp, ChevronLeft } from 'lucide-react';
 import { motion } from 'motion/react';
 import { ChatPartner, ChatMessage } from '../../types';
 import { supabase } from '../../lib/supabase';
@@ -14,6 +14,12 @@ interface MessageRow {
   read: boolean;
   created_at: string;
 }
+
+/** Message affiché : « sending » tant que le serveur n'a pas répondu, « failed » si l'envoi a échoué. */
+type UiMessage = ChatMessage & { status?: 'sending' | 'failed' };
+
+// Un, deux ou trois émojis seuls : affichés en grand, sans bulle (comme dans Messages)
+const EMOJI_ONLY = /^(?:\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic}|[\u{1F3FB}-\u{1F3FF}])*\s*){1,3}$/u;
 
 interface ChatModalProps {
   partner: ChatPartner | null;
@@ -65,7 +71,7 @@ export const ChatModal: React.FC<ChatModalProps> = ({ partner, onClose }) => {
   const unavailable = isOnline && !live;
   const [loadError, setLoadError] = useState('');
 
-  const [messages, setMessages] = useState<ChatMessage[]>(() => {
+  const [messages, setMessages] = useState<UiMessage[]>(() => {
     if (live || (isOnline && !!supabase)) return [];
     const key = `fmc_chat_${partner?.id || 'default'}`;
     const saved = localStorage.getItem(key);
@@ -73,17 +79,25 @@ export const ChatModal: React.FC<ChatModalProps> = ({ partner, onClose }) => {
   });
   const [inputText, setInputText] = useState('');
   const [sendError, setSendError] = useState('');
+  const [partnerTyping, setPartnerTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const firstScroll = useRef(true);
+  const typingChannel = useRef<ReturnType<NonNullable<typeof supabase>['channel']> | null>(null);
+  const lastTypingSent = useRef(0);
 
+  // Toujours en bas : sans animation à l'ouverture, en douceur ensuite
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (!messages.length && !partnerTyping) return;
+    messagesEndRef.current?.scrollIntoView({ behavior: firstScroll.current ? 'auto' : 'smooth' });
+    firstScroll.current = false;
+  }, [messages, partnerTyping]);
 
   // Mode démo : historique local
   useEffect(() => {
     if (partner && !live) {
       const key = `fmc_chat_${partner.id}`;
-      localStorage.setItem(key, JSON.stringify(messages));
+      localStorage.setItem(key, JSON.stringify(messages.filter((m) => !m.status)));
     }
   }, [messages, partner, live]);
 
@@ -114,7 +128,8 @@ export const ChatModal: React.FC<ChatModalProps> = ({ partner, onClose }) => {
           return;
         }
         setLoadError('');
-        setMessages(((data || []) as MessageRow[]).map(toMsg));
+        // On garde les messages en cours d'envoi tapés pendant le chargement
+        setMessages((prev) => [...((data || []) as MessageRow[]).map(toMsg), ...prev.filter((m) => m.status)]);
         supabase!.from('messages').update({ read: true }).eq('recipient_id', me).eq('sender_id', partnerUserId).eq('read', false).then(() => {});
       });
 
@@ -123,18 +138,67 @@ export const ChatModal: React.FC<ChatModalProps> = ({ partner, onClose }) => {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `recipient_id=eq.${me}` }, (payload) => {
         const row = payload.new as MessageRow;
         if (row.sender_id !== partnerUserId) return;
+        setPartnerTyping(false);
         setMessages((prev) => (prev.some((m) => m.id === row.id) ? prev : [...prev, toMsg(row)]));
         // Conversation ouverte : le message est lu tout de suite
         supabase!.from('messages').update({ read: true }).eq('id', row.id).then(() => {});
       })
+      // « Lu » en direct quand l'autre personne ouvre la conversation
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages', filter: `sender_id=eq.${me}` }, (payload) => {
+        const row = payload.new as MessageRow;
+        if (row.recipient_id !== partnerUserId || !row.read) return;
+        setMessages((prev) => prev.map((m) => (m.id === row.id ? { ...m, isRead: true } : m)));
+      })
       .subscribe();
+
+    // « En train d'écrire… » : simple signal entre les deux téléphones, rien n'est enregistré
+    let typingTimer: ReturnType<typeof setTimeout> | undefined;
+    const typing = supabase
+      .channel(`typing-${[me, partnerUserId].sort().join('-')}`)
+      .on('broadcast', { event: 'typing' }, ({ payload }) => {
+        if (payload?.from !== partnerUserId) return;
+        setPartnerTyping(true);
+        clearTimeout(typingTimer);
+        typingTimer = setTimeout(() => setPartnerTyping(false), 4000);
+      })
+      .subscribe();
+    typingChannel.current = typing;
     return () => {
+      clearTimeout(typingTimer);
+      typingChannel.current = null;
       supabase?.removeChannel(channel);
+      supabase?.removeChannel(typing);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [live, partnerUserId, currentUser?.id]);
 
   if (!partner) return null;
+
+  const notifyTyping = () => {
+    if (!typingChannel.current || !currentUser || Date.now() - lastTypingSent.current < 2000) return;
+    lastTypingSent.current = Date.now();
+    typingChannel.current.send({ type: 'broadcast', event: 'typing', payload: { from: currentUser.id } }).catch(() => {});
+  };
+
+  // Envoi en ligne : le message apparaît tout de suite, puis passe à « Envoyé » (ou « Non envoyé », à toucher pour réessayer)
+  const deliver = async (tempId: string, text: string) => {
+    if (!supabase || !currentUser) return;
+    const { data, error } = await supabase
+      .from('messages')
+      .insert({ sender_id: currentUser.id, recipient_id: partnerUserId, text })
+      .select()
+      .single();
+    if (error || !data) {
+      setMessages((prev) => prev.map((m) => (m.id === tempId ? { ...m, status: 'failed' } : m)));
+      return;
+    }
+    const row = data as MessageRow;
+    setMessages((prev) => prev.map((m) => (m.id === tempId ? { ...m, id: row.id, createdAt: row.created_at, status: undefined } : m)));
+  };
+  const retry = (m: UiMessage) => {
+    setMessages((prev) => prev.map((x) => (x.id === m.id ? { ...x, status: 'sending' } : x)));
+    deliver(m.id, m.text);
+  };
 
   const handleSend = async (textToSend?: string) => {
     const text = textToSend || inputText;
@@ -144,32 +208,28 @@ export const ChatModal: React.FC<ChatModalProps> = ({ partner, onClose }) => {
       setSendError('Messagerie indisponible avec ce profil.');
       return;
     }
+    if (!textToSend) {
+      setInputText('');
+      if (inputRef.current) inputRef.current.style.height = 'auto';
+    }
 
     if (live && supabase && currentUser) {
-      if (!textToSend) setInputText('');
-      const { data, error } = await supabase
-        .from('messages')
-        .insert({ sender_id: currentUser.id, recipient_id: partnerUserId, text: text.trim() })
-        .select()
-        .single();
-      if (error) {
-        setSendError("Message non envoyé. Vérifiez votre connexion.");
-        return;
-      }
-      const row = data as MessageRow;
+      const tempId = `tmp-${Date.now()}`;
       setMessages((prev) => [
         ...prev,
         {
-          id: row.id,
-          senderId: row.sender_id,
+          id: tempId,
+          senderId: currentUser.id,
           senderName: currentUser.name,
           senderAvatar: currentUser.avatar,
-          recipientId: row.recipient_id,
-          text: row.text,
-          createdAt: row.created_at,
+          recipientId: partnerUserId,
+          text: text.trim(),
+          createdAt: new Date().toISOString(),
           isRead: false,
+          status: 'sending',
         },
       ]);
+      deliver(tempId, text.trim());
       return;
     }
 
@@ -185,7 +245,6 @@ export const ChatModal: React.FC<ChatModalProps> = ({ partner, onClose }) => {
     };
 
     setMessages((prev) => [...prev, newMsg]);
-    if (!textToSend) setInputText('');
 
     // Mode démo : réponse simulée du coach
     setTimeout(() => {
@@ -225,16 +284,17 @@ export const ChatModal: React.FC<ChatModalProps> = ({ partner, onClose }) => {
     return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
   };
   const myId = currentUser?.id || 'user';
-  const isMine = (m: ChatMessage) => m.senderId === myId || m.senderId === 'user';
+  const isMine = (m: UiMessage) => m.senderId === myId || m.senderId === 'user';
   const lastMineIndex = messages.reduce((acc, m, i) => (isMine(m) ? i : acc), -1);
+  const statusOf = (m: UiMessage) => (m.status === 'sending' ? 'Envoi…' : m.isRead ? 'Lu' : 'Envoyé');
 
   return (
     <motion.div
       id="apple-chat-modal"
-      initial={{ opacity: 0, y: '100%' }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: '100%' }}
-      transition={{ type: 'spring', damping: 30, stiffness: 320 }}
+      initial={{ x: '100%' }}
+      animate={{ x: 0 }}
+      exit={{ x: '100%' }}
+      transition={{ type: 'spring', damping: 34, stiffness: 340 }}
       className="fixed inset-0 z-50 bg-fmc-bg dark:bg-[#0B0F19] text-fmc-navy dark:text-slate-100 flex flex-col max-w-md mx-auto overflow-hidden"
     >
       {/* En-tête simple : retour, photo, nom */}
@@ -242,15 +302,15 @@ export const ChatModal: React.FC<ChatModalProps> = ({ partner, onClose }) => {
         <button
           id="btn-close-chat"
           onClick={onClose}
-          aria-label="Fermer la conversation"
-          className="w-10 h-10 -ml-1 rounded-full flex items-center justify-center text-fmc-navy dark:text-slate-100 cursor-pointer active:scale-95"
+          aria-label="Retour aux messages"
+          className="w-11 h-11 -ml-1 rounded-full flex items-center justify-center text-fmc-navy dark:text-slate-100 cursor-pointer active:scale-95"
         >
           <ChevronLeft className="w-7 h-7" />
         </button>
         <Avatar src={partner.avatar} name={partner.name} className="w-10 h-10 rounded-full" />
         <div className="min-w-0">
           <h2 className="text-base font-semibold leading-tight truncate">{partner.name}</h2>
-          {partner.title && <p className="text-xs text-slate-500 truncate">{partner.title}</p>}
+          <p className="text-xs text-slate-500 truncate" aria-live="polite">{partnerTyping ? 'En train d’écrire…' : partner.title}</p>
         </div>
       </header>
 
@@ -273,34 +333,62 @@ export const ChatModal: React.FC<ChatModalProps> = ({ partner, onClose }) => {
         {messages.map((msg, i) => {
           const mine = isMine(msg);
           const prev = messages[i - 1];
+          const next = messages[i + 1];
           const day = dayOf(msg.createdAt);
           const newDay = day && (!prev || dayOf(prev.createdAt) !== day);
           const grouped = !newDay && prev && isMine(prev) === mine;
+          const lastOfGroup = !next || isMine(next) !== mine || dayOf(next.createdAt) !== day;
+          const emojiOnly = EMOJI_ONLY.test(msg.text.trim());
+          const failed = msg.status === 'failed';
           return (
             <React.Fragment key={msg.id}>
               {newDay && (
                 <p className="text-center text-xs text-slate-400 font-medium my-4 first:mt-0">{day}</p>
               )}
-              <div className={`flex flex-col ${mine ? 'items-end' : 'items-start'} ${grouped ? 'mt-1' : 'mt-3'}`}>
+              <div className={`flex items-end gap-2 ${mine ? 'justify-end' : 'justify-start'} ${grouped ? 'mt-0.5' : 'mt-3'}`}>
+                {/* Photo de l'interlocuteur au bas de chaque série de messages */}
+                {!mine && (lastOfGroup
+                  ? <Avatar src={partner.avatar} name={partner.name} className="w-7 h-7 rounded-full shrink-0" />
+                  : <span className="w-7 shrink-0" aria-hidden="true" />)}
                 <div
-                  className={`max-w-[78%] px-3.5 py-2 text-[15px] leading-snug whitespace-pre-wrap break-words rounded-[20px] ${
-                    mine
-                      ? 'bg-fmc-green text-fmc-navy rounded-br-md'
-                      : 'bg-white dark:bg-slate-800 text-fmc-navy dark:text-slate-100 rounded-bl-md'
-                  }`}
+                  onClick={failed ? () => retry(msg) : undefined}
+                  role={failed ? 'button' : undefined}
+                  className={`max-w-[75%] whitespace-pre-wrap break-words ${
+                    emojiOnly
+                      ? 'text-5xl leading-tight py-1'
+                      : `px-3.5 py-2 text-base leading-snug rounded-[20px] ${
+                          mine
+                            ? `bg-fmc-green text-fmc-navy ${lastOfGroup ? 'rounded-br-md' : ''}`
+                            : `bg-white dark:bg-slate-800 text-fmc-navy dark:text-slate-100 ${lastOfGroup ? 'rounded-bl-md' : ''}`
+                        }`
+                  } ${msg.status === 'sending' ? 'opacity-60' : ''} ${failed ? 'opacity-60 cursor-pointer' : ''}`}
                 >
                   {msg.text}
                 </div>
-                {(i === messages.length - 1 || !messages[i + 1] || isMine(messages[i + 1]) !== mine) && (
-                  <span className="text-[11px] text-slate-400 mt-1 px-1 tabular-nums">
-                    {timeOf(msg.createdAt)}
-                    {mine && i === lastMineIndex && live ? (msg.isRead ? ' · Lu' : ' · Envoyé') : ''}
-                  </span>
-                )}
               </div>
+              {failed ? (
+                <button type="button" onClick={() => retry(msg)} className="block ml-auto text-xs font-medium text-rose-600 mt-1 px-1 py-2 cursor-pointer">
+                  Non envoyé · Toucher pour réessayer
+                </button>
+              ) : lastOfGroup && (
+                <p className={`text-[11px] text-slate-400 mt-1 tabular-nums ${mine ? 'text-right px-1' : 'pl-10'}`}>
+                  {timeOf(msg.createdAt)}
+                  {mine && i === lastMineIndex && live ? ` · ${statusOf(msg)}` : ''}
+                </p>
+              )}
             </React.Fragment>
           );
         })}
+        {partnerTyping && (
+          <div className="flex items-end gap-2 mt-3" aria-hidden="true">
+            <Avatar src={partner.avatar} name={partner.name} className="w-7 h-7 rounded-full shrink-0" />
+            <div className="px-4 py-3.5 rounded-[20px] rounded-bl-md bg-white dark:bg-slate-800 flex gap-1">
+              {[0, 1, 2].map((d) => (
+                <span key={d} className="w-2 h-2 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: `${d * 150}ms` }} />
+              ))}
+            </div>
+          </div>
+        )}
         {sendError && <p className="text-center text-xs font-medium text-rose-500 mt-3">{sendError}</p>}
         <div ref={messagesEndRef} />
       </div>
@@ -308,10 +396,13 @@ export const ChatModal: React.FC<ChatModalProps> = ({ partner, onClose }) => {
       {/* Zone de saisie */}
       <div className="px-3 pt-2 pb-[calc(0.75rem+var(--sab,0px))] bg-white/95 dark:bg-slate-900/95 border-t border-slate-200/70 dark:border-slate-800 flex items-end gap-2">
         <textarea
+          ref={inputRef}
           rows={1}
           value={inputText}
+          enterKeyHint="send"
           onChange={(e) => {
             setInputText(e.target.value);
+            notifyTyping();
             e.target.style.height = 'auto';
             e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
           }}
@@ -326,12 +417,13 @@ export const ChatModal: React.FC<ChatModalProps> = ({ partner, onClose }) => {
           className="flex-1 resize-none bg-slate-100 dark:bg-slate-800 rounded-[22px] px-4 py-2.5 text-base leading-snug placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-fmc-green/40 max-h-[120px]"
         />
         <button
-          onClick={() => handleSend()}
+          onMouseDown={(e) => e.preventDefault() /* garde le clavier ouvert */}
+          onClick={() => { handleSend(); inputRef.current?.focus(); }}
           disabled={!inputText.trim()}
           aria-label="Envoyer"
           className="w-11 h-11 shrink-0 rounded-full flex items-center justify-center bg-fmc-green text-fmc-navy disabled:bg-slate-200 disabled:text-slate-400 dark:disabled:bg-slate-800 transition active:scale-90 cursor-pointer disabled:cursor-not-allowed"
         >
-          <Send className="w-5 h-5" />
+          <ArrowUp className="w-5 h-5" strokeWidth={2.5} />
         </button>
       </div>
     </motion.div>

@@ -41,7 +41,6 @@ Vérifier le typage : `npm run lint`
 |---|---|
 | `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` | Projet Supabase. Sans elles, l'app tourne en **mode démo** (données d'exemple locales). |
 | `VITE_MAPTILER_KEY` | Fond de carte MapTiler (facultatif, sinon CARTO). |
-| `VITE_API_URL` | Serveur de l'agent IA (facultatif). |
 | `VITE_PUSH_ENABLED` | `true` une fois Firebase configuré (voir *Notifications push*). |
 
 `.env.mobile` (versionné) contient les valeurs utilisées pour les builds mobiles.

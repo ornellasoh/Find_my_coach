@@ -3,7 +3,6 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { GoogleGenAI } from '@google/genai';
 
 dotenv.config();
 
@@ -23,43 +22,6 @@ app.use(cors({
   ],
 }));
 app.use(express.json({ limit: '10mb' }));
-
-// API endpoint for Coach AI Agent
-app.post('/api/coach-ai', async (req, res) => {
-  try {
-    const { prompt, systemInstruction } = req.body;
-    const apiKey = process.env.GEMINI_API_KEY;
-
-    if (!apiKey) {
-      console.warn('GEMINI_API_KEY is not defined in environment.');
-      return res.status(200).json({
-        fallback: true,
-        message: 'No GEMINI_API_KEY provided'
-      });
-    }
-
-    const ai = new GoogleGenAI({ apiKey });
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
-      contents: prompt,
-      config: {
-        systemInstruction: systemInstruction || "Tu es l'Agent IA d'élite pour les coachs sportifs professionnels sur FindMyCoach. Tu es un expert en biomécanique, préparation physique, nutrition et programmation d'entraînement.",
-        temperature: 0.7,
-      }
-    });
-
-    return res.status(200).json({
-      content: response.text,
-      fallback: false
-    });
-  } catch (error: any) {
-    console.error('Gemini API error in /api/coach-ai:', error);
-    return res.status(200).json({
-      fallback: true,
-      error: error?.message || 'Error communicating with Gemini service'
-    });
-  }
-});
 
 // Vite middleware in dev or static files in production
 const isProduction = process.env.NODE_ENV === 'production';

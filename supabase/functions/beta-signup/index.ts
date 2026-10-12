@@ -131,7 +131,7 @@ Deno.serve(async (req) => {
 
   if (existing) {
     if (minutesSince(existing.confirm_sent_at) < 2) return ok;
-    await admin.from('beta_testers').update({ first_name: firstName ?? existing.first_name, platform: platform ?? existing.platform, confirm_sent_at: new Date().toISOString() }).eq('id', existing.id);
+    await admin.from('beta_testers').update({ first_name: firstName ?? existing.first_name, platform: platform ?? existing.platform, source: existing.source ?? source, confirm_sent_at: new Date().toISOString() }).eq('id', existing.id);
     try { await sendConfirmation(email, firstName ?? existing.first_name, existing.token); } catch (err) { console.error('beta confirm', err); return json({ error: 'Envoi impossible pour le moment, réessayez.' }, 502); }
     return ok;
   }
