@@ -13,6 +13,7 @@ import { ReviewModal } from './components/common/ReviewModal';
 import { VideoCallRoom } from './components/common/VideoCallRoom';
 import { ChatModal } from './components/common/ChatModal';
 import { MessagesInbox } from './components/common/MessagesInbox';
+import { useCampaignEffects } from './lib/campaign';
 import { BookingDetail } from './components/common/BookingDetail';
 import { AnimatePresence } from 'motion/react';
 import { AI_AGENT_ENABLED } from './lib/features';
@@ -44,6 +45,7 @@ import { CoachAIAgentView } from './components/coach/CoachAIAgentView';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 
 const MainRouter: React.FC = () => {
+  useCampaignEffects(); // campagne en cours : logo teinté + icône du téléphone
   const { currentScreen, activeVideoBooking, setActiveVideoBooking, activeChatPartner, setActiveChatPartner, authLoading, isAdmin, loadError, retryLoad, logout } = useApp();
 
   if (authLoading) {

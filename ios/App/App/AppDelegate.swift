@@ -57,3 +57,53 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
 }
+
+// MARK: - Icône de l'app (campagnes Octobre Rose, Noël…)
+// Icônes livrées dans Assets.xcassets (AppIcon-Rose, AppIcon-Noel) et déclarées par le réglage
+// ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES. Choix piloté depuis l'admin (src/lib/campaign.ts).
+@objc(AppIconPlugin)
+public class AppIconPlugin: CAPPlugin, CAPBridgedPlugin {
+    public let identifier = "AppIconPlugin"
+    public let jsName = "AppIcon"
+    public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "getName", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "change", returnType: CAPPluginReturnPromise)
+    ]
+    private let iconNames: [String: String?] = ["default": nil, "rose": "AppIcon-Rose", "noel": "AppIcon-Noel"]
+
+    @objc func getName(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            let current = UIApplication.shared.alternateIconName
+            let name = self.iconNames.first(where: { $0.value == current })?.key ?? "default"
+            call.resolve(["value": name])
+        }
+    }
+
+    @objc func change(_ call: CAPPluginCall) {
+        let name = call.getString("name") ?? "default"
+        guard let target = iconNames[name] else {
+            call.reject("Icône inconnue : \(name)")
+            return
+        }
+        DispatchQueue.main.async {
+            guard UIApplication.shared.supportsAlternateIcons else {
+                call.reject("Icônes alternatives non disponibles")
+                return
+            }
+            if UIApplication.shared.alternateIconName == target {
+                call.resolve()
+                return
+            }
+            UIApplication.shared.setAlternateIconName(target) { error in
+                if let error = error { call.reject(error.localizedDescription) } else { call.resolve() }
+            }
+        }
+    }
+}
+
+/// Contrôleur principal : enregistre les plugins propres à l'app.
+class MainViewController: CAPBridgeViewController {
+    override open func capacitorDidLoad() {
+        bridge?.registerPluginInstance(AppIconPlugin())
+    }
+}

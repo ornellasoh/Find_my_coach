@@ -1,4 +1,5 @@
 import { ShareProfileCard } from './ShareProfileCard';
+import { CampaignBanner } from '../common/CampaignBanner';
 import React, { useState } from 'react';
 import { AI_AGENT_ENABLED } from '../../lib/features';
 import { isSupabaseEnabled } from '../../lib/supabase';
@@ -43,7 +44,8 @@ export const CoachDashboard: React.FC = () => {
     navigateTo, 
     openBookingDetail,
     setActiveVideoBooking,
-    setActiveChatPartner
+    setActiveChatPartner,
+    isAdmin
   } = useApp();
 
   // Find coach profile for current user
@@ -116,6 +118,24 @@ export const CoachDashboard: React.FC = () => {
         </button>
       </div>
 
+      {isAdmin && (
+        <button
+          type="button"
+          onClick={() => navigateTo('admin_dashboard')}
+          className="w-full mb-4 p-3.5 rounded-2xl bg-[#0F172A] text-white flex items-center gap-3 cursor-pointer active:scale-[0.99] text-left"
+        >
+          <span className="w-10 h-10 rounded-xl bg-[#00D664] text-[#0F172A] flex items-center justify-center shrink-0">
+            <ShieldCheck className="w-5 h-5" />
+          </span>
+          <span className="flex-1 min-w-0">
+            <span className="block text-sm font-bold">Administration</span>
+            <span className="block text-xs text-slate-300">Coachs, vérifications, signalements, campagnes</span>
+          </span>
+          <span aria-hidden="true" className="text-xl text-slate-400">›</span>
+        </button>
+      )}
+
+      <CampaignBanner className="mb-4" />
       <ShareProfileCard coach={coachProfile} />
 
       {/* 4 Quick KPI Cards */}

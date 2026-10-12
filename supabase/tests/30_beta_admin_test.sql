@@ -142,3 +142,11 @@ select pg_temp.check((select public.public_coach('lucie-dupont-aaaa')::text not 
 select pg_temp.check((select public.public_coach('inconnu') is null), 'lien public : identifiant inconnu → rien');
 select pg_temp.as_user(null);
 \echo == Messagerie et lien public OK
+
+-- Équipe d'administration
+select pg_temp.as_user('aaaaaaaa-0000-0000-0000-000000000003');
+select pg_temp.check((select count(*) >= 1 from public.admin_list()), 'équipe : un admin voit la liste des administrateurs');
+select pg_temp.as_user('aaaaaaaa-0000-0000-0000-000000000001');
+select pg_temp.expect_error('select * from public.admin_list()', 'Réservé aux administrateurs');
+select pg_temp.as_user(null);
+\echo == Équipe admin OK

@@ -21,7 +21,7 @@ export const LogoIcon: React.FC<LogoIconProps> = ({
       src={`${import.meta.env.BASE_URL}logo-symbol.png`}
       alt="Find My Coach"
       draggable={false}
-      style={{ height: size, width: 'auto' }}
+      style={{ height: size, width: 'auto', ...(mono ? {} : { filter: 'var(--fmc-logo-filter, none)' }) }}
       className={`inline-block shrink-0 select-none ${mono} ${className}`}
     />
   );

@@ -1,3 +1,5 @@
+import { AdminCampaign } from './AdminCampaign';
+import { AdminTeam } from './AdminTeam';
 import React, { useState } from 'react';
 import { Avatar } from '../ui/Avatar';
 import { ThemePicker } from '../common/ThemePicker';
@@ -33,7 +35,7 @@ export const AdminDashboard: React.FC = () => {
     loginAs
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'coaches' | 'reviews' | 'bookings' | 'verif' | 'issues'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'coaches' | 'reviews' | 'bookings' | 'verif' | 'issues' | 'campaign' | 'team'>('overview');
 
 
   return (
@@ -117,10 +119,28 @@ export const AdminDashboard: React.FC = () => {
         >
           Signalements
         </button>
+        <button
+          onClick={() => setActiveTab('campaign')}
+          className={`flex-1 py-2 rounded-xl transition cursor-pointer ${
+            activeTab === 'campaign' ? 'bg-[#00D664] text-[#0F172A] shadow-xs' : 'text-slate-500 hover:text-slate-900'
+          }`}
+        >
+          Campagne
+        </button>
+        <button
+          onClick={() => setActiveTab('team')}
+          className={`flex-1 py-2 rounded-xl transition cursor-pointer ${
+            activeTab === 'team' ? 'bg-[#00D664] text-[#0F172A] shadow-xs' : 'text-slate-500 hover:text-slate-900'
+          }`}
+        >
+          Équipe
+        </button>
       </div>
 
       {activeTab === 'verif' && <AdminVerifications />}
       {activeTab === 'issues' && <AdminIssues />}
+      {activeTab === 'campaign' && <AdminCampaign />}
+      {activeTab === 'team' && (isOnline ? <AdminTeam /> : <p className="text-sm text-slate-500 mb-6">Disponible en ligne uniquement.</p>)}
 
       {/* Tab: Coaches Moderation */}
       {activeTab === 'coaches' && (

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { CoachFeatureCard } from '../common/CoachCard';
 import { NextSessionCard } from './NextSessionCard';
+import { CampaignBanner } from '../common/CampaignBanner';
 import { isBookableCoach } from '../../utils/coachTrust';
 import { Chip, Screen, SearchField, SectionHeader } from '../ui/fmc';
 
@@ -82,6 +83,7 @@ export const HomeDashboard: React.FC = () => {
       />
 
       {/* Ma prochaine séance */}
+      <CampaignBanner className="mb-5" />
       <NextSessionCard />
 
       {/* Catégories */}
