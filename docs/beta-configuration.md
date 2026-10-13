@@ -67,8 +67,11 @@ de travail. À contrôler :
    Domain `seftoygihefwohrioojo.supabase.co`, Return URL `https://seftoygihefwohrioojo.supabase.co/auth/v1/callback`.
 3. Keys → nouvelle clé avec Sign in with Apple → télécharger le `.p8` (une seule fois).
 4. Supabase → Providers → Apple : activer, Client IDs = Services ID **et** `io.findmycoach.app`,
-   puis générer le secret avec Team ID `242FTWP9T9`, Key ID et contenu du `.p8`
-   (le secret expire tous les 6 mois : le régénérer).
+   (Services ID actuel : `io.findmycoach.app.signin`), puis générer le secret — Supabase refuse le `.p8` brut
+   (« Secret key should be a JWT ») :
+   `node scripts/apple-secret.mjs ~/Downloads/AuthKey_<KeyID>.p8 io.findmycoach.app.signin <KeyID>`
+   copie le secret dans le presse-papiers. Il expire tous les 6 mois (prochaine échéance : avril 2027) : relancer la commande.
+   Le bouton s'affiche dans l'app grâce à `VITE_APPLE_SIGNIN=true` (`.env.mobile`).
 5. Xcode → target App → Signing & Capabilities → + Sign in with Apple.
    Rappel App Store : si Google est proposé sur iPhone, Apple doit l'être aussi.
 
