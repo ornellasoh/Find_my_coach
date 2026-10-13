@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Avatar } from '../ui/Avatar';
 import { ThemePicker } from '../common/ThemePicker';
 import { DeleteAccount } from '../common/DeleteAccount';
 import { useApp } from '../../context/AppContext';
+import { uploadProfilePhoto } from '../../lib/photos';
 import { 
   ArrowLeft, 
   Camera, 
@@ -23,7 +24,8 @@ import {
   Moon,
   Sun,
   ChevronLeft,
-  UserPen
+  UserPen,
+  Loader2
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Logo } from '../common/Logo';
@@ -51,6 +53,25 @@ export const UserProfileSettings: React.FC = () => {
   const [name, setName] = useState(currentUser?.name || '');
   const [email, setEmail] = useState(currentUser?.email || '');
   const [phone, setPhone] = useState(currentUser?.phone || '');
+
+  const photoInput = useRef<HTMLInputElement>(null);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoError, setPhotoError] = useState('');
+
+  const handlePhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !currentUser) return;
+    setPhotoBusy(true);
+    setPhotoError('');
+    try {
+      updateUserProfile({ avatar: await uploadProfilePhoto(file, currentUser.id) });
+    } catch (err) {
+      setPhotoError(err instanceof Error ? err.message : "L'envoi de la photo a échoué.");
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
 
   const clientBookingsCount = bookings.filter(
     b => b.clientId === currentUser?.id && b.bookingStatus === 'completed'
@@ -108,14 +129,22 @@ export const UserProfileSettings: React.FC = () => {
         </header>
 
         <div className="text-center">
-          <button onClick={() => setIsEditing(true)} className="relative inline-block cursor-pointer" aria-label="Modifier la photo">
+          <button
+            type="button"
+            onClick={() => photoInput.current?.click()}
+            disabled={photoBusy}
+            className="relative inline-block cursor-pointer active:scale-[0.98] transition"
+            aria-label={currentUser?.avatar ? 'Changer ma photo de profil' : 'Ajouter une photo de profil'}
+          >
             <span className="block p-1 rounded-full bg-fmc-green">
-              <Avatar src={currentUser?.avatar} name={currentUser?.name} className="w-28 h-28 rounded-full border-4 border-fmc-dark" />
+              <Avatar src={currentUser?.avatar} name={currentUser?.name} className={`w-28 h-28 rounded-full border-4 border-fmc-dark ${photoBusy ? 'opacity-50' : ''}`} />
             </span>
-            <span className="absolute bottom-1 right-1 w-8 h-8 rounded-full bg-white text-fmc-navy flex items-center justify-center shadow">
-              <Camera className="w-4 h-4" />
+            <span className="absolute bottom-0 right-0 w-11 h-11 rounded-full bg-white text-fmc-navy flex items-center justify-center shadow">
+              {photoBusy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Camera className="w-5 h-5" />}
             </span>
           </button>
+          <input ref={photoInput} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
+          {photoError && <p className="text-sm text-rose-600 mt-2" role="alert">{photoError}</p>}
           <h1 className="text-[34px] font-semibold tracking-tight mt-3">{currentUser?.name || 'Mon profil'}</h1>
           <p className="text-base text-slate-500 mt-1">
             {currentUser?.isPremium ? 'Membre Premium' : 'Membre'}{memberSince ? ` depuis ${memberSince}` : ''}

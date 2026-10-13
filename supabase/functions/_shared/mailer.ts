@@ -22,7 +22,7 @@ export function notificationEmail(opts: { prenom?: string; title: string; messag
 <p style="margin:0 0 24px;font-size:16px;line-height:1.6;color:#334155;">${esc(opts.message)}</p>
 <table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:#00D664;border-radius:999px;">
 <a href="${url}" style="display:inline-block;padding:15px 30px;font-size:16px;font-weight:700;color:#0F172A;text-decoration:none;">${esc(cta)} &rarr;</a></td></tr></table>
-<p style="margin:24px 0 0;font-size:13px;line-height:1.6;color:#64748B;">Une question ? Répondez simplement à cet email.<br><br>À très vite,<br><strong style="color:#0F172A;">Jessie Kouassi, fondateur de Find My Coach</strong></p>
+<p style="margin:24px 0 0;font-size:13px;line-height:1.6;color:#64748B;">Une question ? Répondez simplement à cet email.<br><br>À très vite,<br><strong style="color:#0F172A;">Jessy Kouassi, fondateur de Find My Coach</strong></p>
 </td></tr>
 <tr><td align="center" style="padding:24px 16px 0;font-size:12px;line-height:1.7;color:#94A3B8;">
 <strong style="color:#0F172A;">Your Coach Anytime, Anywhere.</strong><br>
@@ -42,7 +42,7 @@ export function brandEmail(title: string, inner: string, footer = '') {
 <tr><td style="background:#FFFFFF;border:1px solid #E2E8F0;border-top:0;border-radius:0 0 28px 28px;padding:36px 32px;">
 <h1 style="margin:0 0 16px;font-size:24px;line-height:1.3;font-weight:800;color:#0F172A;">${esc(title)}</h1>
 ${inner}
-<p style="margin:28px 0 0;font-size:13px;line-height:1.6;color:#64748B;">Une question ? Répondez simplement à cet email.<br><br>À très vite,<br><strong style="color:#0F172A;">Jessie Kouassi, fondateur de Find My Coach</strong></p>
+<p style="margin:28px 0 0;font-size:13px;line-height:1.6;color:#64748B;">Une question ? Répondez simplement à cet email.<br><br>À très vite,<br><strong style="color:#0F172A;">Jessy Kouassi, fondateur de Find My Coach</strong></p>
 </td></tr>
 <tr><td align="center" style="padding:24px 16px 0;font-size:12px;line-height:1.7;color:#94A3B8;">
 <strong style="color:#0F172A;">Your Coach Anytime, Anywhere.</strong><br>

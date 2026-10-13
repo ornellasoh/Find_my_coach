@@ -39,7 +39,7 @@ const TEMPLATE = `<!DOCTYPE html>
               <a href="https://findmycoach.io/telecharger" style="display:inline-block;padding:16px 32px;font-size:16px;font-weight:700;color:#0F172A;text-decoration:none;">Ouvrir Find My Coach &rarr;</a>
             </td>
           </tr></table>
-          <p style="margin:20px 0 0;padding:14px 16px;background:#F6F9FA;border-radius:16px;font-size:13px;line-height:1.6;color:#64748B;">Une question, une idée ? Répondez simplement à cet email : notre équipe vous lit personnellement.<br><br>À très vite,<br><strong style="color:#0F172A;">Jessie Kouassi, fondateur de Find My Coach</strong></p>
+          <p style="margin:20px 0 0;padding:14px 16px;background:#F6F9FA;border-radius:16px;font-size:13px;line-height:1.6;color:#64748B;">Une question, une idée ? Répondez simplement à cet email : notre équipe vous lit personnellement.<br><br>À très vite,<br><strong style="color:#0F172A;">Jessy Kouassi, fondateur de Find My Coach</strong></p>
         </td></tr>
         <!-- Pied -->
         <tr><td align="center" style="padding:28px 16px 0;font-size:12px;line-height:1.7;color:#94A3B8;">

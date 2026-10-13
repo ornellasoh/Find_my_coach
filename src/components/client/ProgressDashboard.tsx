@@ -4,6 +4,7 @@ import { Timer, ChevronRight, Check, CalendarCheck, Plus, Target } from 'lucide-
 import { motion } from 'motion/react';
 import { Card, Screen, SectionHeader } from '../ui/fmc';
 import { Avatar } from '../ui/Avatar';
+import { BadgesSection } from './StreakCard';
 
 const MONTH_LABELS = ['Janv', 'Févr', 'Mars', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc'];
 
@@ -110,6 +111,8 @@ export const ProgressDashboard: React.FC = () => {
           <span className="text-xs font-semibold text-fmc-green-ink">{stats.upcoming} à venir</span>
         </Card>
       </div>
+
+      <BadgesSection />
 
       {/* Régularité */}
       <Card className="p-6 mb-8">
