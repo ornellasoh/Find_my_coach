@@ -122,7 +122,7 @@ Les écrans montrés viennent du mode démonstration de l'app (coachs et séance
 ```
 Find My Coach met en relation des particuliers et des coachs sportifs indépendants pour des séances individuelles, en personne (domicile, extérieur, salle) ou en visio en direct.
 
-Paiement : les séances sont des prestations de service individuelles réalisées par une personne (coaching 1 à 1, en personne ou en temps réel). Elles sont réglées par carte via Stripe, conformément aux règles 3.1.3(d) et 3.1.5(a). L'app ne vend aucun contenu ni fonctionnalité numérique.
+Paiement : les séances sont des prestations de service individuelles réalisées par une personne (coaching 1 à 1, en personne ou en temps réel). Elles sont réglées par carte via Stripe, conformément aux règles 3.1.3(d) (services de personne à personne en temps réel) et 3.1.3(e) (services consommés en dehors de l'app). L'app ne vend aucun contenu ni fonctionnalité numérique.
 
 Compte de test : le compte fourni est un compte client. Depuis l'accueil, ouvrez « Explorer » pour chercher un coach, ouvrez une fiche puis « Réserver la séance ».
 
