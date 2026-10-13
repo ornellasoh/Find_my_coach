@@ -160,6 +160,8 @@ et Find My Coach envoie le mode d'emploi (installer TestFlight, ouvrir l'email d
 | `BETA_NOTIFY_EMAIL` | (facultatif) adresse prévenue à chaque demande ; par défaut contact@findmycoach.io |
 
 4. Vérifier : l'onglet Bêta de l'administration affiche « TestFlight connecté — groupe « … » ».
+   Sans l'app (SQL Editor) : `select public.call_edge('testflight-check', '{}'::jsonb);` puis, quelques secondes après,
+   `select content from net._http_response order by id desc limit 1;` → `{"configured":true,"group":"…"}`.
 
 Le réglage `beta_testflight_url` (lien public TestFlight) doit rester vide : s'il est renseigné, le lien est envoyé
 dès la confirmation de l'adresse, sans validation.
