@@ -1,5 +1,5 @@
 // Inscription des bêta-testeurs (formulaire de findmycoach.io), sans compte.
-//  POST { email, firstName, platform?: 'android'|'ios', source? } → envoie l'email de validation (prénom obligatoire).
+//  POST { email, firstName, platform?: 'android'|'ios', role?: 'client'|'coach', source? } → envoie l'email de validation (prénom obligatoire).
 //  GET  ?confirm=<jeton>  → valide l'adresse, envoie les liens d'installation + tutoriel, puis
 //                           redirige vers <SITE_URL>/beta-merci (?statut=ok | invalide).
 // iPhone : après confirmation, un administrateur valide la demande dans l'app (fonction beta-approve),
@@ -144,6 +144,7 @@ Deno.serve(async (req) => {
   const email = String(body.email ?? '').trim().toLowerCase();
   const firstName = String(body.firstName ?? '').trim().replace(/\s+/g, ' ').slice(0, 60);
   const platform = body.platform === 'ios' || body.platform === 'android' ? body.platform : null;
+  const role = body.role === 'client' || body.role === 'coach' ? body.role : null;
   const source = String(body.source ?? '').trim().slice(0, 60) || null;
   if (email.length > 254 || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return json({ error: 'Adresse email invalide.' }, 400);
   if (firstName.length < 2) return json({ error: 'Indiquez votre prénom.' }, 400);
@@ -154,14 +155,14 @@ Deno.serve(async (req) => {
 
   if (existing) {
     if (minutesSince(existing.confirm_sent_at) < 2) return ok;
-    await admin.from('beta_testers').update({ first_name: firstName, platform: platform ?? existing.platform, source: existing.source ?? source, confirm_sent_at: new Date().toISOString() }).eq('id', existing.id);
+    await admin.from('beta_testers').update({ first_name: firstName, platform: platform ?? existing.platform, role: role ?? existing.role, source: existing.source ?? source, confirm_sent_at: new Date().toISOString() }).eq('id', existing.id);
     try { await sendConfirmation(email, firstName, existing.token); } catch (err) { console.error('beta confirm', err); return json({ error: 'Envoi impossible pour le moment, réessayez.' }, 502); }
     return ok;
   }
 
   const { data: created, error } = await admin
     .from('beta_testers')
-    .insert({ email, first_name: firstName, platform, source, confirm_sent_at: new Date().toISOString() })
+    .insert({ email, first_name: firstName, platform, role, source, confirm_sent_at: new Date().toISOString() })
     .select('token')
     .single();
   if (error || !created) return json({ error: 'Inscription impossible pour le moment, réessayez.' }, 500);

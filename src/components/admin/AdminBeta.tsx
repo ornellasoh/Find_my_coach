@@ -7,6 +7,7 @@ interface TesterRow {
   email: string;
   first_name: string | null;
   platform: 'android' | 'ios' | null;
+  role: 'client' | 'coach' | null;
   created_at: string;
   confirmed_at: string | null;
   approved_at: string | null;
@@ -49,7 +50,7 @@ export const AdminBeta: React.FC = () => {
     if (!supabase) return;
     const { data, error } = await supabase
       .from('beta_testers')
-      .select('id, email, first_name, platform, created_at, confirmed_at, approved_at, rejected_at, testflight_invited_at, testflight_error')
+      .select('id, email, first_name, platform, role, created_at, confirmed_at, approved_at, rejected_at, testflight_invited_at, testflight_error')
       .order('created_at', { ascending: false })
       .limit(500);
     if (error) setMsg({ ok: false, text: 'Liste indisponible : ' + error.message });
@@ -131,7 +132,7 @@ export const AdminBeta: React.FC = () => {
                     {r.first_name && <p className="text-xs text-slate-500 truncate">{r.email}</p>}
                   </div>
                   <span className="shrink-0 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-[11px] font-bold text-slate-600 dark:text-slate-300 whitespace-nowrap">
-                    {r.platform ? PLATFORM[r.platform] : 'Non précisé'}
+                    {r.role === 'coach' ? 'Coach · ' : ''}{r.platform ? PLATFORM[r.platform] : 'Non précisé'}
                   </span>
                 </div>
                 <p className={`text-xs mt-2 font-semibold ${st.tone}`}>
