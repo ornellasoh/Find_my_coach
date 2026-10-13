@@ -3,6 +3,7 @@ import { Avatar } from '../ui/Avatar';
 import {
   AlertTriangle,
   CalendarClock,
+  CalendarPlus,
   CheckCircle2,
   Clock,
   CreditCard,
@@ -16,6 +17,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { addToCalendar } from '../../utils/calendar';
 import type { BookingIssue, IssueCategory, RescheduleRequest, SessionReport } from '../../types';
 import { Card, Screen, ScreenHeader, formatDateFr, formatEuro } from '../ui/fmc';
 import { SessionAccess, isOnlineBooking, useSessionDetails } from './SessionAccess';
@@ -337,6 +339,13 @@ export const BookingDetail: React.FC = () => {
         <div className="mt-4 flex flex-wrap gap-2">
           {booking.bookingStatus !== 'cancelled' && (
             <Btn onClick={openChat}><MessageSquare className="w-4 h-4" /> Conversation</Btn>
+          )}
+          {booking.bookingStatus === 'confirmed' && (
+            <Btn
+              onClick={() => addToCalendar(booking, details, isClient ? 'client' : 'coach').catch((e) => setFlash({ ok: false, text: (e as Error).message }))}
+            >
+              <CalendarPlus className="w-4 h-4" /> Ajouter au calendrier
+            </Btn>
           )}
           {isClient && (booking.bookingStatus === 'completed' || booking.bookingStatus === 'cancelled') && coach && (
             <Btn tone="primary" onClick={() => navigateTo('booking_calendar', { coachId: coach.id })}>

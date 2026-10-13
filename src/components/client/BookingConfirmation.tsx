@@ -16,6 +16,7 @@ import {
   Share2
 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { addToCalendar } from '../../utils/calendar';
 
 export const BookingConfirmation: React.FC = () => {
   const { 
@@ -44,30 +45,13 @@ export const BookingConfirmation: React.FC = () => {
 
   const b = latestConfirmedBooking;
 
-  const handleAddToCalendar = () => {
-    // Generate simple .ics calendar file
-    const icsContent = `BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//FindMyCoach//FR
-BEGIN:VEVENT
-SUMMARY:Séance de coaching avec ${b.coachName}
-DESCRIPTION:Séance ${b.sessionType.name} FindMyCoach. ${b.meetingLink ? `Lien visio: ${b.meetingLink}` : `Lieu: ${b.coachLocation}`}
-DTSTART:${b.date.replace(/-/g, '')}T${b.startTime.replace(':', '')}00
-DTEND:${b.date.replace(/-/g, '')}T${b.endTime.replace(':', '')}00
-LOCATION:${b.meetingLink || b.coachLocation}
-STATUS:CONFIRMED
-END:VEVENT
-END:VCALENDAR`;
-
-    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `seance-${b.coachName.toLowerCase().replace(/\s+/g, '-')}.ics`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    setCalendarAdded(true);
+  const handleAddToCalendar = async () => {
+    try {
+      await addToCalendar(b, null, 'client');
+      setCalendarAdded(true);
+    } catch {
+      setCalendarAdded(false);
+    }
   };
 
   return (
