@@ -1,5 +1,5 @@
 // Inscription des bêta-testeurs (formulaire de findmycoach.io), sans compte.
-//  POST { email, firstName?, platform?: 'android'|'ios', source? } → envoie l'email de validation.
+//  POST { email, firstName, platform?: 'android'|'ios', source? } → envoie l'email de validation (prénom obligatoire).
 //  GET  ?confirm=<jeton>  → valide l'adresse, envoie les liens d'installation + tutoriel, puis
 //                           redirige vers <SITE_URL>/beta-merci (?statut=ok | invalide).
 // iPhone : après confirmation, un administrateur valide la demande dans l'app (fonction beta-approve),
@@ -142,10 +142,11 @@ Deno.serve(async (req) => {
   let body: Record<string, unknown> = {};
   try { body = await req.json(); } catch { /* corps vide */ }
   const email = String(body.email ?? '').trim().toLowerCase();
-  const firstName = String(body.firstName ?? '').trim().slice(0, 60) || null;
+  const firstName = String(body.firstName ?? '').trim().replace(/\s+/g, ' ').slice(0, 60);
   const platform = body.platform === 'ios' || body.platform === 'android' ? body.platform : null;
   const source = String(body.source ?? '').trim().slice(0, 60) || null;
   if (email.length > 254 || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return json({ error: 'Adresse email invalide.' }, 400);
+  if (firstName.length < 2) return json({ error: 'Indiquez votre prénom.' }, 400);
 
   const { data: existing } = await admin.from('beta_testers').select('*').eq('email', email).maybeSingle();
   // Toujours la même réponse (on ne révèle pas si l'adresse est déjà inscrite)
@@ -153,8 +154,8 @@ Deno.serve(async (req) => {
 
   if (existing) {
     if (minutesSince(existing.confirm_sent_at) < 2) return ok;
-    await admin.from('beta_testers').update({ first_name: firstName ?? existing.first_name, platform: platform ?? existing.platform, source: existing.source ?? source, confirm_sent_at: new Date().toISOString() }).eq('id', existing.id);
-    try { await sendConfirmation(email, firstName ?? existing.first_name, existing.token); } catch (err) { console.error('beta confirm', err); return json({ error: 'Envoi impossible pour le moment, réessayez.' }, 502); }
+    await admin.from('beta_testers').update({ first_name: firstName, platform: platform ?? existing.platform, source: existing.source ?? source, confirm_sent_at: new Date().toISOString() }).eq('id', existing.id);
+    try { await sendConfirmation(email, firstName, existing.token); } catch (err) { console.error('beta confirm', err); return json({ error: 'Envoi impossible pour le moment, réessayez.' }, 502); }
     return ok;
   }
 
