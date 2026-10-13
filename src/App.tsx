@@ -29,7 +29,6 @@ import { BookingConfirmation } from './components/client/BookingConfirmation';
 import { ClientBookings } from './components/client/ClientBookings';
 import { ProgressDashboard } from './components/client/ProgressDashboard';
 import { UserProfileSettings } from './components/client/UserProfileSettings';
-import { WorkoutProgramsView } from './components/client/WorkoutProgramsView';
 
 // Coach Screens
 import { CoachDashboard } from './components/coach/CoachDashboard';
@@ -96,8 +95,6 @@ const MainRouter: React.FC = () => {
         return <ClientBookings />;
       case 'progress':
         return <ProgressDashboard />;
-      case 'workout_programs':
-        return <WorkoutProgramsView />;
       case 'profile':
         return <UserProfileSettings />;
       case 'coach_dashboard':

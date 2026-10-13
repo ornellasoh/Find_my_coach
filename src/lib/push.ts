@@ -116,30 +116,6 @@ export async function unregisterPush() {
   try { localStorage.removeItem(TOKEN_KEY); } catch { /* ignore */ }
 }
 
-export interface PushTestResult {
-  inApp: boolean;
-  devices: number;
-  config: { android: boolean; ios: boolean };
-  results: { platform: string; ok: boolean; error?: string }[];
-  note?: string;
-  error?: string;
-}
-
-/** Envoie une notification de test à SES propres appareils uniquement (fonction serveur send-test-push). */
-export async function sendTestPush(): Promise<PushTestResult> {
-  if (!supabase) throw new Error('Indisponible en mode démo.');
-  const { data, error } = await supabase.functions.invoke('send-test-push', { body: {} });
-  if (error) {
-    let message = error.message;
-    try {
-      const ctx = (error as { context?: Response }).context;
-      if (ctx) message = (await ctx.json()).error || message;
-    } catch { /* ignore */ }
-    throw new Error(message);
-  }
-  return data as PushTestResult;
-}
-
 /** Préférences de notification (emails / push) du compte. */
 export async function fetchNotificationPrefs(userId: string) {
   if (!supabase) return { email: true, push: true };

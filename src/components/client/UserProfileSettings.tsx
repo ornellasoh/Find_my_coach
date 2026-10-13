@@ -22,7 +22,6 @@ import {
   Sparkles,
   Moon,
   Sun,
-  Dumbbell,
   ChevronLeft,
   UserPen
 } from 'lucide-react';
@@ -140,7 +139,6 @@ export const UserProfileSettings: React.FC = () => {
         <div className="space-y-3">
           <Row icon={<User className="w-5 h-5" />} title="Informations personnelles" subtitle="Nom, email et téléphone" onClick={() => setIsEditing(true)} />
           <Row icon={<Bell className="w-5 h-5" />} title="Notifications" subtitle="Gérer les alertes et rappels" onClick={() => setIsNotificationDrawerOpen(true)} />
-          <Row icon={<Dumbbell className="w-5 h-5" />} title="Mon programme" subtitle="Entraînement personnalisé" onClick={() => navigateTo('workout_programs')} />
           <ThemePicker />
         </div>
 

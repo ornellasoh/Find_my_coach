@@ -52,9 +52,17 @@ export async function startCheckout(bookingId: string, promoCode: string | undef
 }
 
 export async function openCoachStripe(onClose?: () => void) {
-  const { url } = await invoke<{ url: string; status: string }>('connect-onboarding', {
-    return_url: isNative() ? undefined : webReturnUrl(),
-  });
+  let url: string;
+  try {
+    ({ url } = await invoke<{ url: string; status: string }>('connect-onboarding', {
+      return_url: isNative() ? undefined : webReturnUrl(),
+    }));
+  } catch (err) {
+    // Les erreurs techniques de Stripe (en anglais) ne sont pas montrées au coach
+    if (!/stripe/i.test((err as Error).message)) throw err;
+    console.warn('[stripe]', err);
+    throw new Error('L’activation des paiements est momentanément indisponible. Réessayez dans quelques minutes ou écrivez-nous à contact@findmycoach.io.');
+  }
   await openStripePage(url, onClose);
 }
 

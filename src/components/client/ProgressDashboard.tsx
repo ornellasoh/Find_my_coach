@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Timer, ChevronRight, Check, CalendarCheck, Plus, Target, TrendingUp } from 'lucide-react';
+import { Timer, ChevronRight, Check, CalendarCheck, Plus, Target } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Card, Screen, SectionHeader } from '../ui/fmc';
 import { Avatar } from '../ui/Avatar';
@@ -255,17 +255,6 @@ export const ProgressDashboard: React.FC = () => {
           );
         })}
       </div>
-
-      <button
-        onClick={() => navigateTo('workout_programs')}
-        className="w-full text-left rounded-[28px] p-6 bg-linear-to-br from-black via-fmc-dark to-[#00B050] text-white flex items-center gap-4 cursor-pointer active:scale-[0.99] transition"
-      >
-        <div className="flex-1">
-          <p className="font-semibold text-lg">Mes programmes</p>
-          <p className="text-sm text-white/75 mt-1 leading-snug">Les programmes envoyés par vos coachs.</p>
-        </div>
-        <TrendingUp className="w-10 h-10 text-fmc-green shrink-0" />
-      </button>
     </Screen>
   );
 };

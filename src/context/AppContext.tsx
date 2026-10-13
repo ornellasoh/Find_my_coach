@@ -16,10 +16,7 @@ import {
   CoachClientSummary,
   VerificationDoc,
   ChatPartner,
-  ChatMessage,
-  WorkoutProgram,
-  WorkoutSessionDay,
-  WorkoutExercise
+  ChatMessage
 } from '../types';
 import { 
   INITIAL_USERS, 
@@ -35,7 +32,6 @@ import {
   INITIAL_SESSION_TYPES,
   INITIAL_PAYOUTS,
   INITIAL_COACH_CLIENTS,
-  INITIAL_WORKOUT_PROGRAMS,
   getFormattedDate
 } from '../data/mockData';
 import { findCityByName } from '../utils/geo';
@@ -59,7 +55,6 @@ export type AppScreen =
   | 'confirmation'
   | 'bookings'
   | 'progress'
-  | 'workout_programs'
   | 'profile'
   | 'coach_dashboard'
   | 'coach_availabilities'
@@ -267,12 +262,6 @@ interface AppContextType {
   toggleDarkMode: () => void;
   themeMode: ThemeMode;
   setThemeMode: (mode: ThemeMode) => void;
-
-  // Workout Programs & Exercise Sheets
-  workoutPrograms: WorkoutProgram[];
-  toggleExerciseCompleted: (programId: string, sessionId: string, exerciseId: string) => void;
-  toggleSessionCompleted: (programId: string, sessionId: string) => void;
-  addWorkoutProgram: (program: WorkoutProgram) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -291,7 +280,6 @@ const STORAGE_KEYS = {
   GOALS: 'fmc_goals_v2',
   PAYOUTS: 'fmc_payouts_v2',
   COACH_CLIENTS: 'fmc_coach_clients_v2',
-  WORKOUT_PROGRAMS: 'fmc_workout_programs_v2',
   THEME_DARK: 'fmc_theme_dark_v2',
   THEME_MODE: 'fmc_theme_mode'
 };
@@ -397,72 +385,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const saved = localStorage.getItem(STORAGE_KEYS.COACH_CLIENTS);
     return saved ? JSON.parse(saved) : INITIAL_COACH_CLIENTS;
   });
-
-  const [workoutPrograms, setWorkoutPrograms] = useState<WorkoutProgram[]>(() => {
-    if (isSupabaseEnabled) return [];
-    const saved = localStorage.getItem(STORAGE_KEYS.WORKOUT_PROGRAMS);
-    return saved ? JSON.parse(saved) : INITIAL_WORKOUT_PROGRAMS;
-  });
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.WORKOUT_PROGRAMS, JSON.stringify(workoutPrograms));
-  }, [workoutPrograms]);
-
-  const toggleExerciseCompleted = (programId: string, sessionId: string, exerciseId: string) => {
-    setWorkoutPrograms((prev) =>
-      prev.map((prog) => {
-        if (prog.id !== programId) return prog;
-        return {
-          ...prog,
-          sessions: prog.sessions.map((sess) => {
-            if (sess.id !== sessionId) return sess;
-            const updatedExercises = sess.exercises.map((ex) => {
-              if (ex.id !== exerciseId) return ex;
-              return { ...ex, completed: !ex.completed };
-            });
-            const allDone = updatedExercises.every((e) => e.completed);
-            return {
-              ...sess,
-              exercises: updatedExercises,
-              isCompleted: allDone,
-              completedAt: allDone ? new Date().toISOString().split('T')[0] : sess.completedAt
-            };
-          })
-        };
-      })
-    );
-  };
-
-  const toggleSessionCompleted = (programId: string, sessionId: string) => {
-    setWorkoutPrograms((prev) =>
-      prev.map((prog) => {
-        if (prog.id !== programId) return prog;
-        return {
-          ...prog,
-          sessions: prog.sessions.map((sess) => {
-            if (sess.id !== sessionId) return sess;
-            const willBeCompleted = !sess.isCompleted;
-            return {
-              ...sess,
-              isCompleted: willBeCompleted,
-              completedAt: willBeCompleted ? new Date().toISOString().split('T')[0] : undefined,
-              exercises: sess.exercises.map((e) => ({ ...e, completed: willBeCompleted }))
-            };
-          })
-        };
-      })
-    );
-  };
-
-  const addWorkoutProgram = (program: WorkoutProgram) => {
-    setWorkoutPrograms((prev) => [program, ...prev]);
-    addNotification({
-      userId: program.clientId,
-      type: 'system',
-      title: 'Nouveau programme assigné ! 💪',
-      message: `${program.coachName} vous a préparé le programme "${program.title}".`
-    });
-  };
 
   const [progressEntries] = useState<ProgressEntry[]>(INITIAL_PROGRESS_ENTRIES);
   const categories = INITIAL_CATEGORIES;
@@ -1385,8 +1307,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const favoritesSync = useRemoteSync<Favorite>('favorites', favorites, syncOn, (f) => f.userId === uid);
   const notificationsSync = useRemoteSync<Notification>('notifications', notifications, syncOn, (n, isNew) => isNew || n.userId === uid);
   const goalsSync = useRemoteSync<Goal>('goals', goals, syncOn, (g) => g.userId === uid);
-  const programsSync = useRemoteSync<WorkoutProgram>('workout_programs', workoutPrograms, syncOn, (p) => p.clientId === uid || myCoachIds.includes(p.coachId));
-  const allSyncs = [coachesSync, availSync, bookingsSync, reviewsSync, favoritesSync, notificationsSync, goalsSync, programsSync];
+  const allSyncs = [coachesSync, availSync, bookingsSync, reviewsSync, favoritesSync, notificationsSync, goalsSync];
 
   const clearAppData = () => {
     allSyncs.forEach((s) => s.reset());
@@ -1398,7 +1319,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setFavorites([]);
     setNotifications([]);
     setGoals([]);
-    setWorkoutPrograms([]);
     setPayouts([]);
     setCoachClients([]);
   };
@@ -1475,7 +1395,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     favoritesSync.setBaseline(snap.favorites);
     notificationsSync.setBaseline(snap.notifications);
     goalsSync.setBaseline(snap.goals);
-    programsSync.setBaseline(snap.workoutPrograms);
 
     setCoaches(coachesList);
     setAvailabilities(slots);
@@ -1484,7 +1403,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setFavorites(snap.favorites);
     setNotifications(snap.notifications);
     setGoals(snap.goals);
-    setWorkoutPrograms(snap.workoutPrograms);
     setPayouts(derivedPayouts);
     setCoachClients([...clientsMap.values()]);
     setRemoteReady(true);
@@ -1818,11 +1736,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isDarkMode,
         toggleDarkMode,
         themeMode,
-        setThemeMode,
-        workoutPrograms,
-        toggleExerciseCompleted,
-        toggleSessionCompleted,
-        addWorkoutProgram
+        setThemeMode
       }}
     >
       {children}

@@ -56,7 +56,8 @@ Deno.serve(async (req) => {
     });
     return json({ url: link.url, status: 'onboarding' });
   } catch (err) {
-    console.error(err);
-    return json({ error: (err as Error).message ?? 'Erreur Stripe' }, 500);
+    // Le détail technique (en anglais) reste dans les journaux : le coach voit un message clair
+    console.error('connect-onboarding', err);
+    return json({ error: 'L’activation des paiements est momentanément indisponible. Réessayez dans quelques minutes ou écrivez-nous à contact@findmycoach.io.' }, 500);
   }
 });

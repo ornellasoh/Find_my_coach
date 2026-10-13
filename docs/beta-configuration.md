@@ -99,17 +99,9 @@ vérifiable dans Supabase → Authentication → Users).
 Xcode → Signing & Capabilities → + **Push Notifications** (et Background Modes → Remote notifications facultatif).
 Android : `android/app/google-services.json` est déjà présent.
 
-### Test de bout en bout (sans envoi à tous)
-Déclencheur identifié : bouton **« M'envoyer une notification de test »** (cloche → préférences).
-Il appelle la fonction `send-test-push`, qui n'envoie qu'aux appareils **du compte connecté**, au plus une
-fois par minute, et affiche le résultat par appareil (ok / erreur / non configuré).
-
-1. Installer l'app, se connecter, accepter les notifications. Le diagnostic doit indiquer « Appareil enregistré ».
-2. Appuyer sur le bouton puis, dans les 6 secondes, verrouiller l'écran ou revenir à l'accueil du téléphone :
-   la notification système arrive ; la toucher rouvre l'app sur la cloche. Le résultat par appareil
-   s'affiche sous le bouton au retour dans l'app.
-3. Test réel : depuis un second compte, réserver une séance avec le coach testé → le coach reçoit la push.
-4. Se déconnecter → relancer le test depuis l'autre compte sur le même appareil : seul le compte connecté reçoit.
+### Test de bout en bout
+Le bouton « M'envoyer une notification de test » a été retiré de l'app (13 oct. 2026, push validé sur Android et iPhone).
+Pour tester : depuis un second compte, réserver une séance ou envoyer un message au compte testé → la push arrive.
 
 ---
 
@@ -138,3 +130,33 @@ npx cap sync android
 cd android && ./gradlew assembleDebug
 # → android/app/build/outputs/apk/debug/app-debug.apk
 ```
+
+---
+
+## 5. Bêta iPhone : validation et ajout automatique à TestFlight
+
+Parcours : inscription sur findmycoach.io/beta → email de confirmation → l'équipe reçoit « Nouveau testeur iPhone à
+valider » → dans l'app, **Profil → Administration → Bêta-testeurs iPhone (TestFlight) → Valider** → la fonction
+`beta-approve` ajoute la personne au groupe TestFlight par l'API App Store Connect → **Apple envoie l'invitation**
+et Find My Coach envoie le mode d'emploi (installer TestFlight, ouvrir l'email d'Apple, Accepter, Installer).
+
+### À faire une seule fois
+1. **App Store Connect → Apps → Find My Coach → TestFlight** : créer un groupe de **testeurs externes**
+   (ex. « Bêta testeurs »), y ajouter un build et l'envoyer en *Beta App Review* (24–48 h la première fois).
+   Tant qu'aucun build n'est approuvé pour le groupe, Apple n'envoie pas l'invitation (elle part dès l'approbation).
+2. **App Store Connect → Utilisateurs et accès → Intégrations → API App Store Connect** : générer une clé d'équipe,
+   rôle **Gestionnaire d'apps**. Noter l'**Issuer ID**, le **Key ID**, télécharger le `.p8` (une seule fois).
+3. **Supabase → Edge Functions → Secrets** :
+
+| Secret | Valeur |
+|---|---|
+| `ASC_ISSUER_ID` | Issuer ID |
+| `ASC_KEY_ID` | Key ID |
+| `ASC_PRIVATE_KEY` | contenu complet du fichier `.p8` |
+| `ASC_BETA_GROUP` | (facultatif) nom exact du groupe ; sinon le premier groupe externe est utilisé |
+| `BETA_NOTIFY_EMAIL` | (facultatif) adresse prévenue à chaque demande ; par défaut contact@findmycoach.io |
+
+4. Vérifier : l'onglet Bêta de l'administration affiche « TestFlight connecté — groupe « … » ».
+
+Le réglage `beta_testflight_url` (lien public TestFlight) doit rester vide : s'il est renseigné, le lien est envoyé
+dès la confirmation de l'adresse, sans validation.

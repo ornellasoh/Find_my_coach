@@ -17,12 +17,10 @@ import {
   X, 
   Edit3,
   ChevronRight,
-  FileText,
-  Dumbbell
+  FileText
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CoachClientSummary } from '../../types';
-import { CreateProgramModal } from './CreateProgramModal';
 
 export const CoachClients: React.FC = () => {
   const { 
@@ -40,7 +38,6 @@ export const CoachClients: React.FC = () => {
   const [selectedClient, setSelectedClient] = useState<CoachClientSummary | null>(null);
   const [editingNote, setEditingNote] = useState('');
   const [newTag, setNewTag] = useState('');
-  const [isProgramModalOpen, setIsProgramModalOpen] = useState(false);
 
   const filteredClients = coachClients.filter(c => 
     c.clientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -214,17 +211,6 @@ export const CoachClients: React.FC = () => {
                 </a>
               </div>
 
-              {/* Assign Workout Program Button */}
-              <div className="py-3 border-b border-slate-100">
-                <button
-                  onClick={() => setIsProgramModalOpen(true)}
-                  className="w-full py-2.5 bg-[#00D664] hover:bg-[#00B050] text-[#0F172A] rounded-xl text-xs font-black flex items-center justify-center gap-2 transition shadow-xs cursor-pointer active:scale-95"
-                >
-                  <Dumbbell className="w-4 h-4 stroke-[2.5]" />
-                  <span>Créer & Assigner un Programme</span>
-                </button>
-              </div>
-
               {/* Client Tags */}
               <div className="py-3 border-b border-slate-100">
                 <label className="text-xs font-black text-slate-800 uppercase tracking-wider block mb-1.5">
@@ -310,14 +296,6 @@ export const CoachClients: React.FC = () => {
           </div>
         )}
       </AnimatePresence>
-
-      {/* Create Program Modal */}
-      {isProgramModalOpen && selectedClient && (
-        <CreateProgramModal
-          client={selectedClient}
-          onClose={() => setIsProgramModalOpen(false)}
-        />
-      )}
     </div>
   );
 };

@@ -14,7 +14,7 @@
 
 **Clients** — recherche de coachs (discipline, ville, prix, note, carte), fiche coach, réservation
 de créneaux (domicile, salle, extérieur, visio), paiement sécurisé, annulation avec remboursement
-automatique, messagerie, notifications et rappels, objectifs et programmes, avis, favoris.
+automatique, messagerie, notifications et rappels, objectifs, avis, favoris.
 
 **Coachs** — fiche publique avec photo, disponibilités, planning et clients, encaissement via
 Stripe Connect (versement automatique), annulation (client remboursé), tableau de bord.

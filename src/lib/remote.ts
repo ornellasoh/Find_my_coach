@@ -9,7 +9,6 @@ import type {
   Notification,
   Review,
   User,
-  WorkoutProgram,
 } from '../types';
 
 /**
@@ -49,12 +48,6 @@ export const MAPPERS = {
   favorites: ((f: Favorite) => ({ id: f.id, user_id: f.userId, coach_id: f.coachId, data: f })) as RowMapper<Favorite>,
   notifications: ((n: Notification) => ({ id: n.id, user_id: n.userId, read: n.read, data: n })) as RowMapper<Notification>,
   goals: ((g: Goal) => ({ id: g.id, user_id: g.userId, data: g })) as RowMapper<Goal>,
-  workout_programs: ((p: WorkoutProgram) => ({
-    id: p.id,
-    client_id: p.clientId,
-    coach_id: p.coachId,
-    data: p,
-  })) as RowMapper<WorkoutProgram>,
 };
 
 export type RemoteTable = keyof typeof MAPPERS;
@@ -70,7 +63,6 @@ export interface RemoteSnapshot {
   favorites: Favorite[];
   notifications: Notification[];
   goals: Goal[];
-  workoutPrograms: WorkoutProgram[];
 }
 
 /** Charge toutes les données visibles par l'utilisateur connecté (les règles RLS filtrent côté serveur). */
@@ -80,7 +72,7 @@ export async function fetchSnapshot(): Promise<RemoteSnapshot> {
   today.setDate(today.getDate() - 1);
   const fromDate = today.toISOString().slice(0, 10);
 
-  const [coaches, availabilities, booked, bookings, reviews, favorites, notifications, goals, programs, settings] = await Promise.all([
+  const [coaches, availabilities, booked, bookings, reviews, favorites, notifications, goals, settings] = await Promise.all([
     supabase.from('coaches').select('data, user_id, is_active'),
     supabase.from('availabilities').select('data').gte('date', fromDate).limit(5000),
     supabase.from('booked_slots').select('availability_id').gte('date', fromDate).limit(5000),
@@ -89,11 +81,10 @@ export async function fetchSnapshot(): Promise<RemoteSnapshot> {
     supabase.from('favorites').select('data'),
     supabase.from('notifications').select('data').order('created_at', { ascending: false }).limit(100),
     supabase.from('goals').select('data'),
-    supabase.from('workout_programs').select('data'),
     supabase.from('app_settings').select('key, value'),
   ]);
 
-  const firstError = [coaches, availabilities, booked, bookings, reviews, favorites, notifications, goals, programs].find((r) => r.error);
+  const firstError = [coaches, availabilities, booked, bookings, reviews, favorites, notifications, goals].find((r) => r.error);
   if (firstError?.error) throw firstError.error;
 
   // Coachs de démonstration : masqués au lancement (réglage « show_demo_coaches » dans app_settings)
@@ -117,7 +108,6 @@ export async function fetchSnapshot(): Promise<RemoteSnapshot> {
     favorites: rowsToData(favorites.data as { data: Favorite }[]),
     notifications: rowsToData(notifications.data as { data: Notification }[]),
     goals: rowsToData(goals.data as { data: Goal }[]),
-    workoutPrograms: rowsToData(programs.data as { data: WorkoutProgram }[]),
   };
 }
 

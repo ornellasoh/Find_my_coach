@@ -565,7 +565,7 @@ export const CoachProfileEditor: React.FC = () => {
               value={sessionIncludes}
               onChange={(e) => setSessionIncludes(e.target.value)}
               maxLength={500}
-              placeholder="ex. 60 min de coaching, matériel fourni, programme envoyé après la séance"
+              placeholder="ex. 60 min de coaching, matériel fourni, bilan en fin de séance"
               className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 text-sm rounded-xl border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-[#00D664] resize-none"
             />
           </div>
