@@ -119,9 +119,16 @@ export const MessagesInbox: React.FC = () => {
                       <span className={`truncate ${c.unread ? 'font-bold' : 'font-semibold'}`}>{c.partner_name}</span>
                       <span className="text-xs text-slate-500 shrink-0 tabular-nums">{when(c.last_at)}</span>
                     </span>
-                    <span className={`block text-sm truncate mt-0.5 ${c.unread ? 'text-fmc-navy dark:text-slate-100 font-medium' : 'text-slate-500'}`}>
-                      {c.last_from_me ? 'Vous : ' : ''}{c.last_text}
-                      {c.unread > 0 && <span className="sr-only"> — {c.unread} non lu{c.unread > 1 ? 's' : ''}</span>}
+                    <span className="flex items-center gap-2 mt-0.5">
+                      <span className={`flex-1 min-w-0 text-sm truncate ${c.unread ? 'text-fmc-navy dark:text-slate-100 font-medium' : 'text-slate-500'}`}>
+                        {c.last_from_me ? 'Vous : ' : ''}{c.last_text}
+                      </span>
+                      {c.unread > 0 && (
+                        <span className="shrink-0 min-w-5 h-5 px-1.5 rounded-full bg-rose-500 text-white text-xs font-bold tabular-nums flex items-center justify-center">
+                          {c.unread > 99 ? '99+' : c.unread}
+                          <span className="sr-only"> non lu{c.unread > 1 ? 's' : ''}</span>
+                        </span>
+                      )}
                     </span>
                   </span>
                 </button>

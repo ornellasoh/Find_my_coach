@@ -2,7 +2,7 @@
 //  - push sur le téléphone du destinataire (si activé) ;
 //  - email, seulement au premier message d'un échange (pas d'email si l'expéditeur a déjà écrit
 //    à cette personne dans les 30 dernières minutes), selon ses préférences.
-import { admin, isInternalCall, json } from '../_shared/common.ts';
+import { admin, isInternalCall, json, unreadBadge } from '../_shared/common.ts';
 import { pushEnabled, sendPush } from '../_shared/push.ts';
 import { notificationEmail, sendMail } from '../_shared/mailer.ts';
 
@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
   if (recipient.notify_push !== false && pushEnabled()) {
     const { data: tokens } = await admin.from('push_tokens').select('token, platform').eq('user_id', msg.recipient_id);
     if (tokens?.length) {
-      const dead = await sendPush(tokens, senderName, preview, { type: 'message', senderId: msg.sender_id });
+      const dead = await sendPush(tokens, senderName, preview, { type: 'message', senderId: msg.sender_id }, await unreadBadge(msg.recipient_id));
       if (dead.length) await admin.from('push_tokens').delete().in('token', dead);
       result.push = tokens.length - dead.length;
     }

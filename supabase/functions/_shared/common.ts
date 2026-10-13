@@ -122,6 +122,15 @@ export async function notify(userId: string | null | undefined, type: string, ti
   await deliver(userId, type, title, message, bookingId);
 }
 
+/** Pastille de l'icône iPhone : messages reçus non lus + notifications non lues du compte (au moins 1). */
+export async function unreadBadge(userId: string): Promise<number> {
+  const [messages, notifications] = await Promise.all([
+    admin.from('messages').select('id', { count: 'exact', head: true }).eq('recipient_id', userId).eq('read', false),
+    admin.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('read', false),
+  ]);
+  return Math.max(1, (messages.count ?? 0) + (notifications.count ?? 0));
+}
+
 /** Envoi push + email d'une notification déjà enregistrée (aussi utilisé par notify-dispatch). */
 export async function deliver(userId: string, type: string, title: string, message: string, bookingId?: string) {
   try {
@@ -132,7 +141,8 @@ export async function deliver(userId: string, type: string, title: string, messa
     if (profile.notify_push !== false && pushEnabled()) {
       jobs.push((async () => {
         const { data: rows } = await admin.from('push_tokens').select('token, platform').eq('user_id', userId);
-        const dead = await sendPush(rows ?? [], title, message, { type, bookingId: bookingId ?? '' });
+        if (!rows?.length) return;
+        const dead = await sendPush(rows, title, message, { type, bookingId: bookingId ?? '' }, await unreadBadge(userId));
         if (dead.length) await admin.from('push_tokens').delete().in('token', dead);
       })());
     }

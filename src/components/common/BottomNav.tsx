@@ -1,5 +1,6 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
+import { useUnreadMessages } from '../../lib/unread';
 import { 
   Home, 
   Compass, 
@@ -17,6 +18,19 @@ export const BottomNav: React.FC = () => {
   const { currentScreen, navigateTo, currentUser, bookings, coaches } = useApp();
 
   const role = currentUser?.role || 'client';
+  const unreadMessages = useUnreadMessages(currentUser?.id);
+  // Pastille de l'onglet Messages : nombre de messages non lus
+  const messagesIcon = (
+    <div className="relative">
+      <MessageSquare className="w-6 h-6" strokeWidth={2} />
+      {unreadMessages > 0 && (
+        <span className="absolute -top-1.5 -right-2.5 min-w-4 h-4 px-1 bg-rose-500 text-white text-[10px] font-bold tabular-nums rounded-full flex items-center justify-center">
+          {unreadMessages > 99 ? '99+' : unreadMessages}
+          <span className="sr-only"> message{unreadMessages > 1 ? 's' : ''} non lu{unreadMessages > 1 ? 's' : ''}</span>
+        </span>
+      )}
+    </div>
+  );
 
   // Do not show bottom nav on splash, checkout, or confirmation screens
   if (['onboarding', 'auth', 'coach_profile', 'booking_calendar', 'checkout', 'confirmation'].includes(currentScreen)) {
@@ -72,7 +86,7 @@ export const BottomNav: React.FC = () => {
               currentScreen === 'messages' ? 'text-fmc-green-ink dark:text-fmc-green font-semibold' : 'text-slate-500 dark:text-slate-400 font-medium'
             }`}
           >
-            <MessageSquare className="w-6 h-6" strokeWidth={2} />
+            {messagesIcon}
             <span className="text-[11px]">Messages</span>
           </button>
 
@@ -164,7 +178,7 @@ export const BottomNav: React.FC = () => {
             currentScreen === 'messages' ? 'text-fmc-green-ink dark:text-fmc-green font-semibold' : 'text-slate-500 dark:text-slate-400 font-medium'
           }`}
         >
-          <MessageSquare className="w-6 h-6" strokeWidth={2} />
+          {messagesIcon}
           <span className="text-[11px]">Messages</span>
         </button>
 

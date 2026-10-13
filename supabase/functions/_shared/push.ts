@@ -96,7 +96,7 @@ async function apnsJwt(): Promise<string> {
   return apnsCache.jwt;
 }
 
-async function sendApnsTo(host: string, token: string, title: string, body: string, data: Record<string, string>) {
+async function sendApnsTo(host: string, token: string, title: string, body: string, data: Record<string, string>, badge: number) {
   return fetch(`https://${host}/3/device/${token}`, {
     method: 'POST',
     headers: {
@@ -106,18 +106,18 @@ async function sendApnsTo(host: string, token: string, title: string, body: stri
       'apns-priority': '10',
       'content-type': 'application/json',
     },
-    body: JSON.stringify({ aps: { alert: { title, body }, sound: 'default', badge: 1 }, ...data }),
+    body: JSON.stringify({ aps: { alert: { title, body }, sound: 'default', badge }, ...data }),
   });
 }
 
-async function sendApns(token: string, title: string, body: string, data: Record<string, string>): Promise<'ok' | 'dead' | string> {
+async function sendApns(token: string, title: string, body: string, data: Record<string, string>, badge: number): Promise<'ok' | 'dead' | string> {
   if (!apnsConfigured()) return 'APNs non configuré (secrets APNS_KEY, APNS_KEY_ID, APNS_TEAM_ID absents)';
   const sandbox = Deno.env.get('APNS_ENV') === 'sandbox';
-  let res = await sendApnsTo(sandbox ? 'api.sandbox.push.apple.com' : 'api.push.apple.com', token, title, body, data);
+  let res = await sendApnsTo(sandbox ? 'api.sandbox.push.apple.com' : 'api.push.apple.com', token, title, body, data, badge);
   if (res.status === 400) {
     const txt = await res.text();
     // Jeton d'une app installée depuis Xcode (environnement de développement) : on réessaie en « sandbox »
-    if (!sandbox && txt.includes('BadDeviceToken')) res = await sendApnsTo('api.sandbox.push.apple.com', token, title, body, data);
+    if (!sandbox && txt.includes('BadDeviceToken')) res = await sendApnsTo('api.sandbox.push.apple.com', token, title, body, data, badge);
     else return `APNs 400 : ${txt.slice(0, 200)}`;
   }
   if (res.ok) return 'ok';
@@ -130,16 +130,19 @@ async function sendApns(token: string, title: string, body: string, data: Record
 export const pushEnabled = () => !!fcmSecret() || apnsConfigured();
 export const pushConfig = () => ({ android: !!fcmSecret(), ios: apnsConfigured() });
 
-/** Envoie à chaque appareil selon sa plateforme ; renvoie les jetons invalides (à supprimer) et le détail. */
+/**
+ * Envoie à chaque appareil selon sa plateforme ; renvoie les jetons invalides (à supprimer) et le détail.
+ * `badge` : nombre affiché sur l'icône de l'app iPhone (messages et notifications non lus du destinataire).
+ */
 export async function sendPushDetailed(
-  targets: PushTarget[], title: string, body: string, data: Record<string, string> = {},
+  targets: PushTarget[], title: string, body: string, data: Record<string, string> = {}, badge = 1,
 ): Promise<{ dead: string[]; results: PushResult[] }> {
   const dead: string[] = [];
   const results: PushResult[] = [];
   await Promise.all(targets.map(async ({ token, platform }) => {
     const p = platform === 'ios' ? 'ios' : 'android';
     try {
-      const r = p === 'ios' ? await sendApns(token, title, body, data) : await sendFcm(token, title, body, data);
+      const r = p === 'ios' ? await sendApns(token, title, body, data, badge) : await sendFcm(token, title, body, data);
       if (r === 'dead') dead.push(token);
       results.push({ platform: p, ok: r === 'ok', error: r === 'ok' ? undefined : r === 'dead' ? 'jeton expiré (supprimé)' : r });
       if (r !== 'ok' && r !== 'dead') console.error('push', p, r);
@@ -152,6 +155,6 @@ export async function sendPushDetailed(
 }
 
 /** Compatibilité : renvoie seulement les jetons à supprimer. */
-export async function sendPush(targets: PushTarget[], title: string, body: string, data: Record<string, string> = {}): Promise<string[]> {
-  return (await sendPushDetailed(targets, title, body, data)).dead;
+export async function sendPush(targets: PushTarget[], title: string, body: string, data: Record<string, string> = {}, badge = 1): Promise<string[]> {
+  return (await sendPushDetailed(targets, title, body, data, badge)).dead;
 }
