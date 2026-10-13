@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Calendar, ChevronRight, MapPin, MessageSquare, ShieldCheck, Star, Video } from 'lucide-react';
 import { CampaignBanner } from '../common/CampaignBanner';
 import { isSupabaseEnabled } from '../../lib/supabase';
+import { fetchStripeStatus } from '../../lib/payments';
 import { Avatar } from '../ui/Avatar';
 import { Card, IconTile, Screen, SectionHeader } from '../ui/fmc';
 import { useApp } from '../../context/AppContext';
@@ -43,6 +44,29 @@ export const CoachDashboard: React.FC = () => {
   const openSlots = availabilities.filter((a) => a.coachId === coach?.id && !a.isBooked).length;
   const coachReviews = reviews.filter((r) => r.coachId === coach?.id);
   const firstName = (coach?.name || currentUser?.name || '').split(' ')[0];
+
+  // Paiements Stripe : inconnu tant que la réponse n'est pas arrivée (la carte de progression attend)
+  const [paymentsOn, setPaymentsOn] = useState<boolean | null>(isSupabaseEnabled ? null : false);
+  useEffect(() => {
+    if (!isSupabaseEnabled || !coach?.id) return;
+    let alive = true;
+    fetchStripeStatus(coach.id).then((s) => { if (alive) setPaymentsOn(!!s?.charges_enabled); }).catch(() => { if (alive) setPaymentsOn(false); });
+    return () => { alive = false; };
+  }, [coach?.id]);
+
+  // Étapes pour être réservable, dans l'ordre où le coach doit les faire
+  const steps = coach ? [
+    { label: 'Ajoutez votre photo', done: !!coach.photo, go: () => navigateTo('coach_profile_edit') },
+    { label: 'Rédigez votre présentation', done: (coach.bio || '').trim().length >= 80, go: () => navigateTo('coach_profile_edit') },
+    { label: 'Indiquez vos spécialités', done: coach.specialties.length > 0, go: () => navigateTo('coach_profile_edit') },
+    { label: 'Fixez votre tarif', done: coach.hourlyRate > 0, go: () => navigateTo('coach_profile_edit') },
+    { label: 'Envoyez vos justificatifs', done: coach.verificationStatus !== 'unverified', go: () => navigateTo('coach_profile_edit') },
+    { label: 'Ouvrez vos premiers créneaux', done: openSlots > 0, go: () => navigateTo('coach_availabilities') },
+    { label: 'Activez vos paiements', done: paymentsOn === true, go: () => navigateTo('coach_financials') },
+  ] : [];
+  const doneCount = steps.filter((s) => s.done).length;
+  const percent = steps.length ? Math.round((doneCount / steps.length) * 100) : 100;
+  const nextStep = steps.find((s) => !s.done);
 
   const stats = [
     { label: 'Séances à venir', value: String(upcoming.length), onClick: () => navigateTo('coach_bookings') },
@@ -142,6 +166,25 @@ export const CoachDashboard: React.FC = () => {
           >
             Ouvrir des créneaux
           </button>
+        </Card>
+      )}
+
+      {/* Progression du profil : disparaît une fois tout complété */}
+      {nextStep && paymentsOn !== null && (
+        <Card onClick={nextStep.go} role="button" className="p-4 mb-4 cursor-pointer active:scale-[0.98]">
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="text-[15px] font-semibold">Profil complété à <span className="tabular-nums">{percent} %</span></span>
+            <span className="text-xs text-slate-500 tabular-nums whitespace-nowrap">{doneCount} sur {steps.length}</span>
+          </div>
+          <div className="h-2 rounded-full bg-slate-100 dark:bg-slate-800 mt-3 overflow-hidden" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}>
+            <div className="h-full rounded-full bg-fmc-green transition-all" style={{ width: `${percent}%` }} />
+          </div>
+          <div className="flex items-center gap-2 mt-3 min-h-6">
+            <span className="flex-1 min-w-0 text-sm text-slate-600 dark:text-slate-300 truncate">
+              Prochaine étape : <span className="font-semibold text-fmc-navy dark:text-white">{nextStep.label}</span>
+            </span>
+            <ChevronRight className="w-5 h-5 text-slate-400 shrink-0" />
+          </div>
         </Card>
       )}
 

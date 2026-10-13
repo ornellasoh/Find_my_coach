@@ -160,3 +160,15 @@ et Find My Coach envoie le mode d'emploi (installer TestFlight, ouvrir l'email d
 
 Le réglage `beta_testflight_url` (lien public TestFlight) doit rester vide : s'il est renseigné, le lien est envoyé
 dès la confirmation de l'adresse, sans validation.
+
+---
+
+## 6. Tâches automatiques (base de données, pg_cron)
+
+| Tâche | Fréquence | Effet |
+|---|---|---|
+| `fmc-reminders` | toutes les 15 min | rappels de séance (veille, 1 h avant, lien de visio manquant) |
+| `fmc-review-requests` | toutes les 15 min | 2 h après la fin d'une séance marquée « effectuée » et sans avis : notification au client (une seule fois) |
+| `fmc-beta-remind` | chaque jour à 9 h UTC | relance par email les bêta-testeurs inscrits depuis plus de 24 h sans adresse confirmée (une seule fois, fonction `beta-remind`) |
+
+Suspendre une tâche : `select cron.unschedule('fmc-beta-remind');`

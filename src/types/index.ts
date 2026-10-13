@@ -298,6 +298,7 @@ export type NotificationType =
   | 'reschedule_accepted'
   | 'reschedule_declined'
   | 'session_report'
+  | 'review_request'
   | 'reminder'
   | 'reminder_soon'
   | 'system';
