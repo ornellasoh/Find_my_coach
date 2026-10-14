@@ -101,11 +101,12 @@ Dossier `store/app-store/captures/` (6 visuels par format, à déposer dans l'or
 
 | Emplacement dans App Store Connect | Dossier | Dimensions |
 |---|---|---|
-| iPhone — écran 6,9 pouces | `iPhone-6.9-pouces_1320x2868` | 1320 × 2868 |
+| iPhone — écran moyen avec Dynamic Island (**obligatoire**) | `iPhone-6.3-pouces_1206x2622` | 1206 × 2622 |
+| iPhone — grand écran avec Dynamic Island | `iPhone-6.9-pouces_1320x2868` | 1320 × 2868 |
 | iPhone — écran 6,5 pouces | `iPhone-6.5-pouces_1284x2778` | 1284 × 2778 |
 | iPad — écran 13 pouces | `iPad-13-pouces_2064x2752` | 2064 × 2752 |
 
-Seul le format iPhone 6,9 pouces est obligatoire pour une app iPhone. Le format iPad n'est demandé que si
+Apple n'exige qu'un seul format iPhone : l'écran moyen avec Dynamic Island (1206 × 2622). Le grand format est facultatif. Le format iPad n'est demandé que si
 l'app est déclarée compatible iPad (c'est le cas aujourd'hui : voir la remarque dans la conversation du 13 oct. 2026).
 
 Les écrans montrés viennent du mode démonstration de l'app (coachs et séances fictifs).

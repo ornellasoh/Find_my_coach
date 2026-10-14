@@ -14,13 +14,19 @@
 
 **Clients** — recherche de coachs (discipline, ville, prix, note, carte), fiche coach, réservation
 de créneaux (domicile, salle, extérieur, visio), paiement sécurisé, annulation avec remboursement
-automatique, messagerie, notifications et rappels, objectifs, avis, favoris.
+automatique, messagerie (pastille des messages non lus), notifications et rappels, ajout de la séance
+au calendrier (iPhone, Android, web), photo de profil, objectifs, badges et série de semaines, avis, favoris.
 
 **Coachs** — fiche publique avec photo, disponibilités, planning et clients, encaissement via
-Stripe Connect (versement automatique), annulation (client remboursé), tableau de bord.
+Stripe Connect (versement automatique), annulation (client remboursé), tableau de bord, lien coach
+personnel avec statistiques, progression du profil, demande d'avis après la séance.
 
 **Pour tous** — inscription client / coach, emails de bienvenue et de service, mode clair / sombre /
-automatique, suppression du compte dans l'app.
+automatique, connexion Apple / Google, carte Apple Plans (secours OpenStreetMap), clôture automatique
+des séances 2 h après la fin, suppression du compte dans l'app.
+
+**Bêta** — inscription sur findmycoach.io (prénom, client ou coach, Android ou iPhone), email de
+validation, envoi du lien APK ou ajout automatique à TestFlight après validation, relance des testeurs.
 
 ---
 
@@ -153,7 +159,11 @@ Secrets GitHub requis :
 | `ANDROID_KEY_ALIAS` | `upload` |
 | `ANDROID_KEY_PASSWORD` | mot de passe de la clé |
 
-Créer la clé une seule fois et la conserver hors du dépôt :
+Version minimale : Android 7 (SDK 24), exigée par Google Play. Fichier à envoyer : l'artefact `.aab`
+du workflow, dans *Play Console → Tester → Tests fermés → Créer une release*.
+
+Créer la clé une seule fois et la conserver hors du dépôt. Sans Java sur le Mac : `zsh scripts/creer-cle-android.sh`
+(demande le mot de passe, crée `~/findmycoach-upload.jks` et copie sa version base64). Avec Java :
 ```bash
 keytool -genkey -v -keystore ~/findmycoach-upload.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
 ```
@@ -178,20 +188,35 @@ Augmenter le numéro de **Build** à chaque envoi.
 
 ## Visuels des stores (`store/`)
 
-- `captures-app-store.zip` : 5 captures iPhone 6,9" (1290×2796)
-- `google-play.zip` : icône 512×512, bannière 1024×500, 5 captures 1080×1920
+- `app-store/textes-app-store.md` : textes de la fiche, notes pour la vérification Apple, confidentialité
+- `app-store/captures/` : 6 captures par format ; **1206×2622 (iPhone, obligatoire)**, 1320×2868, 1284×2778, iPad 2064×2752
+- `google-play/textes-google-play.md` : fiche Play, contenu de l'application, test fermé
+- `google-play.zip` : icône 512×512, bannière 1024×500, 5 captures 1080×1920 (à refaire avec les écrans actuels)
 
 Icône et splash natifs : sources dans `resources/`, régénération avec `npm run assets`.
 
 ---
 
-## À faire
+## Lancement
 
-- Pages légales sur le site (`/confidentialite`, `/suppression-compte`, CGU, mentions légales)
-- Comptes de test (client + coach) pour la validation Apple / Google
-- Notifications push : configuration Firebase
+Suivi détaillé : [`docs/roadmap-lancement.md`](docs/roadmap-lancement.md).
+
+**Fait (14 oct. 2026)**
+- iPhone : build 1.0 (21) dans App Store Connect, fiche et captures prêtes
+- Android : clé d'envoi créée, secrets GitHub en place, premier AAB signé compilé
+
+**À faire**
+- App Store : compte client de démonstration, catégorie et classification par âge, puis *Ajouter pour vérification*
+- Google Play : fiche du Store, contenu de l'application, test fermé (12 testeurs pendant 14 jours si compte personnel)
+- Vérifier le contenu de la page `/suppression-compte` du site
 - Écrans coach/admin restants à la charte
-- Publication App Store et Google Play
+
+---
+
+## Contributeurs
+
+- **Ornella** ([@ornellasoh](https://github.com/ornellasoh)) — fondatrice, produit et design
+- **Claude** (Anthropic, via Claude Code) — développement et préparation des stores
 
 ---
 
