@@ -50,11 +50,38 @@
 - [ ] Tous les 6 mois : refaire le secret « Connexion Apple » (prochaine échéance : avril 2027,
       `node scripts/apple-secret.mjs …`, voir `docs/beta-configuration.md`, section 2).
 
+## Version 1.1 — pendant les tests
+
+- [x] Refus Apple du 14 oct. (« l'app se ferme au lancement ») : corrigé (scènes iOS 27), poussé le 15 oct.
+      Reste : tester le nouveau build par TestFlight, puis le renvoyer à Apple en répondant au refus.
+- [x] Badges clients : série de semaines, paliers, première séance (13 oct.).
+- [x] Statistiques coach (15 oct.) : accueil coach → « Statistiques » : revenus nets des 6 derniers mois,
+      clients, clients réguliers, taux de fidélisation, clients les plus fidèles.
+- [ ] Tester l'écran Statistiques avec un vrai compte coach (Ornella).
+
 ## En attente de décision
 
 - Lien TestFlight public pour les 10 premiers inscrits iPhone, puis validation manuelle (idée proposée, non codée).
 - Séance découverte à prix réduit (en pause).
 - Lien de visio enregistré une fois par le coach (en pause : priorité aux séances en présentiel).
+
+## Refonte du design (inspirée d'iPhone / iOS 26) — après le lancement
+
+Ne pas mélanger avec le lancement : on finit les maquettes, on choisit, puis on livre avec la version 1.1.
+Maquette de départ : `docs/maquettes/rechercher-v2.html` (design system, écran Rechercher, feuille « Tous les filtres »).
+
+- [ ] Relire les recherches de tendances et dire ce qui plaît (Ornella).
+- [ ] Valider la maquette de l'écran Rechercher (icônes au trait, sans émojis, barre de menu flottante).
+- [ ] Maquettes des autres écrans : accueil, fiche coach, réservation, onboarding (environ ½ jour chacun).
+- [ ] Coder l'écran Rechercher refait (environ 1 jour, tests iPhone et Android compris).
+- [ ] Données nouvelles : temps de réponse du coach et « Populaire cette semaine » (environ ½ jour).
+- [ ] Barre de menu flottante sur toute l'app (environ ½ jour).
+- [ ] Coder les autres écrans (environ 1 jour chacun).
+
+Total : 1 à 2 semaines, plus 1 à 3 jours de vérification Apple et Google.
+
+Idée à trancher plus tard : recherche « en une phrase » (« coach de yoga douce à Lyon, le soir, moins de 70 € »),
+comme Airbnb depuis septembre 2026. Fonctionnalité nouvelle, 2 à 3 jours ; plutôt avec les recommandations personnalisées.
 
 ## Version 2
 

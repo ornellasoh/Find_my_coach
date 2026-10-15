@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Calendar, ChevronRight, MapPin, MessageSquare, ShieldCheck, Star, Video } from 'lucide-react';
+import { BarChart3, Calendar, ChevronRight, MapPin, MessageSquare, ShieldCheck, Star, Video } from 'lucide-react';
 import { CampaignBanner } from '../common/CampaignBanner';
 import { isSupabaseEnabled } from '../../lib/supabase';
 import { fetchStripeStatus } from '../../lib/payments';
@@ -208,13 +208,23 @@ export const CoachDashboard: React.FC = () => {
       </Card>
 
       {/* Mes créneaux */}
-      <Card onClick={() => navigateTo('coach_availabilities')} role="button" className="p-3.5 mb-6 flex items-center gap-3 cursor-pointer active:scale-[0.98]">
+      <Card onClick={() => navigateTo('coach_availabilities')} role="button" className="p-3.5 mb-2.5 flex items-center gap-3 cursor-pointer active:scale-[0.98]">
         <IconTile><Calendar className="w-5 h-5" /></IconTile>
         <span className="flex-1 min-w-0">
           <span className="block text-[15px] font-semibold">Mes créneaux</span>
           <span className="block text-sm text-slate-500 tabular-nums">
             {openSlots > 0 ? `${openSlots} créneau${openSlots > 1 ? 'x' : ''} ouvert${openSlots > 1 ? 's' : ''}` : 'Aucun créneau ouvert'}
           </span>
+        </span>
+        <ChevronRight className="w-5 h-5 text-slate-400" />
+      </Card>
+
+      {/* Statistiques */}
+      <Card onClick={() => navigateTo('coach_stats')} role="button" className="p-3.5 mb-6 flex items-center gap-3 cursor-pointer active:scale-[0.98]">
+        <IconTile><BarChart3 className="w-5 h-5" /></IconTile>
+        <span className="flex-1 min-w-0">
+          <span className="block text-[15px] font-semibold">Statistiques</span>
+          <span className="block text-sm text-slate-500">Revenus par mois, clients fidèles</span>
         </span>
         <ChevronRight className="w-5 h-5 text-slate-400" />
       </Card>

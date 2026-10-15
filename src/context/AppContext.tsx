@@ -62,6 +62,7 @@ export type AppScreen =
   | 'coach_bookings'
   | 'coach_clients'
   | 'coach_financials'
+  | 'coach_stats'
   | 'booking_detail'
   | 'messages'
   | 'admin_dashboard';
