@@ -1,11 +1,13 @@
 // Validation des bêta-testeurs par un administrateur (écran Administration → Bêta).
 //  POST { action: 'check' }                → vérifie les clés App Store Connect et le groupe TestFlight
+//  POST { action: 'check-android' }        → vérifie l'accès au groupe Google des testeurs Android
 //  POST { action: 'approve', id }          → ajoute le testeur au groupe TestFlight (Apple envoie l'invitation)
 //                                            puis lui envoie le mode d'emploi
 //  POST { action: 'reject', id }           → écarte la demande (aucun email envoyé)
 import { createClient } from 'npm:@supabase/supabase-js@2.58.0';
 import { addTestFlightTester, appStoreConfigured, checkAppStore } from '../_shared/appstore.ts';
 import { brandEmail, escapeHtml as esc, sendMail } from '../_shared/mailer.ts';
+import { checkBetaGroup } from '../_shared/googleGroup.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
 const corsHeaders = {
@@ -68,6 +70,14 @@ Deno.serve(async (req) => {
         return json({ configured: true, ...(await checkAppStore()) });
       } catch (err) {
         return json({ configured: false, error: (err as Error).message });
+      }
+    }
+
+    if (action === 'check-android') {
+      try {
+        return json({ configured: true, group: await checkBetaGroup() });
+      } catch (err) {
+        return json({ configured: false, error: `Ajout automatique Android inactif : ${(err as Error).message}.` });
       }
     }
 

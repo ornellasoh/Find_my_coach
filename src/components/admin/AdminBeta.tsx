@@ -14,18 +14,25 @@ interface TesterRow {
   rejected_at: string | null;
   testflight_invited_at: string | null;
   testflight_error: string | null;
+  play_group_added_at: string | null;
+  play_group_error: string | null;
 }
 type Filter = 'pending' | 'invited' | 'all';
 
 const PLATFORM: Record<string, string> = { ios: 'iPhone', android: 'Android' };
 const day = (iso: string) => new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
 const isPending = (r: TesterRow) => !!r.confirmed_at && !r.testflight_invited_at && !r.rejected_at && r.platform !== 'android';
+const isInvited = (r: TesterRow) => !!r.testflight_invited_at || !!r.play_group_added_at;
 
 function status(r: TesterRow): { text: string; tone: string } {
   if (r.testflight_invited_at) return { text: `Invité sur TestFlight le ${day(r.testflight_invited_at)}`, tone: 'text-emerald-700' };
   if (r.rejected_at) return { text: 'Demande écartée', tone: 'text-slate-500' };
   if (!r.confirmed_at) return { text: 'Adresse email non confirmée', tone: 'text-amber-600' };
-  if (r.platform === 'android') return { text: 'Lien Android envoyé', tone: 'text-slate-500' };
+  if (r.platform === 'android') {
+    if (r.play_group_added_at) return { text: `Ajouté aux testeurs Google Play le ${day(r.play_group_added_at)}`, tone: 'text-emerald-700' };
+    if (r.play_group_error) return { text: 'Ajout automatique échoué : à ajouter à la main', tone: 'text-rose-600' };
+    return { text: 'Lien Android envoyé', tone: 'text-slate-500' };
+  }
   return { text: 'En attente de votre validation', tone: 'text-[#0F172A] dark:text-white' };
 }
 
@@ -45,12 +52,13 @@ export const AdminBeta: React.FC = () => {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [config, setConfig] = useState<{ configured: boolean; group?: string; error?: string } | null>(null);
+  const [androidConfig, setAndroidConfig] = useState<{ configured: boolean; group?: string; error?: string } | null>(null);
 
   const load = useCallback(async () => {
     if (!supabase) return;
     const { data, error } = await supabase
       .from('beta_testers')
-      .select('id, email, first_name, platform, role, created_at, confirmed_at, approved_at, rejected_at, testflight_invited_at, testflight_error')
+      .select('id, email, first_name, platform, role, created_at, confirmed_at, approved_at, rejected_at, testflight_invited_at, testflight_error, play_group_added_at, play_group_error')
       .order('created_at', { ascending: false })
       .limit(500);
     if (error) setMsg({ ok: false, text: 'Liste indisponible : ' + error.message });
@@ -61,6 +69,9 @@ export const AdminBeta: React.FC = () => {
     load();
     supabase?.functions.invoke('beta-approve', { body: { action: 'check' } }).then(({ data, error }) => {
       setConfig(error ? { configured: false, error: 'Vérification TestFlight impossible.' } : data);
+    });
+    supabase?.functions.invoke('beta-approve', { body: { action: 'check-android' } }).then(({ data, error }) => {
+      setAndroidConfig(error ? { configured: false, error: 'Vérification Google Play impossible.' } : data);
     });
   }, [load]);
 
@@ -78,24 +89,30 @@ export const AdminBeta: React.FC = () => {
   };
 
   const pendingCount = (rows || []).filter(isPending).length;
-  const shown = (rows || []).filter((r) => (filter === 'pending' ? isPending(r) : filter === 'invited' ? !!r.testflight_invited_at : true));
+  const shown = (rows || []).filter((r) => (filter === 'pending' ? isPending(r) : filter === 'invited' ? isInvited(r) : true));
   const filters: [Filter, string][] = [['pending', `À valider (${pendingCount})`], ['invited', 'Invités'], ['all', 'Tous']];
 
   return (
     <div className="space-y-3 mb-6">
       <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-sm font-extrabold">Bêta-testeurs iPhone</h2>
+          <h2 className="text-sm font-extrabold">Bêta-testeurs</h2>
           <button type="button" onClick={load} aria-label="Actualiser" className="w-11 h-11 -m-2 flex items-center justify-center text-slate-500 cursor-pointer">
             <RefreshCw className="w-4 h-4" />
           </button>
         </div>
         <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-          Validez une demande : la personne est ajoutée à votre groupe TestFlight et Apple lui envoie l’invitation.
+          iPhone : validez une demande, la personne est ajoutée à votre groupe TestFlight et Apple lui envoie l’invitation.
+          Android : la personne est ajoutée automatiquement aux testeurs Google Play dès qu’elle confirme son adresse.
         </p>
         {config && (
           <p className={`text-xs mt-2 leading-relaxed ${config.configured ? 'text-emerald-700' : 'text-rose-600'}`} role="status">
             {config.configured ? `TestFlight connecté — groupe « ${config.group} ».` : config.error}
+          </p>
+        )}
+        {androidConfig && (
+          <p className={`text-xs mt-1 leading-relaxed ${androidConfig.configured ? 'text-emerald-700' : 'text-rose-600'}`} role="status">
+            {androidConfig.configured ? `Google Play connecté — groupe ${androidConfig.group}.` : androidConfig.error}
           </p>
         )}
       </div>
@@ -139,7 +156,8 @@ export const AdminBeta: React.FC = () => {
                   {st.text} <span className="font-normal text-slate-400 tabular-nums">· inscrit le {day(r.created_at)}</span>
                 </p>
                 {r.testflight_error && !r.testflight_invited_at && <p className="text-xs text-rose-600 mt-1">Dernier essai : {r.testflight_error}</p>}
-                {r.confirmed_at && !r.testflight_invited_at && (
+                {r.play_group_error && !r.play_group_added_at && <p className="text-xs text-rose-600 mt-1">Dernier essai : {r.play_group_error}</p>}
+                {r.confirmed_at && !r.testflight_invited_at && r.platform !== 'android' && (
                   <div className="flex gap-2 mt-3">
                     <button
                       type="button"

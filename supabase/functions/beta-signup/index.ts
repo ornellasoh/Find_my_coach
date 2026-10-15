@@ -4,9 +4,12 @@
 //                           redirige vers <SITE_URL>/beta-merci (?statut=ok | invalide).
 // iPhone : après confirmation, un administrateur valide la demande dans l'app (fonction beta-approve),
 // ce qui ajoute le testeur au groupe TestFlight ; Apple envoie alors l'invitation.
+// Android : dès la confirmation, l'adresse est ajoutée au groupe Google du test fermé Google Play.
 // Anti-abus : un email de validation au plus toutes les 2 minutes par adresse ; liens renvoyés au plus toutes les 10 minutes.
 import { createClient } from 'npm:@supabase/supabase-js@2.58.0';
 import { brandEmail, escapeHtml as esc, sendMail } from '../_shared/mailer.ts';
+import { button, h2, p, playSection, steps, testPlan } from '../_shared/beta.ts';
+import { addToBetaGroup } from '../_shared/googleGroup.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const admin = createClient(SUPABASE_URL, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
@@ -28,14 +31,6 @@ async function setting(key: string): Promise<string | null> {
   return typeof data?.value === 'string' && data.value ? data.value : null;
 }
 
-const p = (html: string) => `<p style="margin:0 0 14px;font-size:16px;line-height:1.6;color:#334155;">${html}</p>`;
-const button = (label: string, url: string) =>
-  `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:6px 0 18px;"><tr><td style="background:#00D664;border-radius:999px;">
-<a href="${esc(url)}" style="display:inline-block;padding:15px 28px;font-size:16px;font-weight:700;color:#0F172A;text-decoration:none;">${esc(label)} &rarr;</a></td></tr></table>`;
-const steps = (items: string[]) =>
-  `<ol style="margin:0 0 18px;padding-left:22px;font-size:15px;line-height:1.7;color:#334155;">${items.map((i) => `<li style="margin-bottom:6px;">${i}</li>`).join('')}</ol>`;
-const h2 = (t: string) => `<h2 style="margin:26px 0 10px;font-size:18px;font-weight:800;color:#0F172A;">${esc(t)}</h2>`;
-
 async function sendConfirmation(email: string, firstName: string | null, token: string) {
   const link = `${SUPABASE_URL}/functions/v1/beta-signup?confirm=${token}`;
   const hello = firstName ? `Bonjour ${esc(firstName)},` : 'Bonjour,';
@@ -52,13 +47,16 @@ async function sendConfirmation(email: string, firstName: string | null, token: 
   );
 }
 
-async function sendLinks(email: string, firstName: string | null, platform: string | null) {
+async function sendLinks(email: string, firstName: string | null, platform: string | null, role: string | null) {
+  const play = await setting('beta_play_url');
   const apk = await setting('beta_apk_url');
   const testflight = await setting('beta_testflight_url');
   const hello = firstName ? `Bienvenue ${esc(firstName)} !` : 'Bienvenue !';
   const android =
     h2('📱 Sur Android') +
-    (apk
+    (play
+      ? playSection(play)
+      : apk
       ? button('Télécharger l’app Android', apk) +
         steps([
           'Touchez le bouton ci-dessus depuis votre téléphone Android : le fichier <strong>findmycoach-latest.apk</strong> se télécharge.',
@@ -87,25 +85,43 @@ async function sendLinks(email: string, firstName: string | null, platform: stri
       p(hello) +
         p('Votre adresse est confirmée. Voici comment installer Find My Coach — cela prend 2 minutes.') +
         order +
-        h2('Et ensuite ?') +
-        steps([
-          'Créez votre compte (email ou Google) en choisissant « Je cherche un coach » ou « Je suis coach ».',
-          'Testez librement : recherche, réservation, messages, notifications…',
-          'Un bug, une idée ? Répondez à cet email, chaque retour compte !',
-        ]),
+        testPlan(role),
     ),
   );
+}
+
+/** Ajoute un testeur Android au groupe Google du test Play ; en cas d'échec, l'équipe est prévenue pour le faire à la main. */
+async function addAndroidTester(row: { id: string; email: string; first_name: string | null }) {
+  try {
+    await addToBetaGroup(row.email);
+    await admin.from('beta_testers').update({ play_group_added_at: new Date().toISOString(), play_group_error: null }).eq('id', row.id);
+  } catch (err) {
+    const error = err instanceof Error ? err.message : String(err);
+    console.error('beta android group', error);
+    await admin.from('beta_testers').update({ play_group_error: error.slice(0, 300) }).eq('id', row.id);
+    const to = Deno.env.get('BETA_NOTIFY_EMAIL') ?? Deno.env.get('SMTP_USER') ?? 'contact@findmycoach.io';
+    await sendMail(
+      to,
+      'Testeur Android à ajouter à la main dans Google Play',
+      brandEmail(
+        'Ajout automatique impossible',
+        p(`<strong>${esc(row.first_name ?? 'Sans prénom')}</strong> (${esc(row.email)}) a confirmé son adresse, mais son ajout au groupe des testeurs Android a échoué : ${esc(error)}.`) +
+          p('Ajoutez cette adresse à la main au groupe Google des testeurs (ou dans la Play Console), sinon le lien lui affichera « application non disponible ».'),
+      ),
+    );
+  }
 }
 
 /** Prévient l'équipe qu'une demande iPhone attend sa validation (Administration → Bêta). */
 async function notifyTeam(email: string, firstName: string | null) {
   const to = Deno.env.get('BETA_NOTIFY_EMAIL') ?? Deno.env.get('SMTP_USER') ?? 'contact@findmycoach.io';
+  const who = `<strong>${esc(firstName ?? 'Sans prénom')}</strong> (${esc(email)})`;
   await sendMail(
     to,
     'Nouveau testeur iPhone à valider',
     brandEmail(
       'Un testeur attend votre validation',
-      p(`<strong>${esc(firstName ?? 'Sans prénom')}</strong> (${esc(email)}) a confirmé son adresse et souhaite tester Find My Coach sur iPhone.`) +
+      p(`${who} a confirmé son adresse et souhaite tester Find My Coach sur iPhone.`) +
         p('Ouvrez l’app → Profil → Administration → <strong>Bêta</strong>, puis touchez <strong>Valider</strong> : la personne est ajoutée à TestFlight et reçoit son invitation.'),
     ),
   );
@@ -122,13 +138,14 @@ Deno.serve(async (req) => {
     if (!row) return redirect('invalide');
     if (!row.confirmed_at) {
       await admin.from('beta_testers').update({ confirmed_at: new Date().toISOString() }).eq('id', row.id);
-      if (row.platform !== 'android') {
-        try { await notifyTeam(row.email, row.first_name); } catch (err) { console.error('beta notify', err); }
-      }
+      try {
+        if (row.platform === 'android') await addAndroidTester(row);
+        else await notifyTeam(row.email, row.first_name);
+      } catch (err) { console.error('beta notify', err); }
     }
     if (minutesSince(row.links_sent_at) > 10) {
       try {
-        await sendLinks(row.email, row.first_name, row.platform);
+        await sendLinks(row.email, row.first_name, row.platform, row.role);
         await admin.from('beta_testers').update({ links_sent_at: new Date().toISOString() }).eq('id', row.id);
       } catch (err) {
         console.error('beta links', err);

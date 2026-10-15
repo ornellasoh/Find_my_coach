@@ -136,7 +136,40 @@ cd android && ./gradlew assembleDebug
 
 ---
 
-## 5. Bêta iPhone : validation et ajout automatique à TestFlight
+## 5. Bêta Android : test fermé Google Play et groupe Google
+
+Le lien de test Google Play (réglage `beta_play_url` dans `app_settings`) remplace le lien APK dans l'email envoyé
+après confirmation. Vider ce réglage fait revenir au lien APK.
+
+**Ajout automatique** : dès qu'un inscrit Android confirme son adresse, `beta-signup` l'ajoute au groupe Google
+`BETA_ANDROID_GROUP`, qui sert de liste de testeurs au test fermé (API Cloud Identity Groups). En cas d'échec,
+l'équipe reçoit « Testeur Android à ajouter à la main dans Google Play » et l'erreur s'affiche dans
+Administration → Bêta. Le test interne n'est pas utilisable ici : Google ne permet pas de modifier sa liste d'emails par API.
+
+### À faire une seule fois
+1. **Google Workspace (admin.google.com) → Groupes** : créer `beta-android@findmycoach.io`.
+   Paramètres du groupe → autoriser les **membres extérieurs à l'organisation** (sinon les adresses Gmail sont refusées).
+2. **Google Cloud Console**, projet Firebase de l'app → API et services → activer **Cloud Identity API**.
+3. **groups.google.com** → le groupe → Membres → ajouter l'adresse du compte de service Firebase
+   (champ `client_email` du secret `FMC_SERVICE_ACCOUNT`, en `…@….iam.gserviceaccount.com`) avec le rôle **Gestionnaire**.
+4. **Supabase → Edge Functions → Secrets** : `BETA_ANDROID_GROUP` = `beta-android@findmycoach.io`
+   (facultatif : `GOOGLE_GROUPS_SA` pour utiliser un autre compte de service que celui de Firebase).
+5. **Play Console → Find My Coach → Tester → Test fermé** : créer la piste, y envoyer le build, Testeurs →
+   **Groupes Google** → `beta-android@findmycoach.io`. Copier le lien d'inscription du test fermé et le mettre dans
+   `beta_play_url` (Claude peut le faire).
+6. Vérifier : Administration → Bêta affiche « Google Play connecté — groupe … ».
+   Ajouter au groupe les testeurs déjà inscrits : `select public.call_edge('beta-play-invite', '{"groupOnly":true}'::jsonb);`
+
+Envoi du lien aux testeurs Android déjà inscrits (une seule fois par personne, colonne `play_invited_at`) :
+`select public.call_edge('beta-play-invite', '{}'::jsonb);` — avec `'{"dryRun":true}'` pour compter sans envoyer.
+Fait le 14 oct. 2026 (5 testeurs, lien du test interne). Pour renvoyer le lien du test fermé, remettre
+`play_invited_at` à vide pour ces testeurs puis relancer.
+
+Parcours de test envoyé aux testeurs : `docs/parcours-de-test-beta.md`.
+
+---
+
+## 6. Bêta iPhone : validation et ajout automatique à TestFlight
 
 Parcours : inscription sur findmycoach.io/beta → email de confirmation → l'équipe reçoit « Nouveau testeur iPhone à
 valider » → dans l'app, **Profil → Administration → Bêta-testeurs iPhone (TestFlight) → Valider** → la fonction
@@ -168,7 +201,7 @@ dès la confirmation de l'adresse, sans validation.
 
 ---
 
-## 6. Tâches automatiques (base de données, pg_cron)
+## 7. Tâches automatiques (base de données, pg_cron)
 
 | Tâche | Fréquence | Effet |
 |---|---|---|
