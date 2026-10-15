@@ -58,6 +58,36 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
 }
 
+// MARK: - Scène (obligatoire depuis iOS 27)
+// Sans cycle de vie par scènes, iOS 27 ferme l'app dès le lancement
+// (_UIApplicationEvaluateRuntimeIssueForNoSceneLifecycleAdoption). La fenêtre et Main.storyboard
+// sont chargés par la scène (UIApplicationSceneManifest dans Info.plist) ; les liens ouverts
+// (schéma io.findmycoach.app, liens universels) sont transmis au plugin Capacitor App comme avant.
+class SceneDelegate: UIResponder, UIWindowSceneDelegate {
+
+    var window: UIWindow?
+
+    func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
+        // App lancée par un lien : le transmettre au plugin (App.getLaunchUrl)
+        if let url = connectionOptions.urlContexts.first?.url {
+            _ = ApplicationDelegateProxy.shared.application(UIApplication.shared, open: url, options: [:])
+        }
+        if let activity = connectionOptions.userActivities.first {
+            _ = ApplicationDelegateProxy.shared.application(UIApplication.shared, continue: activity, restorationHandler: { _ in })
+        }
+    }
+
+    func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
+        for context in URLContexts {
+            _ = ApplicationDelegateProxy.shared.application(UIApplication.shared, open: context.url, options: [:])
+        }
+    }
+
+    func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {
+        _ = ApplicationDelegateProxy.shared.application(UIApplication.shared, continue: userActivity, restorationHandler: { _ in })
+    }
+}
+
 // MARK: - Icône de l'app (campagnes Octobre Rose, Noël…)
 // Icônes livrées dans Assets.xcassets (AppIcon-Rose, AppIcon-Noel) et déclarées par le réglage
 // ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES. Choix piloté depuis l'admin (src/lib/campaign.ts).
