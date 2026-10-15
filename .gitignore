@@ -21,3 +21,7 @@ ios/DerivedData/
 *.jks
 _to_delete/
 
+
+# Fichiers locaux (réglages Claude de ce Mac, cache de la CLI Supabase)
+.claude/settings.local.json
+supabase/.temp/
