@@ -72,6 +72,9 @@ Maquette de départ : `docs/maquettes/rechercher-v2.html` (design system, écran
 
 - [ ] Relire les recherches de tendances et dire ce qui plaît (Ornella).
 - [ ] Valider la maquette de l'écran Rechercher (icônes au trait, sans émojis, barre de menu flottante).
+- [x] Décision du 15 oct. : un seul design pour iPhone et Android, mais codes Material 3 sur Android
+      (barre de navigation, boutons, puces, retour). Maquette : `docs/maquettes/rechercher-v2-android.html`.
+- [x] Maquette Android de l'écran Rechercher validée par Ornella (15 oct.).
 - [ ] Maquettes des autres écrans : accueil, fiche coach, réservation, onboarding (environ ½ jour chacun).
 - [ ] Coder l'écran Rechercher refait (environ 1 jour, tests iPhone et Android compris).
 - [ ] Données nouvelles : temps de réponse du coach et « Populaire cette semaine » (environ ½ jour).

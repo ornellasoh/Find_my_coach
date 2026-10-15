@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rechercher Android</title>
+  <!--
+    Maquette statique — écran Rechercher, version Android (Material 3).
+    Même design que rechercher-v2.html (couleurs, police, cartes, contenus) ;
+    seuls les éléments où Android a ses propres codes suivent Material 3 :
+    barre de recherche, barre de navigation, boutons, puces, retour, feuille du bas.
+    Aucune logique : le seul script est Tailwind via CDN, pour le rendu des classes.
+  -->
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    /* Jetons repris de rechercher-v2.html, plus les surfaces Material 3 dérivées du vert de la marque */
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['"Plus Jakarta Sans"', 'Roboto', 'system-ui', 'sans-serif'] },
+          colors: {
+            vert: { DEFAULT: '#00D664', fonce: '#00B050', encre: '#007A3D', pale: '#E6FBEF', voile: '#F2FDF6' },
+            nuit: '#0F172A',
+            fond: '#F5F7FA',
+            trait: '#E2E8F0',
+            ambre: { DEFAULT: '#F59E0B', encre: '#B45309', pale: '#FEF3C7' },
+            /* Surfaces M3 : « surface container » (barres, champs) et « secondary container » (indicateur actif) */
+            surf: { bas: '#EEF2F5', haut: '#E4EAEF' },
+            indic: '#C8F5DC',
+          },
+          borderRadius: { carte: '24px' },
+          fontSize: {
+            'titre1': ['28px', { lineHeight: '34px', fontWeight: '800' }],
+            'titre2': ['22px', { lineHeight: '28px', fontWeight: '700' }],
+            'entete': ['17px', { lineHeight: '22px', fontWeight: '700' }],
+            'corps': ['15px', { lineHeight: '22px' }],
+            'legende': ['13px', { lineHeight: '18px' }],
+            'mini': ['11px', { lineHeight: '14px', fontWeight: '600' }],
+            'label': ['12px', { lineHeight: '16px', fontWeight: '600' }],
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    body { background: #E9EDF2; color: #0F172A; -webkit-font-smoothing: antialiased; }
+    .tnum { font-variant-numeric: tabular-nums; }
+    .sans-barre::-webkit-scrollbar { display: none; }
+    .sans-barre { scrollbar-width: none; }
+    .rotation { display: inline-block; height: 22px; overflow: hidden; vertical-align: bottom; }
+    .rotation span { display: block; animation: defile 9s infinite; }
+    @keyframes defile {
+      0%, 28% { transform: translateY(0); }
+      33%, 61% { transform: translateY(-22px); }
+      66%, 94% { transform: translateY(-44px); }
+      100% { transform: translateY(0); }
+    }
+    @media (prefers-reduced-motion: reduce) { .rotation span { animation: none; } }
+  </style>
+</head>
+<body class="font-sans">
+
+<main class="max-w-[1440px] mx-auto px-4 py-10 lg:px-8">
+  <header class="mb-10 max-w-3xl">
+    <p class="text-legende font-semibold text-vert-encre uppercase tracking-wider">Find My Coach · Refonte · Maquette 2 · Android</p>
+    <h1 class="text-titre1 mt-2">Écran Rechercher, version Android</h1>
+    <p class="text-corps text-slate-600 mt-2">Un seul design pour iPhone et Android : mêmes couleurs, même police, mêmes cartes et mêmes contenus que la <a href="rechercher-v2.html" class="text-vert-encre font-semibold underline">maquette iPhone</a>. Sur Android, la barre de recherche, la barre de navigation, les boutons, les puces et le retour suivent Material 3, pour que l'app paraisse « chez elle ».</p>
+  </header>
+
+  <div class="grid gap-10 xl:grid-cols-[380px_minmax(0,1fr)_320px] items-start">
+
+    <!-- ===================================================================
+         1. CE QUI CHANGE SUR ANDROID
+         =================================================================== -->
+    <section aria-labelledby="ds-titre" class="bg-white rounded-carte p-6 border border-trait">
+      <h2 id="ds-titre" class="text-titre2">Ce qui change sur Android</h2>
+      <p class="text-legende text-slate-500 mt-2">Tout le reste est identique à la version iPhone : couleurs, typographie Plus Jakarta Sans, cartes coach, badges, icônes au trait.</p>
+
+      <!-- Tableau comparatif -->
+      <div class="mt-5 border border-trait rounded-2xl overflow-hidden">
+        <table class="w-full text-legende">
+          <thead class="bg-fond text-left">
+            <tr><th class="p-2.5 font-semibold w-[30%]">Élément</th><th class="p-2.5 font-semibold">iPhone</th><th class="p-2.5 font-semibold">Android</th></tr>
+          </thead>
+          <tbody class="divide-y divide-trait align-top">
+            <tr><td class="p-2.5 font-semibold">Navigation</td><td class="p-2.5 text-slate-600">Capsule flottante translucide</td><td class="p-2.5 text-slate-600">Barre pleine largeur, pastille derrière l'icône active</td></tr>
+            <tr><td class="p-2.5 font-semibold">Retour</td><td class="p-2.5 text-slate-600">Chevron ‹ en haut à gauche</td><td class="p-2.5 text-slate-600">Geste système (retour prédictif) ; flèche ← seulement dans les sous-écrans</td></tr>
+            <tr><td class="p-2.5 font-semibold">Recherche</td><td class="p-2.5 text-slate-600">Titre + champ blanc bordé</td><td class="p-2.5 text-slate-600">Barre de recherche arrondie, fond teinté, sans titre</td></tr>
+            <tr><td class="p-2.5 font-semibold">Puces</td><td class="p-2.5 text-slate-600">Pilules, active en foncé</td><td class="p-2.5 text-slate-600">Coins 8 px, active en vert clair avec coche</td></tr>
+            <tr><td class="p-2.5 font-semibold">Carte</td><td class="p-2.5 text-slate-600">Bouton dans la liste</td><td class="p-2.5 text-slate-600">Bouton flottant « Carte » en bas à droite</td></tr>
+            <tr><td class="p-2.5 font-semibold">Tri</td><td class="p-2.5 text-slate-600">Menu natif iOS</td><td class="p-2.5 text-slate-600">Menu déroulant Material</td></tr>
+            <tr><td class="p-2.5 font-semibold">Interrupteurs</td><td class="p-2.5 text-slate-600">Interrupteur iOS</td><td class="p-2.5 text-slate-600">Interrupteur M3, coche dans le bouton</td></tr>
+            <tr><td class="p-2.5 font-semibold">Messages brefs</td><td class="p-2.5 text-slate-600">Bandeau en haut</td><td class="p-2.5 text-slate-600">Snackbar en bas, au-dessus de la navigation</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="text-entete mt-7 mb-3">Composants Android</h3>
+      <div class="space-y-5">
+        <div>
+          <p class="text-mini uppercase tracking-wide text-slate-500 mb-2">Boutons (hauteur 40, zone tactile 48)</p>
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="h-10 px-6 rounded-full bg-vert text-nuit text-legende font-bold inline-flex items-center">Voir le profil</span>
+            <span class="h-10 px-6 rounded-full bg-indic text-vert-encre text-legende font-bold inline-flex items-center">Tonal</span>
+            <span class="h-10 px-6 rounded-full border border-slate-400 text-legende font-semibold inline-flex items-center">Contour</span>
+            <span class="h-10 px-3 rounded-full text-vert-encre text-legende font-bold inline-flex items-center">Texte</span>
+          </div>
+        </div>
+        <div>
+          <p class="text-mini uppercase tracking-wide text-slate-500 mb-2">Puces de filtre</p>
+          <div class="flex flex-wrap gap-2">
+            <span class="h-8 pl-2 pr-3 rounded-lg bg-indic text-nuit text-legende font-semibold inline-flex items-center gap-1.5">
+              <svg aria-hidden="true" class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m5 12 5 5L20 7"/></svg>Cette semaine</span>
+            <span class="h-8 pl-3 pr-2 rounded-lg border border-slate-400 text-legende font-semibold inline-flex items-center gap-0.5">Budget
+              <svg aria-hidden="true" class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg></span>
+          </div>
+          <p class="text-legende text-slate-500 mt-1.5">Inactive : contour. Active : fond vert clair + coche. Le petit triangle signale qu'un menu s'ouvre.</p>
+        </div>
+        <div>
+          <p class="text-mini uppercase tracking-wide text-slate-500 mb-2">Bouton flottant (FAB étendu)</p>
+          <span class="h-14 pl-4 pr-5 rounded-2xl bg-nuit text-white text-corps font-bold inline-flex items-center gap-2 shadow-lg">
+            <svg aria-hidden="true" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></svg>Carte</span>
+          <p class="text-legende text-slate-500 mt-1.5">Coins 16 px (carré arrondi, propre à Android). Se réduit à l'icône seule au défilement.</p>
+        </div>
+        <div>
+          <p class="text-mini uppercase tracking-wide text-slate-500 mb-2">Interrupteur</p>
+          <div class="flex items-center gap-4">
+            <span class="w-[52px] h-8 rounded-full bg-vert relative" role="img" aria-label="Activé"><span class="absolute right-1 top-1 w-6 h-6 rounded-full bg-white flex items-center justify-center"><svg aria-hidden="true" class="w-4 h-4 text-vert-encre" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m5 12 5 5L20 7"/></svg></span></span>
+            <span class="w-[52px] h-8 rounded-full bg-surf-haut border-2 border-slate-500 relative" role="img" aria-label="Désactivé"><span class="absolute left-[6px] top-[6px] w-4 h-4 rounded-full bg-slate-500"></span></span>
+          </div>
+        </div>
+        <div>
+          <p class="text-mini uppercase tracking-wide text-slate-500 mb-2">Snackbar</p>
+          <div class="rounded-lg bg-nuit text-white text-legende px-4 py-3 flex items-center justify-between gap-3 shadow-lg">Ajouté aux favoris <span class="font-bold text-vert">Annuler</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         2. MAQUETTES — téléphones Android 360 × 800
+         =================================================================== -->
+    <section aria-label="Maquettes" class="flex flex-wrap justify-center gap-10">
+
+      <!-- ------------------------------------------------------------
+           2a. Écran Rechercher
+           ------------------------------------------------------------ -->
+      <figure class="shrink-0">
+        <figcaption class="text-legende font-semibold text-slate-600 mb-3 text-center">① Rechercher — liste</figcaption>
+        <!-- Cadre téléphone Android : 360 × 800 (Pixel / Galaxy courant) -->
+        <div class="relative w-[360px] h-[800px] rounded-[36px] bg-fond overflow-hidden ring-[8px] ring-nuit shadow-2xl">
+
+          <div class="absolute inset-0 overflow-y-auto sans-barre pb-[110px]">
+
+            <!-- Barre d'état Android : heure à gauche, caméra au centre, icônes à droite -->
+            <div class="h-8 px-5 flex items-center justify-between text-[13px] font-semibold tnum">
+              <span>9:41</span>
+              <span class="w-3 h-3 rounded-full bg-nuit" aria-hidden="true"></span>
+              <span class="flex items-center gap-1" aria-hidden="true">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 20 1 8.5a15.6 15.6 0 0 1 22 0z"/></svg>
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="3" width="10" height="19" rx="2"/><rect x="10" y="1" width="4" height="2" rx="1"/></svg>
+              </span>
+            </div>
+
+            <!-- ===== BARRE DE RECHERCHE M3 (collante) =====
+                 UX : écran principal = pas de flèche retour ; le geste système suffit.
+                 Pas de titre : la barre de recherche est le titre (convention Android, comme Google Maps ou Play). -->
+            <div class="sticky top-0 z-20 bg-fond pt-2">
+              <div class="px-4">
+                <div class="h-14 rounded-full bg-surf-haut flex items-center gap-1 pl-4 pr-1">
+                  <svg aria-hidden="true" class="w-6 h-6 text-slate-700 shrink-0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+                  <p class="flex-1 text-corps text-slate-600 truncate pl-2">
+                    <span class="rotation"><span>Yoga à Lyon</span><span>Coach sportif pour débutants</span><span>Préparation marathon</span></span>
+                  </p>
+                  <!-- Bouton icône 48 × 48 ; pastille = 1 filtre actif -->
+                  <span class="relative w-12 h-12 rounded-full flex items-center justify-center" role="img" aria-label="Tous les filtres, 1 filtre actif">
+                    <svg aria-hidden="true" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>
+                    <span class="absolute top-2.5 right-2.5 w-2.5 h-2.5 rounded-full bg-vert-encre ring-2 ring-surf-haut"></span>
+                  </span>
+                </div>
+              </div>
+
+              <!-- ===== PUCES DE FILTRE M3 ===== -->
+              <div class="flex gap-2 overflow-x-auto sans-barre px-4 py-3">
+                <span class="h-8 pl-2 pr-3 rounded-lg bg-indic text-nuit text-legende font-semibold inline-flex items-center gap-1.5 whitespace-nowrap">
+                  <svg aria-hidden="true" class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m5 12 5 5L20 7"/></svg>Cette semaine</span>
+                <span class="h-8 pl-3 pr-2 rounded-lg border border-slate-400 text-legende font-semibold inline-flex items-center gap-0.5 whitespace-nowrap">Discipline
+                  <svg aria-hidden="true" class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg></span>
+                <span class="h-8 pl-3 pr-2 rounded-lg border border-slate-400 text-legende font-semibold inline-flex items-center gap-0.5 whitespace-nowrap">Budget
+                  <svg aria-hidden="true" class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg></span>
+                <span class="h-8 pl-3 pr-2 rounded-lg border border-slate-400 text-legende font-semibold inline-flex items-center gap-0.5 whitespace-nowrap">Avis
+                  <svg aria-hidden="true" class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg></span>
+              </div>
+            </div>
+
+            <!-- ===== RECOMMANDÉS POUR VOUS (identique à l'iPhone) ===== -->
+            <section class="mt-2 bg-vert-voile py-4 border-y border-vert-pale" aria-labelledby="reco-titre">
+              <div class="px-4 flex items-baseline justify-between">
+                <h3 id="reco-titre" class="text-entete">Recommandés pour vous</h3>
+                <span class="text-legende font-semibold text-vert-encre">Pourquoi ?</span>
+              </div>
+              <div class="mt-3 flex gap-3 overflow-x-auto sans-barre px-4 snap-x">
+                <article class="snap-start shrink-0 w-[262px] bg-white rounded-carte p-2 border border-trait">
+                  <div class="relative h-[146px] rounded-2xl overflow-hidden">
+                    <img src="https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&h=400&fit=crop" alt="Camille Durand, coach de yoga" class="w-full h-full object-cover">
+                    <span class="absolute top-2.5 left-2.5 h-6 px-2.5 rounded-full bg-white/90 text-nuit text-mini inline-flex items-center gap-1"><svg aria-hidden="true" class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>Près de chez vous</span>
+                    <span class="absolute top-1 right-1 w-12 h-12 flex items-center justify-center" role="img" aria-label="Ajouter aux favoris">
+                      <span class="w-8 h-8 rounded-full bg-white/90 flex items-center justify-center">
+                        <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+                      </span>
+                    </span>
+                  </div>
+                  <div class="px-2 pt-3 pb-2">
+                    <div class="flex items-center gap-1.5">
+                      <h4 class="text-[16px] font-bold leading-5">Camille Durand</h4>
+                      <svg role="img" aria-label="Coach vérifié" class="w-4 h-4 text-vert-encre" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 1.8 3-.2.9 2.9 2.5 1.7-1 2.8 1 2.8-2.5 1.7-.9 2.9-3-.2L12 22l-2.4-1.8-3 .2-.9-2.9-2.5-1.7 1-2.8-1-2.8 2.5-1.7.9-2.9 3 .2z"/><path d="m8.5 12 2.5 2.5 4.5-5" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </div>
+                    <p class="text-legende text-slate-500 mt-0.5">Yoga · Lyon 6e · <span class="text-nuit font-semibold tnum"><svg aria-hidden="true" class="w-3.5 h-3.5 text-ambre inline -mt-0.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg> 4,9</span> <span class="tnum">(38)</span></p>
+                    <div class="mt-3 flex items-center justify-between">
+                      <p class="text-legende text-slate-500">dès <span class="text-entete text-nuit tnum">65 €</span>/h</p>
+                      <span class="h-6 px-2.5 rounded-full bg-vert-pale text-vert-encre text-mini inline-flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-vert"></span>Dispo demain</span>
+                    </div>
+                  </div>
+                </article>
+                <article class="snap-start shrink-0 w-[262px] bg-white rounded-carte p-2 border border-trait">
+                  <div class="relative h-[146px] rounded-2xl overflow-hidden">
+                    <img src="https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop" alt="Karim Benali, coach sportif" class="w-full h-full object-cover">
+                    <span class="absolute top-2.5 left-2.5 h-6 px-2.5 rounded-full bg-ambre-pale text-ambre-encre text-mini inline-flex items-center gap-1"><svg aria-hidden="true" class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8M15 7h6v6"/></svg>Populaire cette semaine</span>
+                  </div>
+                  <div class="px-2 pt-3 pb-2">
+                    <h4 class="text-[16px] font-bold leading-5">Karim Benali</h4>
+                    <p class="text-legende text-slate-500 mt-0.5">Remise en forme · Villeurbanne</p>
+                  </div>
+                </article>
+              </div>
+            </section>
+
+            <!-- ===== COMPTEUR + TRI (menu déroulant Material) ===== -->
+            <div class="px-4 mt-4 flex items-center justify-between gap-3">
+              <p class="text-legende"><b class="tnum text-nuit">8 coachs</b> <span class="text-slate-500">près de Lyon</span></p>
+              <span class="h-10 px-3 -mr-1 rounded-full inline-flex items-center gap-1 text-legende font-bold text-vert-encre whitespace-nowrap" role="img" aria-label="Trier par : Populaires">
+                <svg aria-hidden="true" class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m3 16 4 4 4-4M7 20V4M21 8l-4-4-4 4M17 4v16"/></svg>
+                Populaires
+                <svg aria-hidden="true" class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+              </span>
+            </div>
+
+            <!-- ===== LISTE DES COACHS (cartes identiques à l'iPhone, bouton M3 de 40 px) ===== -->
+            <div class="px-4 mt-2 space-y-3">
+              <article class="bg-white rounded-carte p-3 border border-trait">
+                <div class="flex gap-3">
+                  <img src="https://images.unsplash.com/photo-1594381898411-846e7d193883?w=300&h=360&fit=crop" alt="Sophie Martin, coach running" class="w-[92px] h-[112px] rounded-2xl object-cover shrink-0">
+                  <div class="flex-1 min-w-0 pt-0.5">
+                    <div class="flex items-start justify-between gap-1">
+                      <div class="flex items-center gap-1.5 min-w-0">
+                        <h4 class="text-[16px] font-bold leading-5 truncate">Sophie Martin</h4>
+                        <svg role="img" aria-label="Coach vérifié" class="w-4 h-4 text-vert-encre shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 1.8 3-.2.9 2.9 2.5 1.7-1 2.8 1 2.8-2.5 1.7-.9 2.9-3-.2L12 22l-2.4-1.8-3 .2-.9-2.9-2.5-1.7 1-2.8-1-2.8 2.5-1.7.9-2.9 3 .2z"/><path d="m8.5 12 2.5 2.5 4.5-5" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </div>
+                      <span class="w-12 h-12 -mt-3 -mr-3 flex items-center justify-center shrink-0" role="img" aria-label="Retirer des favoris">
+                        <svg aria-hidden="true" class="w-5 h-5 text-rose-500" fill="currentColor" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+                      </span>
+                    </div>
+                    <p class="text-legende mt-0.5 tnum"><svg aria-hidden="true" class="w-3.5 h-3.5 text-ambre inline -mt-0.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg> <b>5,0</b> <span class="text-slate-500">(12 avis)</span></p>
+                    <ul class="flex flex-wrap gap-1 mt-2" aria-label="Spécialités">
+                      <li class="h-6 px-2 rounded-full bg-slate-100 text-slate-700 text-mini inline-flex items-center">Running</li>
+                      <li class="h-6 px-2 rounded-full bg-slate-100 text-slate-700 text-mini inline-flex items-center">Trail</li>
+                      <li class="h-6 px-2 rounded-full bg-slate-100 text-slate-700 text-mini inline-flex items-center">Marathon</li>
+                    </ul>
+                    <ul class="text-legende text-slate-500 mt-2 space-y-0.5"><li class="flex items-center gap-1.5"><svg aria-hidden="true" class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>Lyon & En ligne</li><li class="flex items-center gap-1.5"><svg aria-hidden="true" class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Répond en 2 h</li></ul>
+                  </div>
+                </div>
+                <div class="h-px bg-trait my-3"></div>
+                <div class="flex items-center justify-between gap-2">
+                  <div>
+                    <span class="h-6 px-2 rounded-full bg-vert-pale text-vert-encre text-mini inline-flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-vert"></span>Dispo cette semaine</span>
+                    <p class="text-legende text-slate-500 mt-1">Séance dès <span class="text-entete text-nuit tnum">110 €</span>/h</p>
+                  </div>
+                  <span class="h-10 px-6 rounded-full bg-vert text-nuit text-legende font-bold inline-flex items-center whitespace-nowrap">Voir le profil</span>
+                </div>
+              </article>
+
+              <article class="bg-white rounded-carte p-3 border border-trait">
+                <div class="flex gap-3">
+                  <img src="https://images.unsplash.com/photo-1567013127542-490d757e51fc?w=300&h=360&fit=crop" alt="Thomas Petit, coach musculation" class="w-[92px] h-[112px] rounded-2xl object-cover shrink-0">
+                  <div class="flex-1 min-w-0 pt-0.5">
+                    <h4 class="text-[16px] font-bold leading-5 truncate">Thomas Petit</h4>
+                    <p class="text-legende mt-0.5 tnum"><svg aria-hidden="true" class="w-3.5 h-3.5 text-ambre inline -mt-0.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg> <b>4,8</b> <span class="text-slate-500">(27 avis)</span></p>
+                    <ul class="flex flex-wrap gap-1 mt-2" aria-label="Spécialités">
+                      <li class="h-6 px-2 rounded-full bg-slate-100 text-slate-700 text-mini inline-flex items-center">Musculation</li>
+                      <li class="h-6 px-2 rounded-full bg-slate-100 text-slate-700 text-mini inline-flex items-center">Perte de poids</li>
+                    </ul>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </div>
+
+          <!-- ===== SNACKBAR (exemple : après un appui sur le cœur) ===== -->
+          <div class="absolute left-4 right-4 bottom-[170px] z-30 rounded-lg bg-nuit text-white text-legende px-4 py-3 flex items-center justify-between gap-3 shadow-lg">
+            Ajouté aux favoris <span class="font-bold text-vert">Annuler</span>
+          </div>
+
+          <!-- ===== FAB ÉTENDU « Carte » ===== -->
+          <span class="absolute right-4 bottom-[102px] z-30 h-14 pl-4 pr-5 rounded-2xl bg-nuit text-white text-corps font-bold inline-flex items-center gap-2 shadow-[0_6px_16px_rgba(15,23,42,0.28)]" role="img" aria-label="Voir sur la carte">
+            <svg aria-hidden="true" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></svg>Carte</span>
+
+          <!-- ===== BARRE DE NAVIGATION M3 =====
+               Pleine largeur, collée en bas, fond teinté. L'onglet actif a une pastille 56 × 32 derrière l'icône. -->
+          <nav aria-label="Navigation principale" class="absolute bottom-0 inset-x-0 z-30 bg-surf-bas pt-3 pb-[22px]">
+            <ul class="flex">
+              <li class="flex-1 flex flex-col items-center gap-1 text-slate-600">
+                <span class="w-14 h-8 flex items-center justify-center"><svg aria-hidden="true" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg></span>
+                <span class="text-label tracking-tight">Accueil</span></li>
+              <li class="flex-1 flex flex-col items-center gap-1 text-nuit" aria-current="page">
+                <span class="w-14 h-8 rounded-full bg-indic flex items-center justify-center"><svg aria-hidden="true" class="w-6 h-6 text-vert-encre" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></span>
+                <span class="text-label font-bold tracking-tight">Rechercher</span></li>
+              <li class="flex-1 flex flex-col items-center gap-1 text-slate-600">
+                <span class="w-14 h-8 flex items-center justify-center"><svg aria-hidden="true" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M8 2v4M16 2v4M3 10h18"/></svg></span>
+                <span class="text-label tracking-tight">Réservations</span></li>
+              <li class="flex-1 flex flex-col items-center gap-1 text-slate-600">
+                <span class="w-14 h-8 flex items-center justify-center"><svg aria-hidden="true" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8M15 7h6v6"/></svg></span>
+                <span class="text-label tracking-tight">Progression</span></li>
+              <li class="flex-1 flex flex-col items-center gap-1 text-slate-600">
+                <span class="w-14 h-8 flex items-center justify-center"><svg aria-hidden="true" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span>
+                <span class="text-label tracking-tight">Profil</span></li>
+            </ul>
+          </nav>
+          <!-- Poignée de navigation par gestes Android -->
+          <div class="absolute bottom-2 left-1/2 -translate-x-1/2 w-[108px] h-1 rounded-full bg-nuit/80 z-40"></div>
+        </div>
+      </figure>
+
+      <!-- ------------------------------------------------------------
+           2b. Feuille « Tous les filtres »
+           ------------------------------------------------------------ -->
+      <figure class="shrink-0">
+        <figcaption class="text-legende font-semibold text-slate-600 mb-3 text-center">② Tous les filtres — feuille du bas</figcaption>
+        <div class="relative w-[360px] h-[800px] rounded-[36px] bg-fond overflow-hidden ring-[8px] ring-nuit shadow-2xl">
+          <div class="absolute inset-0 bg-nuit/40"></div>
+
+          <!-- Feuille du bas M3 : coins 28 px, poignée 32 × 4, fond « surface container bas » -->
+          <div class="absolute inset-x-0 bottom-0 top-[48px] bg-white rounded-t-[28px] flex flex-col">
+            <div class="h-9 flex items-center justify-center"><span class="w-8 h-1 rounded-full bg-slate-400" aria-hidden="true"></span></div>
+            <!-- En-tête : fermer à gauche (croix), titre aligné à gauche, action texte à droite -->
+            <div class="h-14 pl-1 pr-2 flex items-center gap-1">
+              <span class="w-12 h-12 rounded-full flex items-center justify-center" role="img" aria-label="Fermer">
+                <svg aria-hidden="true" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>
+              </span>
+              <h2 class="flex-1 text-[20px] leading-7 font-bold">Filtres</h2>
+              <span class="h-10 px-3 rounded-full inline-flex items-center text-legende font-bold text-vert-encre">Effacer</span>
+            </div>
+
+            <div class="flex-1 overflow-y-auto sans-barre px-4 pb-4 space-y-6">
+              <section>
+                <h3 class="text-entete mb-2.5">Disponibilité</h3>
+                <div class="flex flex-wrap gap-2">
+                  <span class="h-8 px-3 rounded-lg border border-slate-400 text-legende font-semibold inline-flex items-center">Aujourd'hui</span>
+                  <span class="h-8 pl-2 pr-3 rounded-lg bg-indic text-legende font-semibold inline-flex items-center gap-1.5"><svg aria-hidden="true" class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m5 12 5 5L20 7"/></svg>Cette semaine</span>
+                  <span class="h-8 px-3 rounded-lg border border-slate-400 text-legende font-semibold inline-flex items-center">Le week-end</span>
+                  <span class="h-8 px-3 rounded-lg border border-slate-400 text-legende font-semibold inline-flex items-center">Le soir</span>
+                </div>
+              </section>
+              <section>
+                <h3 class="text-entete mb-2.5">Discipline</h3>
+                <div class="flex flex-wrap gap-2">
+                  <span class="h-8 px-3 rounded-lg border border-slate-400 text-legende font-semibold inline-flex items-center">Remise en forme</span>
+                  <span class="h-8 px-3 rounded-lg border border-slate-400 text-legende font-semibold inline-flex items-center">Yoga</span>
+                  <span class="h-8 px-3 rounded-lg border border-slate-400 text-legende font-semibold inline-flex items-center">Running</span>
+                  <span class="h-8 px-3 rounded-lg border border-slate-400 text-legende font-semibold inline-flex items-center">Bien-être</span>
+                </div>
+              </section>
+              <section>
+                <div class="flex items-baseline justify-between mb-2">
+                  <h3 class="text-entete">Budget par séance</h3>
+                  <span class="text-legende font-semibold tnum">40 € – 120 €</span>
+                </div>
+                <!-- Curseur M3 Expressive : piste épaisse, poignées en barres verticales avec un petit espace -->
+                <div class="relative h-12 flex items-center" role="img" aria-label="Curseur de budget, de 40 à 120 euros">
+                  <div class="absolute left-0 right-[calc(85%+6px)] h-4 rounded-l-full rounded-r-[4px] bg-surf-haut"></div>
+                  <div class="absolute left-[calc(15%+6px)] right-[calc(30%+6px)] h-4 rounded-[4px] bg-vert"></div>
+                  <div class="absolute left-[calc(70%+6px)] right-0 h-4 rounded-r-full rounded-l-[4px] bg-surf-haut"></div>
+                  <span class="absolute left-[15%] -translate-x-1/2 w-1 h-11 rounded-full bg-vert-encre"></span>
+                  <span class="absolute left-[70%] -translate-x-1/2 w-1 h-11 rounded-full bg-vert-encre"></span>
+                </div>
+              </section>
+              <section>
+                <h3 class="text-entete mb-2.5">Avis</h3>
+                <!-- Groupe de boutons segmentés : un seul choix possible -->
+                <div class="flex h-10 rounded-full border border-slate-400 overflow-hidden text-legende font-semibold">
+                  <span class="flex-1 flex items-center justify-center">Tous</span>
+                  <span class="flex-1 flex items-center justify-center gap-1 bg-indic border-x border-slate-400 tnum"><svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m5 12 5 5L20 7"/></svg>4,0 et +</span>
+                  <span class="flex-1 flex items-center justify-center tnum">4,5 et +</span>
+                </div>
+              </section>
+              <section>
+                <h3 class="text-entete mb-1">Format</h3>
+                <ul class="divide-y divide-trait">
+                  <li class="h-14 flex items-center justify-between text-corps">En présentiel
+                    <span class="w-[52px] h-8 rounded-full bg-vert relative" role="img" aria-label="Activé"><span class="absolute right-1 top-1 w-6 h-6 rounded-full bg-white flex items-center justify-center"><svg aria-hidden="true" class="w-4 h-4 text-vert-encre" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m5 12 5 5L20 7"/></svg></span></span></li>
+                  <li class="h-14 flex items-center justify-between text-corps">En ligne
+                    <span class="w-[52px] h-8 rounded-full bg-vert relative" role="img" aria-label="Activé"><span class="absolute right-1 top-1 w-6 h-6 rounded-full bg-white flex items-center justify-center"><svg aria-hidden="true" class="w-4 h-4 text-vert-encre" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m5 12 5 5L20 7"/></svg></span></span></li>
+                  <li class="h-14 flex items-center justify-between text-corps">Coachs vérifiés uniquement
+                    <span class="w-[52px] h-8 rounded-full bg-surf-haut border-2 border-slate-500 relative" role="img" aria-label="Désactivé"><span class="absolute left-[6px] top-[6px] w-4 h-4 rounded-full bg-slate-500"></span></span></li>
+                </ul>
+              </section>
+            </div>
+
+            <!-- Action principale : bouton plein, plus haut que les autres car c'est l'action de la feuille -->
+            <div class="px-4 pt-3 pb-[28px] bg-white border-t border-trait">
+              <span class="h-12 w-full rounded-full bg-vert text-nuit text-corps font-bold flex items-center justify-center tnum">Afficher 8 coachs</span>
+            </div>
+          </div>
+          <div class="absolute bottom-2 left-1/2 -translate-x-1/2 w-[108px] h-1 rounded-full bg-nuit/80 z-40"></div>
+        </div>
+      </figure>
+    </section>
+
+    <!-- ===================================================================
+         3. ANNOTATIONS UX
+         =================================================================== -->
+    <aside aria-labelledby="ux-titre" class="bg-white rounded-carte p-6 border border-trait">
+      <h2 id="ux-titre" class="text-titre2">Annotations UX</h2>
+      <ol class="mt-4 space-y-4 text-legende text-slate-700 list-decimal pl-4 marker:font-bold marker:text-vert-encre">
+        <li><b class="text-nuit">Pas de flèche retour sur l'écran principal.</b> Sur Android, on revient en arrière par le geste système (glisser depuis le bord). Avec le « retour prédictif », l'écran précédent s'affiche pendant le geste. La flèche ← n'apparaît que dans les sous-écrans (fiche coach, réservation).</li>
+        <li><b class="text-nuit">La barre de recherche est le titre.</b> Grande barre arrondie à fond teinté, comme Google Maps ou le Play Store. L'icône de filtres est dans la barre, avec une pastille quand un filtre est actif.</li>
+        <li><b class="text-nuit">Puces Material.</b> Coins de 8 px au lieu de pilules. Une puce active passe en vert clair avec une coche, ce qui ne repose pas sur la couleur seule. Le petit triangle indique qu'un menu s'ouvre.</li>
+        <li><b class="text-nuit">Bouton flottant « Carte ».</b> Réflexe Android pour l'action principale de l'écran. Il se réduit à l'icône quand on fait défiler la liste, pour ne pas cacher les cartes.</li>
+        <li><b class="text-nuit">Barre de navigation pleine largeur.</b> Collée en bas, fond légèrement teinté, comme toutes les apps Android récentes. L'onglet actif a une pastille vert clair derrière l'icône et un libellé en gras. Libellés 12 px, toujours visibles.</li>
+        <li><b class="text-nuit">Messages brefs en bas.</b> « Ajouté aux favoris » s'affiche en snackbar au-dessus de la navigation, avec « Annuler ». Sur iPhone, le même message reste en haut.</li>
+        <li><b class="text-nuit">Feuille de filtres.</b> Croix à gauche et titre aligné à gauche (convention Android), « Effacer » à droite. Curseur de budget au style Material 3 Expressive, avis en boutons segmentés, interrupteurs Material avec coche.</li>
+        <li><b class="text-nuit">Tactile et accessibilité.</b> Zones tactiles de 48 × 48 px (norme Android, contre 44 sur iPhone). Mêmes contrastes que la version iPhone : texte vert sur blanc en #007A3D.</li>
+        <li><b class="text-nuit">Effet d'appui.</b> Sur Android, chaque bouton et chaque carte montre une onde légère au toucher (« ripple ») ; sur iPhone, un léger rétrécissement. Non visible sur une maquette statique.</li>
+      </ol>
+
+      <div class="mt-6 rounded-2xl bg-ambre-pale p-4 text-legende text-ambre-encre">
+        <p class="font-bold text-[#92400E]">Côté code</p>
+        <p class="mt-1 text-[#92400E]">L'app est la même sur les deux téléphones. Le code détecte Android et choisit la bonne barre de navigation, le bon retour et le bon style de puces : environ ½ jour de plus que la version iPhone seule.</p>
+      </div>
+    </aside>
+  </div>
+</main>
+</body>
+</html>
