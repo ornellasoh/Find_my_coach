@@ -6,6 +6,7 @@ import { fetchStripeStatus } from '../../lib/payments';
 import { Avatar } from '../ui/Avatar';
 import { Card, IconTile, Screen, SectionHeader } from '../ui/fmc';
 import { useApp } from '../../context/AppContext';
+import { CoachReplyEditor } from '../common/ReviewReply';
 
 /** « mar. 13 oct. » (ou « Aujourd'hui » / « Demain ») à partir d'une date AAAA-MM-JJ. */
 const dayLabel = (iso: string) => {
@@ -42,7 +43,10 @@ export const CoachDashboard: React.FC = () => {
   // Revenus : séances terminées, commission de 15 % déduite
   const earnings = coachBookings.filter((b) => b.bookingStatus === 'completed').reduce((sum, b) => sum + b.price, 0) * 0.85;
   const openSlots = availabilities.filter((a) => a.coachId === coach?.id && !a.isBooked).length;
-  const coachReviews = reviews.filter((r) => r.coachId === coach?.id);
+  // Les avis sans réponse d'abord, pour que le coach les voie et puisse répondre.
+  const coachReviews = reviews
+    .filter((r) => r.coachId === coach?.id && !r.isHidden)
+    .sort((a, b) => Number(!!a.coachReply) - Number(!!b.coachReply));
   const firstName = (coach?.name || currentUser?.name || '').split(' ')[0];
 
   // Paiements Stripe : inconnu tant que la réponse n'est pas arrivée (la carte de progression attend)
@@ -234,7 +238,7 @@ export const CoachDashboard: React.FC = () => {
         <section>
           <SectionHeader title="Derniers avis" />
           <div className="space-y-2.5">
-            {coachReviews.slice(0, 2).map((r) => (
+            {coachReviews.slice(0, 3).map((r) => (
               <Card key={r.id} className="p-4">
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-semibold truncate">{r.clientName}</span>
@@ -244,6 +248,7 @@ export const CoachDashboard: React.FC = () => {
                   </span>
                 </div>
                 <p className="text-sm text-slate-600 dark:text-slate-300 leading-normal mt-1.5">{r.comment}</p>
+                <CoachReplyEditor review={r} />
               </Card>
             ))}
           </div>

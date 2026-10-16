@@ -275,6 +275,8 @@ export interface Review {
   createdAt: string;
   isHidden?: boolean;
   categoryTag?: string;
+  coachReply?: string | null; // réponse publique du coach (une seule), lue depuis la colonne coach_reply
+  coachReplyAt?: string | null;
 }
 
 export interface Favorite {
@@ -299,6 +301,7 @@ export type NotificationType =
   | 'reschedule_declined'
   | 'session_report'
   | 'review_request'
+  | 'review_reply'
   | 'reminder'
   | 'reminder_soon'
   | 'system';

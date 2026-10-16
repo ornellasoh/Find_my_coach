@@ -217,6 +217,8 @@ interface AppContextType {
   addReview: (bookingId: string, rating: number, comment: string) => void;
   getCoachReviews: (coachId: string) => Review[];
   toggleReviewVisibility: (reviewId: string) => void;
+  /** Réponse publique du coach à un avis (une seule fois). Renvoie un message d'erreur, ou null si c'est enregistré. */
+  replyToReview: (reviewId: string, reply: string) => Promise<string | null>;
   
   // Favorites
   favorites: Favorite[];
@@ -1140,6 +1142,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return reviews.filter((r) => r.coachId === coachId && !r.isHidden);
   };
 
+  const replyToReview = async (reviewId: string, reply: string): Promise<string | null> => {
+    const text = reply.trim();
+    if (!text) return 'Écrivez votre réponse.';
+    let at = new Date().toISOString();
+    if (supabase) {
+      const { data, error } = await supabase.rpc('fmc_reply_to_review', { p_review_id: reviewId, p_reply: text });
+      if (error) return error.message;
+      if (data) at = data as string;
+    }
+    setReviews((prev) => prev.map((r) => (r.id === reviewId ? { ...r, coachReply: text, coachReplyAt: at } : r)));
+    return null;
+  };
+
   const toggleReviewVisibility = (reviewId: string) => {
     setReviews((prev) =>
       prev.map((r) => (r.id === reviewId ? { ...r, isHidden: !r.isHidden } : r))
@@ -1708,6 +1723,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addReview,
         getCoachReviews,
         toggleReviewVisibility,
+        replyToReview,
         favorites,
         toggleFavorite,
         isFavorite,

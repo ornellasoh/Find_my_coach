@@ -77,7 +77,7 @@ export async function fetchSnapshot(): Promise<RemoteSnapshot> {
     supabase.from('availabilities').select('data').gte('date', fromDate).limit(5000),
     supabase.from('booked_slots').select('availability_id').gte('date', fromDate).limit(5000),
     supabase.from('bookings').select('data').order('created_at', { ascending: false }).limit(500),
-    supabase.from('reviews').select('data').order('created_at', { ascending: false }).limit(1000),
+    supabase.from('reviews').select('data, coach_reply, coach_reply_at').order('created_at', { ascending: false }).limit(1000),
     supabase.from('favorites').select('data'),
     supabase.from('notifications').select('data').order('created_at', { ascending: false }).limit(100),
     supabase.from('goals').select('data'),
@@ -104,7 +104,12 @@ export async function fetchSnapshot(): Promise<RemoteSnapshot> {
     availabilities: rowsToData(availabilities.data as { data: AvailabilitySlot }[]),
     bookedSlotIds: ((booked.data || []) as { availability_id: string }[]).map((r) => r.availability_id),
     bookings: rowsToData(bookings.data as { data: Booking }[]),
-    reviews: rowsToData(reviews.data as { data: Review }[]),
+    // La réponse du coach vient de ses colonnes dédiées (seul le serveur peut l'écrire), pas de `data`.
+    reviews: ((reviews.data || []) as { data: Review; coach_reply: string | null; coach_reply_at: string | null }[]).map((r) => ({
+      ...r.data,
+      coachReply: r.coach_reply,
+      coachReplyAt: r.coach_reply_at,
+    })),
     favorites: rowsToData(favorites.data as { data: Favorite }[]),
     notifications: rowsToData(notifications.data as { data: Notification }[]),
     goals: rowsToData(goals.data as { data: Goal }[]),
