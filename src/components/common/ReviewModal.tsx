@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Star, X, Check } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { Star, Check } from 'lucide-react';
+import { Sheet } from '../ui/fmc';
 
 export const ReviewModal: React.FC = () => {
   const { reviewModalBooking, setReviewModalBooking, addReview } = useApp();
@@ -32,87 +32,64 @@ export const ReviewModal: React.FC = () => {
   };
 
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 10 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 10 }}
-          className="bg-white border border-slate-200 rounded-3xl p-6 w-full max-w-md shadow-2xl relative text-[#0F172A]"
-        >
+    <Sheet onClose={() => setReviewModalBooking(null)} title={success ? undefined : 'Votre avis'} label="Votre avis">
+      {success ? (
+        <div className="py-8 text-center space-y-2">
+          <div className="w-14 h-14 bg-[#E6FBEF] dark:bg-fmc-green/15 text-[#007A3D] dark:text-fmc-green rounded-full flex items-center justify-center mx-auto">
+            <Check className="w-7 h-7" strokeWidth={3} />
+          </div>
+          <h3 className="text-[20px] font-bold">Merci pour votre avis</h3>
+          <p className="text-[15px] text-slate-500">Il aide les autres clients à choisir leur coach.</p>
+        </div>
+      ) : (
+        <form id="review-form" onSubmit={handleSubmit} className="space-y-5">
+          <div className="text-center">
+            <h3 className="text-[20px] leading-[25px] font-bold">Comment s'est passée votre séance ?</h3>
+            <p className="text-[15px] text-slate-500 mt-1">avec {reviewModalBooking.coachName}</p>
+          </div>
+
+          {/* Note : cinq étoiles de 44 px */}
+          <div className="flex justify-center items-center gap-1" role="radiogroup" aria-label="Note sur 5">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <button
+                key={star}
+                type="button"
+                role="radio"
+                aria-checked={rating === star}
+                aria-label={`${star} étoile${star > 1 ? 's' : ''}`}
+                onMouseEnter={() => setHoverRating(star)}
+                onMouseLeave={() => setHoverRating(0)}
+                onClick={() => setRating(star)}
+                className="apple-press w-11 h-11 flex items-center justify-center cursor-pointer"
+              >
+                <Star className={`w-8 h-8 ${(hoverRating || rating) >= star ? 'fill-amber-400 text-amber-400' : 'text-slate-300 dark:text-slate-600'}`} />
+              </button>
+            ))}
+          </div>
+
+          <label className="block">
+            <span className="block text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Votre commentaire</span>
+            <textarea
+              id="input-review-comment"
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              placeholder="La pédagogie, l'intensité, l'écoute du coach…"
+              rows={4}
+              required
+              className="w-full text-[15px] p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-fmc-green/50 resize-none placeholder:text-slate-500"
+            />
+          </label>
+
           <button
-            id="btn-close-review-modal"
-            onClick={() => setReviewModalBooking(null)}
-            className="absolute top-4 right-4 p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+            id="btn-submit-review"
+            type="submit"
+            disabled={isSubmitting || !comment.trim()}
+            className="apple-press w-full h-12 rounded-full bg-fmc-green disabled:opacity-50 text-fmc-navy text-[15px] font-bold cursor-pointer"
           >
-            <X className="w-5 h-5" />
+            {isSubmitting ? 'Publication…' : 'Publier mon avis'}
           </button>
-
-          {success ? (
-            <div className="py-6 text-center space-y-2">
-              <div className="w-12 h-12 bg-[#00D664]/15 text-[#008A3E] border border-[#00D664]/30 rounded-full flex items-center justify-center mx-auto shadow-xs">
-                <Check className="w-6 h-6 stroke-[3]" />
-              </div>
-              <h3 className="text-lg font-black text-[#0F172A]">Merci pour votre avis !</h3>
-              <p className="text-xs text-slate-500">Votre évaluation aide la communauté à choisir les meilleurs coachs.</p>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="text-center space-y-1">
-                <span className="text-[11px] font-extrabold text-[#008A3E] uppercase tracking-wider">Avis de séance</span>
-                <h3 className="text-base font-black text-[#0F172A]">Comment s'est passée votre séance ?</h3>
-                <p className="text-xs text-slate-500">avec {reviewModalBooking.coachName}</p>
-              </div>
-
-              {/* Star Rating */}
-              <div className="flex justify-center items-center gap-2 py-2">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <button
-                    key={star}
-                    type="button"
-                    onMouseEnter={() => setHoverRating(star)}
-                    onMouseLeave={() => setHoverRating(0)}
-                    onClick={() => setRating(star)}
-                    className="p-1 transition-transform hover:scale-110 focus:outline-none cursor-pointer"
-                  >
-                    <Star
-                      className={`w-7 h-7 ${
-                        (hoverRating || rating) >= star
-                          ? 'fill-amber-400 text-amber-400'
-                          : 'text-slate-300'
-                      }`}
-                    />
-                  </button>
-                ))}
-              </div>
-
-              {/* Comment field */}
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700">Votre commentaire</label>
-                <textarea
-                  id="input-review-comment"
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  placeholder="Partagez vos impressions sur la pédagogie, l'intensité et l'écoute du coach..."
-                  rows={4}
-                  required
-                  className="w-full text-xs p-3 rounded-xl bg-slate-50 text-slate-900 border border-slate-300 focus:outline-none focus:border-[#00D664] resize-none placeholder:text-slate-400"
-                />
-              </div>
-
-              <div className="pt-1">
-                <button
-                  type="submit"
-                  disabled={isSubmitting || !comment.trim()}
-                  className="w-full py-3 px-4 bg-[#00D664] hover:bg-[#00B050] disabled:opacity-50 text-[#0F172A] font-extrabold rounded-xl transition shadow-xs flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  {isSubmitting ? 'Publication en cours...' : 'Publier mon avis'}
-                </button>
-              </div>
-            </form>
-          )}
-        </motion.div>
-      </div>
-    </AnimatePresence>
+        </form>
+      )}
+    </Sheet>
   );
 };

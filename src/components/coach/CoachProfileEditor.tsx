@@ -8,6 +8,7 @@ import { uploadProfilePhoto } from '../../lib/photos';
 import { ThemePicker } from '../common/ThemePicker';
 import { DeleteAccount } from '../common/DeleteAccount';
 import { useApp } from '../../context/AppContext';
+import { ScreenHeader } from '../ui/fmc';
 import { 
   ArrowLeft, 
   Save, 
@@ -24,7 +25,13 @@ import {
   AlertCircle,
   Video,
   Layers,
-  Sparkles
+  Sparkles,
+  Home,
+  Dumbbell,
+  Trees,
+  Building2,
+  Wallet,
+  ChevronRight
 } from 'lucide-react';
 import { CoachingFormat, CoachLevel } from '../../types';
 import { CoachDocumentsPanel } from './CoachDocumentsPanel';
@@ -42,6 +49,7 @@ export const CoachProfileEditor: React.FC = () => {
     updateCoachPhoto,
     availabilities,
     goBack,
+    navigateTo,
     logout,
     loginAs
   } = useApp();
@@ -106,7 +114,7 @@ export const CoachProfileEditor: React.FC = () => {
     try {
       const url = await uploadProfilePhoto(file, currentUser.id);
       updateCoachPhoto(coach.id, url);
-      setFeedback('Photo de profil mise à jour ✓');
+      setFeedback('Photo de profil mise à jour');
       setTimeout(() => setFeedback(''), 3000);
     } catch (err) {
       setPhotoError(err instanceof Error ? err.message : "L'envoi de la photo a échoué.");
@@ -210,7 +218,7 @@ export const CoachProfileEditor: React.FC = () => {
 
 
   const pill = (active: boolean) =>
-    `min-h-10 px-3 rounded-full text-xs font-bold border transition cursor-pointer ${active ? 'bg-[#00D664]/15 border-[#00D664] text-[#008A3E]' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'}`;
+    `min-h-10 px-3 rounded-full text-xs font-bold border transition cursor-pointer ${active ? 'bg-fmc-green/15 border-[#00D664] text-[#008A3E]' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'}`;
 
   const checklist = coach
     ? profileChecklist(
@@ -222,23 +230,28 @@ export const CoachProfileEditor: React.FC = () => {
   const doneCount = checklist.filter((c) => c.done).length;
 
   return (
-    <div className="min-h-screen bg-[#F6F9FA] text-[#0F172A] pb-28 max-w-md mx-auto px-4 pt-3">
-      {/* Header */}
-      <div className="flex items-center justify-between py-2 mb-3">
-        <button
-          onClick={goBack}
-          className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-700 shadow-xs hover:bg-slate-50 transition cursor-pointer"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
+    <div className="min-h-screen bg-fmc-bg dark:bg-[#0B0F19] text-fmc-navy dark:text-slate-100 pb-32 max-w-md mx-auto px-5 pt-4">
+      <ScreenHeader title="Mon profil pro" onBack={goBack} />
 
-        <h1 className="text-base font-extrabold text-[#0F172A]">Édition du Profil Pro</h1>
-
-        <div className="w-10" />
-      </div>
+      {/* Revenus : déplacés ici depuis la barre d'onglets (5 onglets au plus) */}
+      <button
+        type="button"
+        id="btn-open-financials"
+        onClick={() => navigateTo('coach_financials')}
+        className="apple-press w-full mb-4 p-3.5 rounded-3xl bg-white dark:bg-slate-900 border border-fmc-line/80 dark:border-slate-800 flex items-center gap-3 text-left cursor-pointer"
+      >
+        <span className="w-11 h-11 rounded-2xl bg-[#E6FBEF] dark:bg-fmc-green/15 text-[#007A3D] dark:text-fmc-green flex items-center justify-center shrink-0">
+          <Wallet className="w-5 h-5" />
+        </span>
+        <span className="flex-1 min-w-0">
+          <span className="block text-[15px] font-semibold">Revenus et versements</span>
+          <span className="block text-[13px] text-slate-500">Paiements Stripe, historique des séances</span>
+        </span>
+        <ChevronRight className="w-5 h-5 text-slate-400 shrink-0" />
+      </button>
 
       {feedback && (
-        <div className="mb-4 p-3.5 bg-[#00D664]/15 border border-[#00D664]/30 text-[#008A3E] text-xs font-bold rounded-2xl flex items-center gap-2 shadow-xs">
+        <div className="mb-4 p-3.5 bg-fmc-green/15 border border-[#00D664]/30 text-[#008A3E] text-xs font-bold rounded-2xl flex items-center gap-2 shadow-xs">
           <Check className="w-4 h-4" />
           <span>{feedback}</span>
         </div>
@@ -248,18 +261,18 @@ export const CoachProfileEditor: React.FC = () => {
 
       {/* Profil à compléter */}
       {checklist.length > 0 && doneCount < checklist.length && (
-        <details className="mb-4 bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-xs" open={doneCount < 6}>
+        <details className="mb-4 bg-white dark:bg-slate-900 rounded-3xl p-4 border border-fmc-line/80 dark:border-slate-800" open={doneCount < 6}>
           <summary className="cursor-pointer text-sm font-bold flex items-center justify-between">
             <span>Profil complété à {Math.round((doneCount / checklist.length) * 100)} %</span>
             <span className="text-xs text-slate-500">{doneCount}/{checklist.length}</span>
           </summary>
           <div className="mt-2 h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-            <div className="h-full bg-[#00D664]" style={{ width: `${(doneCount / checklist.length) * 100}%` }} />
+            <div className="h-full bg-fmc-green" style={{ width: `${(doneCount / checklist.length) * 100}%` }} />
           </div>
           <ul className="mt-3 space-y-1.5">
             {checklist.map((c) => (
               <li key={c.key} className={`text-xs flex items-center gap-2 ${c.done ? 'text-slate-400 line-through' : 'font-semibold'}`}>
-                <span className={`w-4 h-4 rounded-full flex items-center justify-center ${c.done ? 'bg-[#00D664] text-white' : 'border border-slate-300'}`}>
+                <span className={`w-4 h-4 rounded-full flex items-center justify-center ${c.done ? 'bg-fmc-green text-white' : 'border border-slate-300'}`}>
                   {c.done && <Check className="w-3 h-3" />}
                 </span>
                 {c.label}
@@ -272,7 +285,7 @@ export const CoachProfileEditor: React.FC = () => {
 
       <form onSubmit={handleSave} className="space-y-4">
         {/* Photo de profil */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs flex items-center gap-4">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 border border-fmc-line/80 dark:border-slate-800 flex items-center gap-4">
           <button
             type="button"
             onClick={() => photoInput.current?.click()}
@@ -288,14 +301,14 @@ export const CoachProfileEditor: React.FC = () => {
             )}
           </button>
           <div className="flex-1 min-w-0">
-            <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider block">Photo de profil</span>
+            <span className="text-[13px] font-semibold text-slate-500 dark:text-slate-400 block">Photo de profil</span>
             <p className="text-xs text-slate-500 mt-0.5 leading-snug">Visible par les clients sur votre fiche. Une photo nette de votre visage inspire confiance.</p>
             <button
               id="btn-change-photo"
               type="button"
               onClick={() => photoInput.current?.click()}
               disabled={photoBusy}
-              className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#00D664] text-[#0F172A] text-xs font-bold cursor-pointer disabled:opacity-60"
+              className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-fmc-green text-fmc-navy text-xs font-bold cursor-pointer disabled:opacity-60"
             >
               <Camera className="w-3.5 h-3.5" />
               {photoBusy ? 'Envoi…' : realPhoto(coach?.photo) ? 'Changer la photo' : 'Ajouter une photo'}
@@ -306,60 +319,60 @@ export const CoachProfileEditor: React.FC = () => {
         </div>
 
         {/* Titre & Bio */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs space-y-3">
-          <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider block">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 border border-fmc-line/80 dark:border-slate-800 space-y-3">
+          <span className="text-[13px] font-semibold text-slate-500 dark:text-slate-400 block">
             Présentation & Vidéo
           </span>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Titre professionnel</label>
+            <label className="block text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Titre professionnel</label>
             <input
               type="text"
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="ex. Coach Haute Performance & Préparation Physique"
-              className="w-full px-3.5 py-2 bg-slate-50 text-xs text-slate-900 rounded-xl border border-slate-300 focus:outline-none focus:border-[#00D664]"
+              className="w-full min-h-11 px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 text-[15px] rounded-xl border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-fmc-green/50"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Biographie détaillée</label>
+            <label className="block text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Biographie détaillée</label>
             <textarea
               rows={4}
               required
               value={bio}
               onChange={(e) => setBio(e.target.value)}
-              className="w-full px-3.5 py-2 bg-slate-50 text-xs text-slate-900 rounded-xl border border-slate-300 focus:outline-none focus:border-[#00D664] resize-none leading-relaxed"
+              className="w-full min-h-11 px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 text-[15px] rounded-xl border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-fmc-green/50 resize-none leading-relaxed"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Vidéo de présentation (lien YouTube, Vimeo…)</label>
+            <label className="block text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Vidéo de présentation (lien YouTube, Vimeo…)</label>
             <input
               type="text"
               value={videoLink}
               onChange={(e) => setVideoLink(e.target.value)}
               placeholder="https://youtube.com/…"
-              className="w-full px-3.5 py-2 bg-slate-50 text-xs text-slate-900 rounded-xl border border-slate-300 focus:outline-none focus:border-[#00D664]"
+              className="w-full min-h-11 px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 text-[15px] rounded-xl border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-fmc-green/50"
             />
           </div>
         </div>
 
         {/* Formats de coaching & Tarifs */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs space-y-3">
-          <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider block">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 border border-fmc-line/80 dark:border-slate-800 space-y-3">
+          <span className="text-[13px] font-semibold text-slate-500 dark:text-slate-400 block">
             Formats de Séance Proposés
           </span>
 
           <div className="grid grid-cols-2 gap-2">
             {[
-              { id: 'online', label: 'En ligne (Visio)', icon: '💻' },
-              { id: 'home', label: 'À domicile', icon: '🏠' },
-              { id: 'coach_location', label: 'Chez le coach', icon: '📍' },
-              { id: 'partner_gym', label: 'En salle partenaire', icon: '🏋️' },
-              { id: 'outdoor', label: 'En extérieur / Parc', icon: '🌳' },
-              { id: 'corporate', label: 'En entreprise', icon: '🏢' }
+              { id: 'online', label: 'En ligne (visio)', icon: Video },
+              { id: 'home', label: 'À domicile', icon: Home },
+              { id: 'coach_location', label: 'Chez le coach', icon: MapPin },
+              { id: 'partner_gym', label: 'En salle partenaire', icon: Dumbbell },
+              { id: 'outdoor', label: 'En extérieur', icon: Trees },
+              { id: 'corporate', label: 'En entreprise', icon: Building2 }
             ].map((f) => {
               const isSelected = formats.includes(f.id as CoachingFormat);
               return (
@@ -369,11 +382,11 @@ export const CoachProfileEditor: React.FC = () => {
                   onClick={() => toggleFormat(f.id as CoachingFormat)}
                   className={`p-2.5 rounded-xl border text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
                     isSelected
-                      ? 'bg-[#00D664]/15 border-[#00D664] text-[#008A3E]'
+                      ? 'bg-fmc-green/15 border-[#00D664] text-[#008A3E]'
                       : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300'
                   }`}
                 >
-                  <span>{f.icon}</span>
+                  <f.icon className="w-4 h-4 shrink-0" aria-hidden="true" />
                   <span className="truncate">{f.label}</span>
                 </button>
               );
@@ -382,7 +395,7 @@ export const CoachProfileEditor: React.FC = () => {
 
           <div className="pt-2 grid grid-cols-2 gap-2.5">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Tarif de base (€/h)</label>
+              <label className="block text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Tarif de base (€/h)</label>
               <NumberInput
                 min={20}
                 max={500}
@@ -390,64 +403,64 @@ export const CoachProfileEditor: React.FC = () => {
                 value={hourlyRate}
                 onValueChange={setHourlyRate}
                 placeholder="ex. 60"
-                className="w-full px-3 py-2 bg-slate-50 text-xs text-slate-900 rounded-xl border border-slate-300 font-bold focus:outline-none focus:border-[#00D664]"
+                className="w-full min-h-11 px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 text-[15px] rounded-xl border border-slate-300 dark:border-slate-700 font-bold focus:outline-none focus:ring-2 focus:ring-fmc-green/50"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Tarif Domicile (€/h)</label>
+              <label className="block text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Tarif Domicile (€/h)</label>
               <NumberInput
                 min={20}
                 max={500}
                 value={homePrice}
                 onValueChange={setHomePrice}
                 placeholder="ex. 60"
-                className="w-full px-3 py-2 bg-slate-50 text-xs text-slate-900 rounded-xl border border-slate-300 font-bold focus:outline-none focus:border-[#00D664]"
+                className="w-full min-h-11 px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 text-[15px] rounded-xl border border-slate-300 dark:border-slate-700 font-bold focus:outline-none focus:ring-2 focus:ring-fmc-green/50"
               />
             </div>
           </div>
         </div>
 
         {/* Zone d'intervention & Géolocalisation */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs space-y-3">
-          <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider block">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 border border-fmc-line/80 dark:border-slate-800 space-y-3">
+          <span className="text-[13px] font-semibold text-slate-500 dark:text-slate-400 block">
             Zone d'intervention & Déplacement
           </span>
 
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Ville principale</label>
+              <label className="block text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Ville principale</label>
               <input
                 type="text"
                 required
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 placeholder="Paris, Poitiers..."
-                className="w-full px-3 py-2 bg-slate-50 text-xs text-slate-900 rounded-xl border border-slate-300 focus:outline-none focus:border-[#00D664]"
+                className="w-full min-h-11 px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 text-[15px] rounded-xl border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-fmc-green/50"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Code Postal</label>
+              <label className="block text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Code Postal</label>
               <input
                 type="text"
                 value={postalCode}
                 onChange={(e) => setPostalCode(e.target.value)}
                 placeholder="75008"
-                className="w-full px-3 py-2 bg-slate-50 text-xs text-slate-900 rounded-xl border border-slate-300 focus:outline-none focus:border-[#00D664]"
+                className="w-full min-h-11 px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 text-[15px] rounded-xl border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-fmc-green/50"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Adresse exacte (studio, salle) — privée</label>
+            <label className="block text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Adresse exacte (studio, salle) — privée</label>
             <input
               type="text"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
               autoComplete="street-address"
               placeholder="Communiquée uniquement aux clients d'une séance confirmée"
-              className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 text-sm rounded-xl border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-[#00D664]"
+              className="w-full min-h-11 px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 text-[15px] rounded-xl border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-fmc-green/50"
             />
             <p className="text-[11px] text-slate-500 mt-1">Votre fiche publique n'affiche que la ville et une zone approximative.</p>
           </div>
@@ -455,7 +468,7 @@ export const CoachProfileEditor: React.FC = () => {
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="text-xs font-bold text-slate-700">Rayon de déplacement</label>
-              <span className="text-xs font-black text-[#008A3E]">{radiusKm} km</span>
+              <span className="text-xs font-bold text-[#008A3E]">{radiusKm} km</span>
             </div>
             <input
               type="range"
@@ -469,7 +482,7 @@ export const CoachProfileEditor: React.FC = () => {
           </div>
 
           <div>
-            <span className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Zone affichée sur votre fiche</span>
+            <span className="block text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Zone affichée sur votre fiche</span>
             <p className="px-3 py-2 bg-slate-50 dark:bg-slate-800 text-xs rounded-xl border border-slate-200 dark:border-slate-700">
               {zoneDescription({ city, interventionRadiusKm: radiusKm, formats }) || 'Indiquez votre ville'}
             </p>
@@ -478,8 +491,8 @@ export const CoachProfileEditor: React.FC = () => {
         </div>
 
         {/* Spécialités */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs space-y-3">
-          <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider block">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 border border-fmc-line/80 dark:border-slate-800 space-y-3">
+          <span className="text-[13px] font-semibold text-slate-500 dark:text-slate-400 block">
             Spécialités & Disciplines
           </span>
 
@@ -487,7 +500,7 @@ export const CoachProfileEditor: React.FC = () => {
             {specialties.map((spec) => (
               <span
                 key={spec}
-                className="px-2.5 py-1 rounded-lg bg-[#00D664]/10 text-[#008A3E] text-xs font-bold flex items-center gap-1 border border-[#00D664]/20"
+                className="px-2.5 py-1 rounded-lg bg-fmc-green/10 text-[#008A3E] text-xs font-bold flex items-center gap-1 border border-[#00D664]/20"
               >
                 {spec}
                 <button type="button" onClick={() => removeSpecialty(spec)} className="text-slate-400 hover:text-rose-600 cursor-pointer">
@@ -503,7 +516,7 @@ export const CoachProfileEditor: React.FC = () => {
               value={newSpecialty}
               onChange={(e) => setNewSpecialty(e.target.value)}
               placeholder="Ajouter une discipline..."
-              className="flex-1 px-3 py-2 bg-slate-50 text-xs text-slate-900 rounded-xl border border-slate-300 focus:outline-none focus:border-[#00D664]"
+              className="flex-1 min-h-11 px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 text-[15px] rounded-xl border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-fmc-green/50"
             />
             <button
               type="button"
@@ -516,17 +529,17 @@ export const CoachProfileEditor: React.FC = () => {
         </div>
 
         {/* Méthode, objectifs, niveaux, publics */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
-          <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider block">Méthode & publics</span>
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 border border-fmc-line/80 dark:border-slate-800 space-y-3">
+          <span className="text-[13px] font-semibold text-slate-500 dark:text-slate-400 block">Méthode & publics</span>
           <div>
-            <label className="block text-xs font-bold mb-1">Votre méthode de travail</label>
+            <label className="block text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Votre méthode de travail</label>
             <textarea
               rows={4}
               value={methods}
               onChange={(e) => setMethods(e.target.value)}
               maxLength={2000}
               placeholder="Bilan de départ, déroulé d'une séance, suivi entre les séances…"
-              className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 text-sm rounded-xl border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-[#00D664] resize-none"
+              className="w-full min-h-11 px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 text-[15px] rounded-xl border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-fmc-green/50 resize-none"
             />
           </div>
           <div>
@@ -556,34 +569,34 @@ export const CoachProfileEditor: React.FC = () => {
         </div>
 
         {/* Contenu de la séance, consignes, frais de déplacement */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
-          <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider block">Séance & préparation</span>
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 border border-fmc-line/80 dark:border-slate-800 space-y-3">
+          <span className="text-[13px] font-semibold text-slate-500 dark:text-slate-400 block">Séance & préparation</span>
           <div>
-            <label className="block text-xs font-bold mb-1">Ce que comprend une séance (affiché avant paiement)</label>
+            <label className="block text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Ce que comprend une séance (affiché avant paiement)</label>
             <textarea
               rows={2}
               value={sessionIncludes}
               onChange={(e) => setSessionIncludes(e.target.value)}
               maxLength={500}
               placeholder="ex. 60 min de coaching, matériel fourni, bilan en fin de séance"
-              className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 text-sm rounded-xl border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-[#00D664] resize-none"
+              className="w-full min-h-11 px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 text-[15px] rounded-xl border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-fmc-green/50 resize-none"
             />
           </div>
           <div>
-            <label className="block text-xs font-bold mb-1">Consignes par défaut pour vos clients</label>
+            <label className="block text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Consignes par défaut pour vos clients</label>
             <textarea
               rows={2}
               value={prepInstructions}
               onChange={(e) => setPrepInstructions(e.target.value)}
               maxLength={2000}
               placeholder="Tenue de sport, tapis, bouteille d'eau, 2 m² dégagés…"
-              className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 text-sm rounded-xl border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-[#00D664] resize-none"
+              className="w-full min-h-11 px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 text-[15px] rounded-xl border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-fmc-green/50 resize-none"
             />
             <p className="text-[11px] text-slate-500 mt-1">Copiées dans chaque séance confirmée ; modifiables séance par séance avec le lien de visio.</p>
           </div>
           {formats.includes('home') && (
             <div>
-              <label className="block text-xs font-bold mb-1">Frais de déplacement à domicile (€)</label>
+              <label className="block text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Frais de déplacement à domicile (€)</label>
               <NumberInput
                 min={0}
                 max={100}
@@ -591,7 +604,7 @@ export const CoachProfileEditor: React.FC = () => {
                 value={travelFee}
                 onValueChange={setTravelFee}
                 placeholder="0"
-                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 text-sm rounded-xl border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-[#00D664]"
+                className="w-full min-h-11 px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 text-[15px] rounded-xl border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-fmc-green/50"
               />
               <p className="text-[11px] text-slate-500 mt-1">Ajoutés au prix des séances à domicile et affichés avant le paiement. Sans commission Find My Coach : ils vous sont reversés, moins les frais bancaires Stripe correspondants (1,5 %).</p>
             </div>
@@ -603,7 +616,7 @@ export const CoachProfileEditor: React.FC = () => {
         <button
           type="submit"
           disabled={saving}
-          className="w-full py-3.5 bg-[#00D664] hover:bg-[#00B050] text-[#0F172A] font-black rounded-2xl text-sm transition shadow-md flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+          className="w-full py-3.5 bg-fmc-green text-fmc-navy font-bold rounded-2xl text-sm transition shadow-md flex items-center justify-center gap-2 cursor-pointer apple-press"
         >
           <Save className="w-4 h-4" />
           <span>Enregistrer mon profil professionnel</span>

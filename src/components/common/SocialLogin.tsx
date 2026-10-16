@@ -64,7 +64,7 @@ export const SocialLogin: React.FC<{ role?: 'client' | 'coach'; onError?: (msg: 
       {!APPLE_ENABLED ? google : isAndroid ? [google, apple] : [apple, google]}
       <div className="flex items-center gap-3 py-2">
         <span className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
-        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">ou avec votre email</span>
+        <span className="text-xs font-semibold text-slate-400">ou avec votre email</span>
         <span className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
       </div>
     </div>

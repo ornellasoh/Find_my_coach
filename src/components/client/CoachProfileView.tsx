@@ -115,7 +115,7 @@ export const CoachProfileView: React.FC = () => {
         </div>
 
         <div className="absolute bottom-2 left-5 right-5">
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-fmc-green text-white text-xs font-bold uppercase tracking-wide rounded-lg">
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-fmc-green text-fmc-navy text-xs font-bold rounded-full">
             {coach.isElite && isRealCoach(coach) ? 'Coach Élite' : isVerifiedCoach(coach) ? (
               <><ShieldCheck className="w-3.5 h-3.5" /> Vérifié</>
             ) : 'Coach'}

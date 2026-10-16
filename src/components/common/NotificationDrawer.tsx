@@ -166,7 +166,7 @@ export const NotificationDrawer: React.FC = () => {
           {/* Préférences */}
           {prefs && (
             <div className="border-t border-slate-200 bg-[#F6F9FA] p-4 pb-[calc(1rem+var(--sab,0px))] space-y-2">
-              <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">Recevoir aussi</p>
+              <p className="text-[13px] font-semibold text-slate-500">Recevoir aussi</p>
               {([
                 ['push', 'Notifications sur le téléphone', 'Réservations, messages, rappels'],
                 ['email', 'Emails', 'Confirmations, annulations, rappel la veille'],

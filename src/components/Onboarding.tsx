@@ -211,7 +211,7 @@ export const Onboarding: React.FC = () => {
           >
             <Back />
             <div className="mt-2 mb-6">
-              <span className="inline-block px-3 py-1 rounded-full bg-fmc-green/15 text-fmc-green-ink text-xs font-bold uppercase tracking-wide">
+              <span className="inline-block px-3 py-1 rounded-full bg-fmc-green/15 text-fmc-green-ink text-xs font-bold">
                 {role === 'client' ? 'Espace client' : 'Espace coach'}
               </span>
               <h1 className="text-[30px] font-semibold tracking-tight mt-3 leading-tight">

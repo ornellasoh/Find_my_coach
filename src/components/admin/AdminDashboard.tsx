@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 import { Avatar } from '../ui/Avatar';
 import { ThemePicker } from '../common/ThemePicker';
 import { useApp } from '../../context/AppContext';
+import { Chip, ScreenHeader, formatEuro, formatDateFr } from '../ui/fmc';
 import { 
   Shield, 
   Users, 
@@ -40,112 +41,45 @@ export const AdminDashboard: React.FC = () => {
 
 
   return (
-    <div className="min-h-screen bg-[#F6F9FA] text-[#0F172A] pb-28 max-w-md mx-auto px-4 pt-3">
-      {/* Top Brand Bar */}
-      <div className="flex items-center justify-between pb-3 pt-1 border-b border-slate-200/60 mb-3">
-        <Logo size="sm" showTagline={false} />
-        <span className="px-2 py-0.5 bg-slate-900 text-white text-[10px] font-black rounded-full uppercase tracking-wider">
-          Supervision
-        </span>
-      </div>
-
-      {/* Navigation Header */}
-      <div className="flex items-center justify-between py-1 mb-3">
-        <button
-          onClick={goBack}
-          className="w-9 h-9 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-700 shadow-xs hover:bg-slate-50 transition cursor-pointer"
-        >
-          <ArrowLeft className="w-4 h-4" />
-        </button>
-
-        <h1 className="text-base font-extrabold text-[#0F172A]">Panneau d'Administration</h1>
-
-        {isOnline ? <span className="w-9" /> : <button
-          onClick={() => {
-            if (window.confirm('Réinitialiser toutes les données de test aux valeurs par défaut ?')) resetAllData();
-          }}
-          className="w-9 h-9 rounded-full bg-white border border-slate-200 flex items-center justify-center text-rose-500 shadow-xs hover:bg-rose-50 transition cursor-pointer"
-          title="Réinitialiser"
-        >
-          <RefreshCw className="w-4 h-4" />
-        </button>}
-      </div>
+    <div className="min-h-screen bg-fmc-bg dark:bg-[#0B0F19] text-fmc-navy dark:text-slate-100 pb-32 max-w-md mx-auto px-5 pt-4">
+      <ScreenHeader
+        title="Administration"
+        onBack={goBack}
+        right={
+          isOnline ? undefined : (
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm('Réinitialiser toutes les données de test aux valeurs par défaut ?')) resetAllData();
+              }}
+              aria-label="Réinitialiser les données de test"
+              className="apple-press w-11 h-11 rounded-full flex items-center justify-center text-rose-500 cursor-pointer"
+            >
+              <RefreshCw className="w-5 h-5" />
+            </button>
+          )
+        }
+      />
 
       {/* Chiffres réels (serveur), jamais estimés */}
       <AdminStatsCards localBookings={bookings} localCoaches={coaches} />
 
-      {/* Tabs */}
-      <div className="flex bg-white border border-slate-200 p-1 rounded-2xl mb-4 text-xs font-extrabold shadow-2xs">
-        <button
-          onClick={() => setActiveTab('coaches')}
-          className={`flex-1 py-2 rounded-xl transition cursor-pointer ${
-            activeTab === 'coaches' ? 'bg-[#00D664] text-[#0F172A] shadow-xs' : 'text-slate-500 hover:text-slate-900'
-          }`}
-        >
-          Coachs ({coaches.length})
-        </button>
-
-        <button
-          onClick={() => setActiveTab('reviews')}
-          className={`flex-1 py-2 rounded-xl transition cursor-pointer ${
-            activeTab === 'reviews' ? 'bg-[#00D664] text-[#0F172A] shadow-xs' : 'text-slate-500 hover:text-slate-900'
-          }`}
-        >
-          Avis ({reviews.length})
-        </button>
-
-        <button
-          onClick={() => setActiveTab('bookings')}
-          className={`flex-1 py-2 rounded-xl transition cursor-pointer ${
-            activeTab === 'bookings' ? 'bg-[#00D664] text-[#0F172A] shadow-xs' : 'text-slate-500 hover:text-slate-900'
-          }`}
-        >
-          Flux ({bookings.length})
-        </button>
-      </div>
-      <div className="flex bg-white border border-slate-200 p-1 rounded-2xl mb-4 text-xs font-extrabold shadow-2xs">
-        <button
-          onClick={() => setActiveTab('verif')}
-          className={`flex-1 py-2 rounded-xl transition cursor-pointer ${
-            activeTab === 'verif' ? 'bg-[#00D664] text-[#0F172A] shadow-xs' : 'text-slate-500 hover:text-slate-900'
-          }`}
-        >
-          Vérifications
-        </button>
-        <button
-          onClick={() => setActiveTab('issues')}
-          className={`flex-1 py-2 rounded-xl transition cursor-pointer ${
-            activeTab === 'issues' ? 'bg-[#00D664] text-[#0F172A] shadow-xs' : 'text-slate-500 hover:text-slate-900'
-          }`}
-        >
-          Signalements
-        </button>
-        <button
-          onClick={() => setActiveTab('campaign')}
-          className={`flex-1 py-2 rounded-xl transition cursor-pointer ${
-            activeTab === 'campaign' ? 'bg-[#00D664] text-[#0F172A] shadow-xs' : 'text-slate-500 hover:text-slate-900'
-          }`}
-        >
-          Campagne
-        </button>
-        <button
-          onClick={() => setActiveTab('team')}
-          className={`flex-1 py-2 rounded-xl transition cursor-pointer ${
-            activeTab === 'team' ? 'bg-[#00D664] text-[#0F172A] shadow-xs' : 'text-slate-500 hover:text-slate-900'
-          }`}
-        >
-          Équipe
-        </button>
-      </div>
-      <div className="flex bg-white border border-slate-200 p-1 rounded-2xl mb-4 text-xs font-extrabold shadow-2xs">
-        <button
-          onClick={() => setActiveTab('beta')}
-          className={`flex-1 py-2 rounded-xl transition cursor-pointer ${
-            activeTab === 'beta' ? 'bg-[#00D664] text-[#0F172A] shadow-xs' : 'text-slate-500 hover:text-slate-900'
-          }`}
-        >
-          Bêta-testeurs iPhone (TestFlight)
-        </button>
+      {/* Rubriques : puces qui défilent (même code que l'écran Rechercher) */}
+      <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-5 px-5 mb-4" role="tablist" aria-label="Rubriques">
+        {([
+          ['coaches', `Coachs (${coaches.length})`],
+          ['reviews', `Avis (${reviews.length})`],
+          ['bookings', `Réservations (${bookings.length})`],
+          ['verif', 'Vérifications'],
+          ['issues', 'Signalements'],
+          ['beta', 'Bêta-testeurs'],
+          ['campaign', 'Campagne'],
+          ['team', 'Équipe'],
+        ] as const).map(([id, label]) => (
+          <Chip key={id} role="tab" aria-selected={activeTab === id} active={activeTab === id} onClick={() => setActiveTab(id)}>
+            {label}
+          </Chip>
+        ))}
       </div>
 
       {activeTab === 'verif' && <AdminVerifications />}
@@ -158,11 +92,11 @@ export const AdminDashboard: React.FC = () => {
       {activeTab === 'coaches' && (
         <div className="space-y-3">
           {coaches.map((coach) => (
-            <div key={coach.id} className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs flex items-center justify-between">
+            <div key={coach.id} className="bg-white dark:bg-slate-900 rounded-3xl p-4 border border-fmc-line/80 dark:border-slate-800 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Avatar src={coach.photo} name={coach.name} className="w-12 h-12 rounded-xl border border-slate-200" />
                 <div>
-                  <h3 className="font-extrabold text-[#0F172A] text-sm">{coach.name}</h3>
+                  <h3 className="font-bold text-fmc-navy text-sm">{coach.name}</h3>
                   <p className="text-xs text-slate-500">{coach.title} • {coach.hourlyRate}€/h</p>
                   <div className="flex items-center gap-1 mt-0.5 text-xs text-amber-500 font-bold">
                     <Star className="w-3.5 h-3.5 fill-current" />
@@ -175,7 +109,7 @@ export const AdminDashboard: React.FC = () => {
                 onClick={() => toggleCoachActiveStatus(coach.id)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
                   coach.isActive
-                    ? 'bg-[#00D664]/15 text-[#008A3E] border border-[#00D664]/30 hover:bg-[#00D664]/25'
+                    ? 'bg-fmc-green/15 text-[#008A3E] border border-[#00D664]/30 hover:bg-fmc-green/25'
                     : 'bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100'
                 }`}
               >
@@ -190,10 +124,10 @@ export const AdminDashboard: React.FC = () => {
       {activeTab === 'reviews' && (
         <div className="space-y-3">
           {reviews.map((rev) => (
-            <div key={rev.id} className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs space-y-2">
+            <div key={rev.id} className="bg-white dark:bg-slate-900 rounded-3xl p-4 border border-fmc-line/80 dark:border-slate-800 space-y-2">
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="font-bold text-[#0F172A] text-xs">{rev.clientName}</span>
+                  <span className="font-bold text-fmc-navy text-xs">{rev.clientName}</span>
                   <span className="text-[10px] text-slate-400 ml-2">Note: {rev.rating}/5</span>
                 </div>
 
@@ -222,17 +156,17 @@ export const AdminDashboard: React.FC = () => {
       {activeTab === 'bookings' && (
         <div className="space-y-3">
           {bookings.map((b) => (
-            <div key={b.id} className="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-xs text-xs space-y-1.5">
+            <div key={b.id} className="bg-white dark:bg-slate-900 rounded-3xl p-3.5 border border-fmc-line/80 dark:border-slate-800 text-xs space-y-1.5">
               <div className="flex items-center justify-between">
-                <span className="font-bold text-[#0F172A]">{b.clientName} ➔ {b.coachName}</span>
-                <span className="font-extrabold text-[#008A3E]">{b.total.toFixed(2)} €</span>
+                <span className="font-bold text-fmc-navy">{b.clientName} → {b.coachName}</span>
+                <span className="font-bold text-[#008A3E]">{formatEuro(b.total)}</span>
               </div>
               <p className="text-[11px] text-slate-500">
-                {b.date} ({b.startTime} - {b.endTime}) • {b.sessionType.name}
+                {formatDateFr(b.date)} ({b.startTime}–{b.endTime}) • {b.sessionType.name}
               </p>
               <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1.5 border-t border-slate-100">
                 <span>Réf: #{b.id}</span>
-                <span className="font-bold uppercase text-slate-700">{b.bookingStatus}</span>
+                <span className="font-semibold text-slate-700">{b.bookingStatus}</span>
               </div>
             </div>
           ))}

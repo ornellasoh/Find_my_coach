@@ -161,7 +161,7 @@ export const SessionAccess: React.FC<{
       {!online && !loading && (
         address ? (
           <div className="rounded-2xl bg-slate-50 dark:bg-slate-800 p-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Lieu de la séance</p>
+            <p className="text-xs font-semibold text-slate-500 mb-1">Lieu de la séance</p>
             <p className="text-sm font-semibold">{address}</p>
             <button
               type="button"
@@ -182,7 +182,7 @@ export const SessionAccess: React.FC<{
       {/* Consignes */}
       {!editing && details?.prepInstructions && (
         <div className="rounded-2xl bg-fmc-green/10 p-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-fmc-green-ink mb-1 flex items-center gap-1.5">
+          <p className="text-xs font-semibold text-fmc-green-ink mb-1 flex items-center gap-1.5">
             <ClipboardList className="w-3.5 h-3.5" /> Pour préparer la séance
           </p>
           <p className="text-sm whitespace-pre-line">{details.prepInstructions}</p>

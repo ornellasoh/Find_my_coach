@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { isSupabaseEnabled } from '../../lib/supabase';
 import { useApp } from '../../context/AppContext';
+import { ScreenHeader, formatDateFr } from '../ui/fmc';
 import { 
   ArrowLeft, 
   Plus, 
@@ -93,29 +94,25 @@ export const CoachAvailabilityManager: React.FC = () => {
   const sortedDates = Object.keys(groupedSlots).sort();
 
   return (
-    <div className="min-h-screen bg-[#F6F9FA] text-[#0F172A] pb-28 max-w-md mx-auto px-4 pt-3">
-      {/* Header */}
-      <div className="flex items-center justify-between py-2 mb-3">
-        <button
-          onClick={goBack}
-          className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-700 shadow-xs hover:bg-slate-50 transition cursor-pointer"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-
-        <h1 className="text-base font-extrabold text-[#0F172A]">Planning & Créneaux</h1>
-
-        <button
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="w-10 h-10 rounded-full bg-[#00D664] text-[#0F172A] font-extrabold flex items-center justify-center shadow-xs hover:bg-[#00B050] transition cursor-pointer"
-          title="Ajouter un créneau"
-        >
-          <Plus className="w-5 h-5 stroke-[2.5]" />
-        </button>
-      </div>
+    <div className="min-h-screen bg-fmc-bg dark:bg-[#0B0F19] text-fmc-navy dark:text-slate-100 pb-32 max-w-md mx-auto px-5 pt-4">
+      <ScreenHeader
+        title="Planning et créneaux"
+        onBack={goBack}
+        right={
+          <button
+            type="button"
+            onClick={() => setShowAddForm(!showAddForm)}
+            aria-label="Ajouter un créneau"
+            aria-expanded={showAddForm}
+            className="apple-press w-11 h-11 rounded-full flex items-center justify-center text-[#007A3D] dark:text-fmc-green cursor-pointer"
+          >
+            <Plus className="w-7 h-7" strokeWidth={2.2} />
+          </button>
+        }
+      />
 
       {feedbackMsg && (
-        <div className="mb-4 p-3 bg-[#00D664]/15 border border-[#00D664]/30 text-[#008A3E] text-xs font-bold rounded-2xl flex items-center gap-2 shadow-xs">
+        <div className="mb-4 p-3 bg-fmc-green/15 border border-[#00D664]/30 text-[#008A3E] text-xs font-bold rounded-2xl flex items-center gap-2 shadow-xs">
           <Check className="w-4 h-4" />
           <span>{feedbackMsg}</span>
         </div>
@@ -124,11 +121,11 @@ export const CoachAvailabilityManager: React.FC = () => {
       {/* Fast Recurring Generator Card */}
       <div className="bg-linear-to-br from-[#0F172A] to-[#1E293B] text-white rounded-3xl p-4 shadow-md mb-4 flex items-center justify-between border border-slate-800">
         <div>
-          <div className="flex items-center gap-1.5 text-[#00FD83] text-xs font-black uppercase tracking-wider mb-1">
+          <div className="flex items-center gap-1.5 text-[#00FD83] text-xs font-bold mb-1">
             <Sparkles className="w-3.5 h-3.5" />
             <span>Automatisation planning</span>
           </div>
-          <h2 className="text-sm font-black text-white">Créneaux récurrents 3 semaines</h2>
+          <h2 className="text-sm font-bold text-white">Créneaux récurrents 3 semaines</h2>
           <p className="text-[11px] text-slate-300 mt-0.5">
             Générez vos plages récurrentes en 1 clic
           </p>
@@ -136,7 +133,7 @@ export const CoachAvailabilityManager: React.FC = () => {
 
         <button
           onClick={() => setShowBatchModal(true)}
-          className="px-3.5 py-2 bg-[#00D664] hover:bg-[#00B050] text-[#0F172A] font-black rounded-xl text-xs flex items-center gap-1 shadow-xs transition cursor-pointer"
+          className="px-3.5 py-2 bg-fmc-green text-fmc-navy font-bold rounded-xl text-xs flex items-center gap-1 shadow-xs transition cursor-pointer"
         >
           <Repeat className="w-3.5 h-3.5" />
           <span>Configurer</span>
@@ -147,7 +144,7 @@ export const CoachAvailabilityManager: React.FC = () => {
       {showBatchModal && (
         <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-xl mb-4 space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-            <h3 className="text-sm font-extrabold text-[#0F172A]">
+            <h3 className="text-sm font-bold text-fmc-navy">
               Configuration des créneaux types
             </h3>
             <button
@@ -159,7 +156,7 @@ export const CoachAvailabilityManager: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-bold text-slate-700 mb-2">
               Jours actifs chaque semaine
             </label>
             <div className="flex gap-1.5 justify-between">
@@ -172,7 +169,7 @@ export const CoachAvailabilityManager: React.FC = () => {
                     onClick={() => toggleDaySelection(d.id)}
                     className={`flex-1 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
                       isSelected
-                        ? 'bg-[#00D664] text-[#0F172A] shadow-xs'
+                        ? 'bg-fmc-green text-fmc-navy shadow-xs'
                         : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                     }`}
                   >
@@ -184,7 +181,7 @@ export const CoachAvailabilityManager: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-bold text-slate-700 mb-2">
               Heures de séances par jour
             </label>
             <div className="grid grid-cols-2 gap-2">
@@ -204,7 +201,7 @@ export const CoachAvailabilityManager: React.FC = () => {
 
           <button
             onClick={handleRunBatchGenerator}
-            className="w-full py-3 bg-[#00D664] hover:bg-[#00B050] text-[#0F172A] font-black rounded-2xl text-xs shadow-md transition cursor-pointer flex items-center justify-center gap-1.5"
+            className="w-full py-3 bg-fmc-green text-fmc-navy font-bold rounded-2xl text-xs shadow-md transition cursor-pointer flex items-center justify-center gap-1.5"
           >
             <Zap className="w-4 h-4 stroke-[2.5]" />
             <span>Générer le planning sur 3 semaines</span>
@@ -216,7 +213,7 @@ export const CoachAvailabilityManager: React.FC = () => {
       {showAddForm && (
         <div className="bg-white rounded-3xl p-4 border border-slate-200 shadow-md mb-4 space-y-3">
           <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-            <h3 className="text-sm font-extrabold text-[#0F172A]">Ajouter un créneau ponctuel</h3>
+            <h3 className="text-sm font-bold text-fmc-navy">Ajouter un créneau ponctuel</h3>
             <button
               onClick={() => setShowAddForm(false)}
               className="text-xs text-slate-400 hover:text-slate-700 font-semibold cursor-pointer"
@@ -263,7 +260,7 @@ export const CoachAvailabilityManager: React.FC = () => {
 
             <button
               type="submit"
-              className="w-full py-2.5 bg-[#00D664] hover:bg-[#00B050] text-[#0F172A] font-extrabold rounded-xl text-xs transition shadow-xs cursor-pointer"
+              className="w-full py-2.5 bg-fmc-green text-fmc-navy font-bold rounded-xl text-xs transition shadow-xs cursor-pointer"
             >
               Enregistrer ce créneau
             </button>
@@ -274,7 +271,7 @@ export const CoachAvailabilityManager: React.FC = () => {
       {/* Slots List by Date */}
       <div className="space-y-3.5">
         <div className="flex items-center justify-between px-1">
-          <span className="text-xs font-black text-slate-500 uppercase tracking-wider">
+          <span className="text-xs font-bold text-slate-500">
             Créneaux ouverts ({coachSlots.length})
           </span>
           <span className="text-xs font-bold text-[#008A3E]">
@@ -285,13 +282,13 @@ export const CoachAvailabilityManager: React.FC = () => {
         {sortedDates.length === 0 ? (
           <div className="bg-white rounded-2xl p-8 text-center border border-slate-200 shadow-xs">
             <Clock className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-            <h3 className="font-extrabold text-[#0F172A] text-sm">Aucun créneau configuré</h3>
+            <h3 className="font-bold text-fmc-navy text-sm">Aucun créneau configuré</h3>
             <p className="text-xs text-slate-500 mt-1 mb-4">
               Générez vos créneaux en un clic avec l'outil d'automatisation ou ajoutez-les manuellement.
             </p>
             <button
               onClick={() => setShowBatchModal(true)}
-              className="px-4 py-2 bg-[#00D664] text-[#0F172A] font-extrabold text-xs rounded-xl shadow-xs hover:bg-[#00B050] cursor-pointer"
+              className="px-4 py-2 bg-fmc-green text-fmc-navy font-bold text-xs rounded-xl shadow-xs hover:bg-[#00B050] cursor-pointer"
             >
               Lancer l'automatisation
             </button>
@@ -300,14 +297,14 @@ export const CoachAvailabilityManager: React.FC = () => {
           sortedDates.map((dateStr) => {
             const slots = groupedSlots[dateStr];
             return (
-              <div key={dateStr} className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs space-y-3">
+              <div key={dateStr} className="bg-white dark:bg-slate-900 rounded-3xl p-4 border border-fmc-line/80 dark:border-slate-800 space-y-3">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-[#008A3E]" />
-                    <h3 className="font-extrabold text-[#0F172A] text-sm">{dateStr}</h3>
+                    <h3 className="font-bold text-[15px] first-letter:uppercase">{formatDateFr(dateStr, { weekday: 'long', day: 'numeric', month: 'long' })}</h3>
                   </div>
-                  <span className="text-[11px] font-semibold text-slate-500">
-                    {slots.filter(s => !s.isBooked).length} libre(s)
+                  <span className="text-[13px] font-semibold text-slate-500 tabular-nums">
+                    {(() => { const n = slots.filter((x) => !x.isBooked).length; return `${n} libre${n > 1 ? 's' : ''}`; })()}
                   </span>
                 </div>
 
@@ -324,7 +321,7 @@ export const CoachAvailabilityManager: React.FC = () => {
                       <div>
                         <span className="font-bold block">{slot.startTime} - {slot.endTime}</span>
                         <span className="text-[10px] font-semibold opacity-80">
-                          {slot.isBooked ? '🔴 Réservé' : '🟢 Libre'}
+                          <span className={`inline-block w-2 h-2 rounded-full mr-1 ${slot.isBooked ? 'bg-rose-500' : 'bg-fmc-green'}`} aria-hidden="true" />{slot.isBooked ? 'Réservé' : 'Libre'}
                         </span>
                       </div>
 

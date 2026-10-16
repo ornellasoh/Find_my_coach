@@ -35,7 +35,7 @@ export const BookingConfirmation: React.FC = () => {
         <h2 className="text-lg font-bold text-slate-800">Réservation confirmée</h2>
         <button
           onClick={() => navigateTo('bookings')}
-          className="mt-4 px-5 py-2.5 bg-[#00D664] text-[#0F172A] font-extrabold text-xs rounded-xl"
+          className="mt-4 px-5 py-2.5 bg-fmc-green text-fmc-navy font-bold text-xs rounded-xl"
         >
           Voir mes réservations
         </button>
@@ -55,7 +55,7 @@ export const BookingConfirmation: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F6F9FA] text-[#0F172A] pb-24 max-w-md mx-auto px-4 pt-8 flex flex-col justify-between">
+    <div className="min-h-screen bg-fmc-bg dark:bg-[#0B0F19] text-fmc-navy dark:text-slate-100 pb-32 max-w-md mx-auto px-5 pt-4 flex flex-col justify-between">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -64,15 +64,15 @@ export const BookingConfirmation: React.FC = () => {
       >
         {/* Animated Check Icon */}
         <div className="text-center space-y-2">
-          <div className="w-16 h-16 bg-[#00D664] text-white rounded-2xl flex items-center justify-center mx-auto shadow-md shadow-[#00D664]/20">
+          <div className="w-16 h-16 bg-fmc-green text-white rounded-2xl flex items-center justify-center mx-auto shadow-md shadow-[#00D664]/20">
             <CheckCircle className="w-9 h-9 stroke-[2.5]" />
           </div>
 
-          <span className="inline-block px-3 py-1 bg-[#00D664]/15 text-[#008A3E] rounded-full text-xs font-bold uppercase tracking-wider">
+          <span className="inline-block px-3 py-1 bg-fmc-green/15 text-[#008A3E] rounded-full text-xs font-bold">
             Paiement validé avec succès
           </span>
 
-          <h1 className="text-2xl font-black text-[#0F172A]">
+          <h1 className="text-2xl font-bold text-fmc-navy">
             Réservation confirmée !
           </h1>
           <p className="text-xs text-slate-500 max-w-xs mx-auto">
@@ -81,11 +81,11 @@ export const BookingConfirmation: React.FC = () => {
         </div>
 
         {/* Booking Card summary */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs space-y-3.5">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 border border-fmc-line/80 dark:border-slate-800 space-y-3.5">
           <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
             <Avatar src={b.coachPhoto} name={b.coachName} className="w-12 h-12 rounded-xl border border-slate-200" />
             <div>
-              <h3 className="font-extrabold text-sm text-[#0F172A]">{b.coachName}</h3>
+              <h3 className="font-bold text-sm text-fmc-navy">{b.coachName}</h3>
               <p className="text-xs text-[#008A3E] font-semibold">{b.coachTitle}</p>
               <span className="text-[11px] text-slate-400">Réf : #{b.id.toUpperCase()}</span>
             </div>
@@ -96,14 +96,14 @@ export const BookingConfirmation: React.FC = () => {
               <span className="flex items-center gap-2 text-slate-500">
                 <Calendar className="w-4 h-4 text-[#00D664]" /> Date
               </span>
-              <span className="font-bold text-[#0F172A]">{b.date}</span>
+              <span className="font-bold text-fmc-navy">{b.date}</span>
             </div>
 
             <div className="flex items-center justify-between">
               <span className="flex items-center gap-2 text-slate-500">
                 <Clock className="w-4 h-4 text-[#00D664]" /> Horaire
               </span>
-              <span className="font-bold text-[#0F172A]">{b.startTime} - {b.endTime}</span>
+              <span className="font-bold text-fmc-navy">{b.startTime} - {b.endTime}</span>
             </div>
 
             <div className="flex items-center justify-between">
@@ -114,21 +114,21 @@ export const BookingConfirmation: React.FC = () => {
                   <MapPin className="w-4 h-4 text-[#00D664]" />
                 )} Format
               </span>
-              <span className="font-bold text-[#0F172A]">{b.sessionType.name}</span>
+              <span className="font-bold text-fmc-navy">{b.sessionType.name}</span>
             </div>
 
             <div className="flex items-center justify-between pt-2 border-t border-slate-100">
               <span className="text-slate-500">Montant total réglé</span>
-              <span className="font-extrabold text-[#008A3E] text-sm">
+              <span className="font-bold text-[#008A3E] text-sm">
                 {b.total.toFixed(2).replace('.', ',')} €
               </span>
             </div>
           </div>
 
-          <div className="p-3 bg-[#00D664]/10 rounded-xl border border-[#00D664]/20 flex items-center justify-between gap-2 text-xs">
+          <div className="p-3 bg-fmc-green/10 rounded-xl border border-[#00D664]/20 flex items-center justify-between gap-2 text-xs">
             <div className="flex items-center gap-2">
               {b.format === 'online' ? <Video className="w-4 h-4 text-[#008A3E] shrink-0" /> : <MapPin className="w-4 h-4 text-[#008A3E] shrink-0" />}
-              <span className="font-semibold text-[#0F172A]">
+              <span className="font-semibold text-fmc-navy">
                 {b.format === 'online'
                   ? 'Le coach ajoutera le lien de visio avant la séance. Vous serez prévenu.'
                   : 'Le lieu exact et l\'itinéraire sont dans le détail de la réservation.'}
@@ -136,7 +136,7 @@ export const BookingConfirmation: React.FC = () => {
             </div>
             <button
               onClick={() => setActiveVideoBooking(b)}
-              className="min-h-11 px-3 bg-[#00D664] text-[#0F172A] rounded-lg font-extrabold hover:bg-[#00B050] transition shrink-0 cursor-pointer active:scale-95"
+              className="min-h-11 px-3 bg-fmc-green text-fmc-navy rounded-lg font-bold hover:bg-[#00B050] transition shrink-0 cursor-pointer apple-press"
             >
               Voir
             </button>
@@ -173,7 +173,7 @@ export const BookingConfirmation: React.FC = () => {
         <button
           id="btn-goto-my-bookings"
           onClick={() => navigateTo('bookings')}
-          className="w-full py-3.5 px-6 bg-[#00D664] hover:bg-[#00B050] text-[#0F172A] font-extrabold rounded-xl text-sm transition flex items-center justify-center gap-2 shadow-xs cursor-pointer active:scale-98"
+          className="w-full py-3.5 px-6 bg-fmc-green text-fmc-navy font-bold rounded-xl text-sm transition flex items-center justify-center gap-2 shadow-xs cursor-pointer apple-press"
         >
           <span>Voir mes réservations</span>
           <ArrowRight className="w-4 h-4 stroke-[2.5]" />

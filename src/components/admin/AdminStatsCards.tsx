@@ -20,7 +20,7 @@ interface AdminStats {
 }
 
 const eur = (n: number) => n.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
-const card = 'bg-white dark:bg-slate-900 rounded-2xl p-3.5 border border-slate-200 dark:border-slate-800 shadow-xs';
+const card = 'bg-white dark:bg-slate-900 rounded-3xl p-3.5 border border-fmc-line/80 dark:border-slate-800';
 
 /**
  * Statistiques administrateur. En ligne : calculées par la base (fonction admin_stats, refusée
@@ -49,9 +49,9 @@ export const AdminStatsCards: React.FC<{ localBookings: Booking[]; localCoaches:
     const done = localBookings.filter((b) => b.bookingStatus === 'completed').length;
     return (
       <div className="grid grid-cols-2 gap-2.5 mb-4">
-        <div className={card}><span className="text-[11px] text-slate-400 block">Réservations (démo)</span><span className="text-lg font-black block">{localBookings.length}</span></div>
-        <div className={card}><span className="text-[11px] text-slate-400 block">Séances terminées (démo)</span><span className="text-lg font-black block">{done}</span></div>
-        <div className={card}><span className="text-[11px] text-slate-400 block">Fiches coach (démo)</span><span className="text-lg font-black block">{localCoaches.length}</span></div>
+        <div className={card}><span className="text-[11px] text-slate-400 block">Réservations (démo)</span><span className="text-lg font-bold block">{localBookings.length}</span></div>
+        <div className={card}><span className="text-[11px] text-slate-400 block">Séances terminées (démo)</span><span className="text-lg font-bold block">{done}</span></div>
+        <div className={card}><span className="text-[11px] text-slate-400 block">Fiches coach (démo)</span><span className="text-lg font-bold block">{localCoaches.length}</span></div>
       </div>
     );
   }
@@ -73,24 +73,24 @@ export const AdminStatsCards: React.FC<{ localBookings: Booking[]; localCoaches:
     <div className="grid grid-cols-2 gap-2.5 mb-4">
       <div className={card}>
         <span className="text-[11px] text-slate-400 block font-medium">Comptes</span>
-        <span className="text-lg font-black block mt-0.5">{stats.users_total}</span>
+        <span className="text-lg font-bold block mt-0.5">{stats.users_total}</span>
         <span className="text-[10px] text-slate-400">{stats.clients} client(s) · {stats.coaches} coach(s) · {stats.new_7d} sur 7 j</span>
       </div>
       <div className={card}>
         <span className="text-[11px] text-slate-400 block font-medium">Fiches coach en ligne</span>
-        <span className="text-lg font-black block mt-0.5">{stats.coach_profiles_live}</span>
+        <span className="text-lg font-bold block mt-0.5">{stats.coach_profiles_live}</span>
         <span className="text-[10px] text-slate-400">{stats.unconfirmed_emails} email(s) non confirmé(s)</span>
       </div>
       <div className={card}>
         <span className="text-[11px] text-slate-400 block font-medium">Réservations</span>
-        <span className="text-lg font-black block mt-0.5">{stats.bookings_confirmed + stats.bookings_completed}</span>
+        <span className="text-lg font-bold block mt-0.5">{stats.bookings_confirmed + stats.bookings_completed}</span>
         <span className="text-[10px] text-slate-400">
           {stats.bookings_completed} terminée(s) · {stats.bookings_pending} en attente · {stats.bookings_cancelled} annulée(s)
         </span>
       </div>
       <div className={card}>
         <span className="text-[11px] text-slate-400 block font-medium">Paiements encaissés</span>
-        <span className="text-lg font-black text-[#008A3E] block mt-0.5">{eur(stats.paid_eur)}</span>
+        <span className="text-lg font-bold text-[#008A3E] block mt-0.5">{eur(stats.paid_eur)}</span>
         <span className="text-[10px] text-slate-400">commissions {eur(stats.platform_fees_eur)} · remboursé {eur(stats.refunded_eur)}</span>
       </div>
     </div>

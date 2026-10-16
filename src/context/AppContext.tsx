@@ -775,7 +775,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     addNotification({
       userId: currentUser?.id || 'admin',
       type: 'system',
-      title: 'Document soumis avec succès 📄',
+      title: 'Document envoyé',
       message: `Votre document "${title}" a été transmis pour validation sous 24h.`
     });
   };
@@ -864,7 +864,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       addNotification({
         userId: currentUser?.id || 'coach',
         type: 'system',
-        title: 'Planning synchronisé 🗓️',
+        title: 'Planning synchronisé',
         message: `${newSlots.length} créneaux récurrents ont été générés pour les 3 prochaines semaines.`
       });
     }
@@ -965,7 +965,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     addNotification({
       userId: newBooking.clientId,
       type: 'booking_confirmed',
-      title: 'Réservation confirmée ✅',
+      title: 'Réservation confirmée',
       message: `Votre séance de ${draft.sessionType.name} avec ${draft.coach.name} est confirmée pour le ${draft.selectedDate} à ${draft.selectedSlot.startTime}.`,
       relatedBookingId: bookingId
     });
@@ -973,7 +973,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     addNotification({
       userId: draft.coach.userId,
       type: 'new_booking',
-      title: 'Nouvelle réservation reçue ! 🎉',
+      title: 'Nouvelle réservation reçue',
       message: `${newBooking.clientName} a réservé une session (${draft.sessionType.name}) le ${draft.selectedDate} à ${draft.selectedSlot.startTime}.`,
       relatedBookingId: bookingId
     });
@@ -1080,7 +1080,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     addNotification({
       userId: currentUser?.id || 'coach',
       type: 'payment_received',
-      title: 'Virement bancaire initié 💶',
+      title: 'Virement bancaire lancé',
       message: `Votre demande de virement SEPA de ${amount.toFixed(2)} € a été transmise à votre banque.`
     });
   };

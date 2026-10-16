@@ -1,198 +1,157 @@
 import React from 'react';
-import { useApp } from '../../context/AppContext';
+import { Capacitor } from '@capacitor/core';
+import { useApp, type AppScreen as Screen } from '../../context/AppContext';
 import { useUnreadMessages } from '../../lib/unread';
-import { 
-  Home, 
-  Compass, 
-  Calendar, 
-  User, 
-  LayoutDashboard, 
-  Clock, 
-  Wallet, 
+import {
+  Home,
+  Search,
+  Calendar,
+  User,
+  LayoutDashboard,
   Users,
   Settings,
-  MessageSquare
+  MessageSquare,
+  type LucideIcon,
 } from 'lucide-react';
+
+interface Tab {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  screen: Screen;
+  /** Écrans qui allument aussi cet onglet */
+  also?: Screen[];
+  badge?: number;
+  /** Pastille rouge (messages non lus) plutôt que verte */
+  alert?: boolean;
+}
+
+/** Android suit Material 3 (barre pleine largeur) ; iPhone et web suivent iOS 26 (capsule flottante). */
+const isAndroid = Capacitor.getPlatform() === 'android';
 
 export const BottomNav: React.FC = () => {
   const { currentScreen, navigateTo, currentUser, bookings, coaches } = useApp();
 
   const role = currentUser?.role || 'client';
   const unreadMessages = useUnreadMessages(currentUser?.id);
-  // Pastille de l'onglet Messages : nombre de messages non lus
-  const messagesIcon = (
-    <div className="relative">
-      <MessageSquare className="w-6 h-6" strokeWidth={2} />
-      {unreadMessages > 0 && (
-        <span className="absolute -top-1.5 -right-2.5 min-w-4 h-4 px-1 bg-rose-500 text-white text-[10px] font-bold tabular-nums rounded-full flex items-center justify-center">
-          {unreadMessages > 99 ? '99+' : unreadMessages}
-          <span className="sr-only"> message{unreadMessages > 1 ? 's' : ''} non lu{unreadMessages > 1 ? 's' : ''}</span>
-        </span>
-      )}
-    </div>
-  );
 
-  // Do not show bottom nav on splash, checkout, or confirmation screens
+  // Pas de barre sur l'accueil, la connexion et le tunnel de réservation
   if (['onboarding', 'auth', 'coach_profile', 'booking_calendar', 'checkout', 'confirmation'].includes(currentScreen)) {
     return null;
   }
 
-  // Count active bookings for badge
-  const myCoachId = coaches.find(c => c.userId === currentUser?.id)?.id;
-  const upcomingBookingsCount = bookings.filter(
-    b => (role === 'coach' ? b.coachId === myCoachId : b.clientId === currentUser?.id) && b.bookingStatus === 'confirmed'
+  // Séances confirmées à venir : pastille de l'onglet Réservations / Planning
+  const myCoachId = coaches.find((c) => c.userId === currentUser?.id)?.id;
+  const upcoming = bookings.filter(
+    (b) => (role === 'coach' ? b.coachId === myCoachId : b.clientId === currentUser?.id) && b.bookingStatus === 'confirmed',
   ).length;
 
-  if (role === 'coach') {
+  const messages: Tab = { id: role === 'coach' ? 'nav-coach-messages' : 'nav-messages', label: 'Messages', icon: MessageSquare, screen: 'messages', badge: unreadMessages, alert: true };
+  const tabs: Tab[] =
+    role === 'coach'
+      ? [
+          { id: 'nav-coach-dashboard', label: 'Accueil', icon: LayoutDashboard, screen: 'coach_dashboard', also: ['coach_stats'] },
+          { id: 'nav-coach-bookings', label: 'Planning', icon: Calendar, screen: 'coach_bookings', also: ['coach_availabilities'], badge: upcoming },
+          messages,
+          { id: 'nav-coach-clients', label: 'Clients', icon: Users, screen: 'coach_clients' },
+          // 5 onglets au plus (recommandation Apple) : les revenus se consultent depuis le Profil et l'Accueil
+          { id: 'nav-coach-profile-edit', label: 'Profil', icon: Settings, screen: 'coach_profile_edit', also: ['coach_financials'] },
+        ]
+      : [
+          { id: 'nav-home', label: 'Accueil', icon: Home, screen: 'home' },
+          { id: 'nav-explorer', label: 'Rechercher', icon: Search, screen: 'search' },
+          { id: 'nav-reservations', label: 'Réservations', icon: Calendar, screen: 'bookings', badge: upcoming },
+          messages,
+          { id: 'nav-profile', label: 'Profil', icon: User, screen: 'profile' },
+        ];
+
+  const isActive = (t: Tab) => currentScreen === t.screen || !!t.also?.includes(currentScreen);
+
+  const badge = (t: Tab) =>
+    t.badge && t.badge > 0 ? (
+      <span
+        className={`absolute -top-1.5 -right-2.5 min-w-4 h-4 px-1 rounded-full text-[10px] font-bold tabular-nums flex items-center justify-center ${
+          t.alert ? 'bg-rose-500 text-white' : 'bg-fmc-green text-fmc-navy'
+        }`}
+      >
+        {t.badge > 99 ? '99+' : t.badge}
+        <span className="sr-only">
+          {t.alert ? ` message${t.badge > 1 ? 's' : ''} non lu${t.badge > 1 ? 's' : ''}` : ` séance${t.badge > 1 ? 's' : ''} à venir`}
+        </span>
+      </span>
+    ) : null;
+
+  const navId = role === 'coach' ? 'coach-bottom-navigation' : 'client-bottom-navigation';
+
+  // ---------- Android : barre de navigation Material 3 ----------
+  if (isAndroid) {
     return (
-      <nav id="coach-bottom-navigation" className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-fmc-line/70 dark:border-slate-800 z-40 px-2 pt-3 pb-[calc(0.5rem+var(--sab))] shadow-[0_-4px_20px_rgba(0,0,0,0.04)] transition-colors">
-        <div className="flex items-center justify-around">
-          <button
-            id="nav-coach-dashboard"
-            onClick={() => navigateTo('coach_dashboard')}
-            className={`flex flex-col items-center gap-1 transition-colors relative py-1 px-1.5 ${
-              currentScreen === 'coach_dashboard' ? 'text-fmc-green-ink dark:text-fmc-green font-semibold' : 'text-slate-500 dark:text-slate-400 font-medium'
-            }`}
-          >
-            <LayoutDashboard className="w-6 h-6" strokeWidth={2} />
-            <span className="text-[11px]">Accueil</span>
-          </button>
-
-          <button
-            id="nav-coach-bookings"
-            onClick={() => navigateTo('coach_bookings')}
-            className={`flex flex-col items-center gap-1 transition-colors relative py-1 px-1.5 ${
-              currentScreen === 'coach_bookings' || currentScreen === 'coach_availabilities' ? 'text-fmc-green-ink dark:text-fmc-green font-semibold' : 'text-slate-500 dark:text-slate-400 font-medium'
-            }`}
-          >
-            <div className="relative">
-              <Calendar className="w-6 h-6" strokeWidth={2} />
-              {upcomingBookingsCount > 0 && (
-                <span className="absolute -top-1 -right-2 w-3.5 h-3.5 bg-[#00D664] text-[#0F172A] text-[9px] font-black rounded-full flex items-center justify-center">
-                  {upcomingBookingsCount}
-                </span>
-              )}
-            </div>
-            <span className="text-[11px]">Planning</span>
-            {(currentScreen === 'coach_bookings' || currentScreen === 'coach_availabilities') && (
-              <span className="absolute -bottom-1 w-4 h-0.5 bg-[#00D664] rounded-full" />
-            )}
-          </button>
-
-          <button
-            id="nav-coach-messages"
-            onClick={() => navigateTo('messages')}
-            className={`flex flex-col items-center gap-1 transition-colors relative py-1 px-1.5 ${
-              currentScreen === 'messages' ? 'text-fmc-green-ink dark:text-fmc-green font-semibold' : 'text-slate-500 dark:text-slate-400 font-medium'
-            }`}
-          >
-            {messagesIcon}
-            <span className="text-[11px]">Messages</span>
-          </button>
-
-          <button
-            id="nav-coach-clients"
-            onClick={() => navigateTo('coach_clients')}
-            className={`flex flex-col items-center gap-1 transition-colors relative py-1 px-1.5 ${
-              currentScreen === 'coach_clients' ? 'text-fmc-green-ink dark:text-fmc-green font-semibold' : 'text-slate-500 dark:text-slate-400 font-medium'
-            }`}
-          >
-            <Users className="w-6 h-6" strokeWidth={2} />
-            <span className="text-[11px]">Clients</span>
-          </button>
-
-          <button
-            id="nav-coach-financials"
-            onClick={() => navigateTo('coach_financials')}
-            className={`flex flex-col items-center gap-1 transition-colors relative py-1 px-1.5 ${
-              currentScreen === 'coach_financials' ? 'text-fmc-green-ink dark:text-fmc-green font-semibold' : 'text-slate-500 dark:text-slate-400 font-medium'
-            }`}
-          >
-            <Wallet className="w-6 h-6" strokeWidth={2} />
-            <span className="text-[11px]">Revenus</span>
-          </button>
-
-          <button
-            id="nav-coach-profile-edit"
-            onClick={() => navigateTo('coach_profile_edit')}
-            className={`flex flex-col items-center gap-1 transition-colors relative py-1 px-1.5 ${
-              currentScreen === 'coach_profile_edit' ? 'text-fmc-green-ink dark:text-fmc-green font-semibold' : 'text-slate-500 dark:text-slate-400 font-medium'
-            }`}
-          >
-            <Settings className="w-6 h-6" strokeWidth={2} />
-            <span className="text-[11px]">Profil</span>
-          </button>
-        </div>
+      <nav id={navId} aria-label="Navigation principale" className="fixed bottom-0 left-0 right-0 max-w-md mx-auto z-40 bg-[#EEF2F5] dark:bg-[#151B27] pt-3 pb-[calc(0.75rem+var(--sab))]">
+        <ul className="flex">
+          {tabs.map((t) => {
+            const active = isActive(t);
+            const Icon = t.icon;
+            return (
+              <li key={t.id} className="flex-1 min-w-0">
+                <button
+                  id={t.id}
+                  type="button"
+                  onClick={() => navigateTo(t.screen)}
+                  aria-current={active ? 'page' : undefined}
+                  className="w-full flex flex-col items-center gap-1 cursor-pointer"
+                >
+                  <span className={`relative w-14 h-8 rounded-full flex items-center justify-center transition-colors ${active ? 'bg-[#C8F5DC] dark:bg-fmc-green/25 text-fmc-green-ink dark:text-fmc-green' : 'text-slate-600 dark:text-slate-400'}`}>
+                    <span className="relative">
+                      <Icon className="w-6 h-6" strokeWidth={active ? 2.5 : 2} />
+                      {badge(t)}
+                    </span>
+                  </span>
+                  <span className={`text-[12px] leading-4 tracking-tight truncate max-w-full ${active ? 'font-bold text-fmc-navy dark:text-white' : 'font-semibold text-slate-600 dark:text-slate-400'}`}>{t.label}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
       </nav>
     );
   }
 
-  // Client Navigation
+  // ---------- iPhone et web : capsule flottante translucide (iOS 26) ----------
   return (
-    <nav id="client-bottom-navigation" className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-fmc-line/70 dark:border-slate-800 z-40 px-2 pt-3 pb-[calc(0.5rem+var(--sab))] shadow-[0_-4px_20px_rgba(0,0,0,0.04)] transition-colors">
-      <div className="flex items-center justify-around">
-        <button
-          id="nav-home"
-          onClick={() => navigateTo('home')}
-          className={`flex flex-col items-center gap-1 transition-colors relative py-1 px-2 ${
-            currentScreen === 'home' ? 'text-fmc-green-ink dark:text-fmc-green font-semibold' : 'text-slate-500 dark:text-slate-400 font-medium'
-          }`}
-        >
-          <Home className="w-6 h-6" strokeWidth={2} />
-          <span className="text-[11px]">Accueil</span>
-        </button>
-
-        <button
-          id="nav-explorer"
-          onClick={() => navigateTo('search')}
-          className={`flex flex-col items-center gap-1 transition-colors relative py-1 px-2 ${
-            currentScreen === 'search' ? 'text-fmc-green-ink dark:text-fmc-green font-semibold' : 'text-slate-500 dark:text-slate-400 font-medium'
-          }`}
-        >
-          <Compass className="w-6 h-6" strokeWidth={2} />
-          <span className="text-[11px]">Explorer</span>
-        </button>
-
-        <button
-          id="nav-reservations"
-          onClick={() => navigateTo('bookings')}
-          className={`flex flex-col items-center gap-1 transition-colors relative py-1 px-2 ${
-            currentScreen === 'bookings' ? 'text-fmc-green-ink dark:text-fmc-green font-semibold' : 'text-slate-500 dark:text-slate-400 font-medium'
-          }`}
-        >
-          <div className="relative">
-            <Calendar className="w-6 h-6" strokeWidth={2} />
-            {upcomingBookingsCount > 0 && (
-              <span className="absolute -top-1 -right-2 w-3.5 h-3.5 bg-[#00D664] text-[#0F172A] text-[9px] font-black rounded-full flex items-center justify-center">
-                {upcomingBookingsCount}
-              </span>
-            )}
-          </div>
-          <span className="text-[11px]">Réservations</span>
-        </button>
-
-        <button
-          id="nav-messages"
-          onClick={() => navigateTo('messages')}
-          className={`flex flex-col items-center gap-1 transition-colors relative py-1 px-2 ${
-            currentScreen === 'messages' ? 'text-fmc-green-ink dark:text-fmc-green font-semibold' : 'text-slate-500 dark:text-slate-400 font-medium'
-          }`}
-        >
-          {messagesIcon}
-          <span className="text-[11px]">Messages</span>
-        </button>
-
-        <button
-          id="nav-profile"
-          onClick={() => navigateTo('profile')}
-          className={`flex flex-col items-center gap-1 transition-colors relative py-1 px-2 ${
-            currentScreen === 'profile' ? 'text-fmc-green-ink dark:text-fmc-green font-semibold' : 'text-slate-500 dark:text-slate-400 font-medium'
-          }`}
-        >
-          <User className="w-6 h-6" strokeWidth={2} />
-          <span className="text-[11px]">Profil</span>
-        </button>
-      </div>
-    </nav>
+    <>
+      {/* Fondu en bas de l'écran : sépare le contenu de la barre sans trait */}
+      <div aria-hidden="true" className="fmc-tabbar-fade fixed bottom-0 left-0 right-0 max-w-md mx-auto h-[calc(6.5rem+var(--sab))] z-30 pointer-events-none" />
+      <nav
+        id={navId}
+        aria-label="Navigation principale"
+        className="fmc-tabbar fixed left-2 right-2 bottom-[calc(0.5rem+var(--sab))] max-w-[calc(28rem-1rem)] mx-auto h-16 rounded-full z-40 px-1.5"
+      >
+        <ul className="flex h-full">
+          {tabs.map((t) => {
+            const active = isActive(t);
+            const Icon = t.icon;
+            return (
+              <li key={t.id} className="flex-1 min-w-0 flex">
+                <button
+                  id={t.id}
+                  type="button"
+                  onClick={() => navigateTo(t.screen)}
+                  aria-current={active ? 'page' : undefined}
+                  className={`apple-press flex-1 min-w-0 my-1.5 rounded-full flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-colors ${
+                    active ? 'bg-fmc-green/15 dark:bg-fmc-green/20 text-[#007A3D] dark:text-fmc-green' : 'text-slate-600 dark:text-slate-300'
+                  }`}
+                >
+                  <span className="relative">
+                    <Icon className="w-6 h-6" strokeWidth={active ? 2.5 : 2} />
+                    {badge(t)}
+                  </span>
+                  <span className={`text-[10px] leading-[13px] truncate max-w-full px-0.5 ${active ? 'font-bold' : 'font-semibold'}`}>{t.label}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+    </>
   );
 };

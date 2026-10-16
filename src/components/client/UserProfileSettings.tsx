@@ -27,9 +27,9 @@ import {
   UserPen,
   Loader2
 } from 'lucide-react';
-import { motion } from 'motion/react';
+import { AnimatePresence } from 'motion/react';
 import { Logo } from '../common/Logo';
-import { Card, IconTile, SectionHeader, formatDateFr } from '../ui/fmc';
+import { Card, IconTile, SectionHeader, formatDateFr, Sheet } from '../ui/fmc';
 
 export const UserProfileSettings: React.FC = () => {
   const { 
@@ -181,12 +181,12 @@ export const UserProfileSettings: React.FC = () => {
                   <span className="flex-1 min-w-0">
                     <span className="font-semibold block truncate">{b.coachName}</span>
                     <span className="text-sm text-slate-500 block tabular-nums">
-                      {formatDateFr(b.date, { day: '2-digit', month: '2-digit', year: 'numeric' })} • {b.startTime}
+                      {formatDateFr(b.date)} · {b.startTime}
                     </span>
                     <span className="text-sm text-slate-500 block truncate">{b.sessionType.name}</span>
                   </span>
-                  <span className="self-start px-2.5 py-1 rounded-lg bg-fmc-dark text-fmc-green text-[11px] font-bold uppercase tracking-wide shrink-0">
-                    Terminé
+                  <span className="self-start h-6 px-2.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[11px] font-semibold inline-flex items-center shrink-0">
+                    Terminée
                   </span>
                 </Card>
               ))}
@@ -229,68 +229,60 @@ export const UserProfileSettings: React.FC = () => {
         </div>
       </div>
 
-      {/* Edit Profile Modal */}
-      {isEditing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white dark:bg-slate-900 rounded-[28px] p-6 w-full max-w-sm shadow-2xl space-y-4"
+      {/* Modifier le profil : feuille du bas (« Annuler » à gauche, « OK » en bas, comme iOS) */}
+      <AnimatePresence>
+        {isEditing && (
+          <Sheet
+            onClose={() => setIsEditing(false)}
+            title="Informations personnelles"
+            leading={
+              <button type="button" onClick={() => setIsEditing(false)} className="h-11 px-3 text-[15px] font-semibold text-[#007A3D] dark:text-fmc-green cursor-pointer">
+                Annuler
+              </button>
+            }
+            footer={
+              <button type="submit" form="profile-form" className="apple-press w-full h-12 bg-fmc-green text-fmc-navy font-bold rounded-full text-[15px] cursor-pointer">
+                Enregistrer
+              </button>
+            }
           >
-            <h3 className="text-lg font-semibold">Informations personnelles</h3>
-
-            <form onSubmit={handleSaveProfile} className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-slate-500 mb-1.5">Nom complet</label>
+            <form id="profile-form" onSubmit={handleSaveProfile} className="space-y-4">
+              <label className="block">
+                <span className="block text-[13px] font-semibold text-slate-500 mb-1.5">Nom complet</span>
                 <input
                   type="text"
                   required
+                  autoComplete="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full h-12 px-4 bg-fmc-bg dark:bg-slate-800 text-[15px] rounded-2xl focus:outline-none focus:ring-2 focus:ring-fmc-green/50"
                 />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-500 mb-1.5">Adresse email</label>
+              </label>
+              <label className="block">
+                <span className="block text-[13px] font-semibold text-slate-500 mb-1.5">Adresse email</span>
                 <input
                   type="email"
                   required
+                  autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full h-12 px-4 bg-fmc-bg dark:bg-slate-800 text-[15px] rounded-2xl focus:outline-none focus:ring-2 focus:ring-fmc-green/50"
                 />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-500 mb-1.5">Numéro de téléphone</label>
+              </label>
+              <label className="block">
+                <span className="block text-[13px] font-semibold text-slate-500 mb-1.5">Numéro de téléphone</span>
                 <input
                   type="tel"
+                  autoComplete="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   className="w-full h-12 px-4 bg-fmc-bg dark:bg-slate-800 text-[15px] rounded-2xl focus:outline-none focus:ring-2 focus:ring-fmc-green/50"
                 />
-              </div>
-
-              <div className="flex gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsEditing(false)}
-                  className="flex-1 h-12 bg-slate-100 dark:bg-slate-800 font-semibold rounded-full text-sm cursor-pointer"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 h-12 bg-fmc-green text-fmc-navy font-bold rounded-full text-sm cursor-pointer"
-                >
-                  Enregistrer
-                </button>
-              </div>
+              </label>
             </form>
-          </motion.div>
-        </div>
-      )}
+          </Sheet>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
