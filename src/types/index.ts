@@ -347,6 +347,9 @@ export interface Notification {
   title: string;
   message: string;
   relatedBookingId?: string;
+  /** Lien d'action (ex. régler une échéance de pack sur Stripe) */
+  actionUrl?: string;
+  actionLabel?: string;
   read: boolean;
   createdAt: string;
 }

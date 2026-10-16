@@ -102,6 +102,11 @@ export async function handleInvoicePaid(inv: Stripe.Invoice) {
   if (!p) return;
   if (p.status === 'pending') await activate(p, {});
   const paid = await recordInstallment(p.id, inv.id!, inv.amount_paid ?? p.installment_amount);
+  // Date du prochain prélèvement (fin de la période payée), pour le rappel 3 jours avant
+  const periodEnd = inv.lines?.data?.[0]?.period?.end;
+  if (paid < p.installments && periodEnd) {
+    await admin.from('pack_purchases').update({ next_payment_at: new Date(periodEnd * 1000).toISOString(), updated_at: now() }).eq('id', p.id);
+  }
   if (p.status === 'past_due') {
     await admin.from('pack_purchases').update({ status: 'active', updated_at: now() }).eq('id', p.id);
     await notify(p.coach_user_id, 'pack_payment', 'Échéance réglée', `L'échéance en retard du pack « ${p.pack?.name ?? ''} » a été payée.`);
@@ -112,6 +117,17 @@ export async function handleInvoicePaid(inv: Stripe.Invoice) {
     } catch (err) {
       console.error('arrêt échéancier', p.id, err);
     }
+    // Une seule fois, même si Stripe renvoie l'événement
+    const { data: done } = await admin.from('pack_purchases')
+      .update({ next_payment_at: null, fully_paid_at: now(), updated_at: now() })
+      .eq('id', p.id).is('fully_paid_at', null).select('id');
+    if (done?.length) {
+      const name = p.pack?.name ?? '';
+      await notify(p.client_id, 'pack_paid', 'Pack entièrement réglé',
+        `Votre dernière mensualité pour le pack « ${name} » est payée : plus aucun prélèvement. Merci !`);
+      await notify(p.coach_user_id, 'pack_paid', 'Pack entièrement réglé',
+        `Les ${p.installments} mensualités du pack « ${name} » ont toutes été payées (${euros(p.amount_total)} au total).`);
+    }
   }
 }
 
@@ -120,10 +136,10 @@ export async function handleInvoiceFailed(inv: Stripe.Invoice) {
   const p = await purchaseForInvoice(inv);
   if (!p || p.status === 'pending') return; // premier paiement : la page Stripe affiche déjà l'erreur
   await admin.from('pack_purchases').update({ status: 'past_due', updated_at: now() }).eq('id', p.id);
-  const link = inv.hosted_invoice_url ? ` Pour la régler : ${inv.hosted_invoice_url}` : '';
   await notify(p.client_id, 'pack_payment_failed', 'Échéance non prélevée',
     `Le prélèvement de ${euros(inv.amount_due ?? p.installment_amount)} pour votre pack « ${p.pack?.name ?? ''} » a échoué. ` +
-    `Une nouvelle tentative aura lieu dans quelques jours ; d'ici là, vous ne pouvez plus réserver avec ce pack.${link}`);
+    "Réglez-la avec le bouton ci-dessous, ou Stripe réessaiera dans quelques jours ; d'ici là, vous ne pouvez plus réserver avec ce pack.",
+    undefined, inv.hosted_invoice_url ? { label: 'Régler l’échéance', url: inv.hosted_invoice_url } : undefined);
   await notify(p.coach_user_id, 'pack_payment_failed', 'Échéance impayée',
     `Le prélèvement de ${euros(inv.amount_due ?? p.installment_amount)} pour le pack « ${p.pack?.name ?? ''} » d'un client a échoué. Stripe va réessayer.`);
 }

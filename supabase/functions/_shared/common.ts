@@ -104,22 +104,30 @@ export function computePrice(coach: any, sessionType: any, promoCode?: string) {
 const EMAIL_TYPES = new Set([
   'booking_confirmed', 'new_booking', 'booking_cancelled', 'reminder',
   'session_link', 'reschedule_request', 'reschedule_accepted', 'reschedule_declined', 'session_report',
+  // Avis
+  'review_request', 'review_reply',
+  // Packs de séances
+  'pack_purchased', 'pack_sold', 'pack_payment', 'pack_payment_failed', 'pack_paid',
+  'pack_installment_reminder', 'pack_expiring', 'pack_last_session',
 ]);
 
 /**
  * Ajoute une notification dans l'app, puis l'envoie en push sur le téléphone
  * et par email (selon le type et les préférences de l'utilisateur). Ne lève jamais d'erreur.
  */
-export async function notify(userId: string | null | undefined, type: string, title: string, message: string, bookingId?: string) {
+/** Bouton d'action de l'email (ex. régler une échéance Stripe). */
+export interface NotifyAction { label: string; url: string }
+
+export async function notify(userId: string | null | undefined, type: string, title: string, message: string, bookingId?: string, action?: NotifyAction) {
   if (!userId) return;
   const id = `notif-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
   await admin.from('notifications').insert({
     id,
     user_id: userId,
     read: false,
-    data: { id, userId, type, title, message, relatedBookingId: bookingId, read: false, createdAt: new Date().toISOString() },
+    data: { id, userId, type, title, message, relatedBookingId: bookingId, actionUrl: action?.url, actionLabel: action?.label, read: false, createdAt: new Date().toISOString() },
   });
-  await deliver(userId, type, title, message, bookingId);
+  await deliver(userId, type, title, message, bookingId, action);
 }
 
 /** Pastille de l'icône iPhone : messages reçus non lus + notifications non lues du compte (au moins 1). */
@@ -132,7 +140,7 @@ export async function unreadBadge(userId: string): Promise<number> {
 }
 
 /** Envoi push + email d'une notification déjà enregistrée (aussi utilisé par notify-dispatch). */
-export async function deliver(userId: string, type: string, title: string, message: string, bookingId?: string) {
+export async function deliver(userId: string, type: string, title: string, message: string, bookingId?: string, action?: NotifyAction) {
   try {
     const { data: profile } = await admin.from('profiles').select('name, email, notify_email, notify_push').eq('id', userId).maybeSingle();
     if (!profile) return;
@@ -150,7 +158,7 @@ export async function deliver(userId: string, type: string, title: string, messa
     if (profile.notify_email !== false && profile.email && EMAIL_TYPES.has(type)) {
       const prenom = String(profile.name ?? '').trim().split(/\s+/)[0];
       const subject = title.replace(/[^\p{L}\p{N}\p{P}\s€]/gu, '').trim() + ' — Find My Coach';
-      jobs.push(sendMail(profile.email, subject, notificationEmail({ prenom, title, message })));
+      jobs.push(sendMail(profile.email, subject, notificationEmail({ prenom, title, message, cta: action?.label, ctaUrl: action?.url?.startsWith('https://') ? action.url : undefined })));
     }
 
     const results = await Promise.allSettled(jobs);

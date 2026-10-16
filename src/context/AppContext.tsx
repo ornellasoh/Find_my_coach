@@ -1440,7 +1440,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     import('../lib/push').then(({ registerPush }) =>
       registerPush(user.id, (data) => {
         if (data.type === 'message') setCurrentScreen('messages');
-        else if (data.bookingId) {
+        else if (String(data.type ?? '').startsWith('pack_')) {
+          // Packs : « Mes packs » (réservations) pour le client, « Packs vendus » (revenus) pour le coach
+          const screen = user.role === 'coach' ? 'coach_financials' : 'bookings';
+          setCurrentScreen(screen);
+          setScreenHistory([user.role === 'coach' ? 'coach_dashboard' : 'home', screen]);
+        } else if (data.bookingId) {
           setSelectedBookingId(data.bookingId);
           setCurrentScreen('booking_detail');
           setScreenHistory([user.role === 'coach' ? 'coach_bookings' : 'bookings', 'booking_detail']);

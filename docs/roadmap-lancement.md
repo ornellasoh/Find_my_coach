@@ -61,9 +61,33 @@
 
 - [x] Avis : réponse publique du coach (une seule fois) ; avis refusés par le serveur sans séance effectuée (16 oct.).
 - [x] Packs de séances (16 oct.) : le coach les crée dans « Mon profil pro » ; le client paie en 1, 3 ou 5 fois (échéancier Stripe, risque d'impayé pour le coach) ; chaque réservation utilise une séance.
-- [ ] Stripe : ajouter les événements `invoice.paid`, `invoice.payment_failed`, `customer.subscription.deleted` au webhook (Ornella).
-- [ ] Tester un achat de pack en 3 fois avec un vrai coach dont les paiements Stripe sont activés.
-- [ ] Choisir le délai pour laisser un avis (48 h ou 7 jours avec rappel).
+- [x] Stripe : événements `invoice.paid`, `invoice.payment_failed`, `customer.subscription.deleted` ajoutés au webhook (Ornella, 16 oct.).
+- [x] Emails et notifications des packs et des réponses aux avis, rappels automatiques (16 oct.) : voir « Automatisations » plus bas.
+
+### À tester plus tard : packs de séances (Stripe en mode test, carte 4242 4242 4242 4242)
+- [ ] Stripe (mode test) : activer « Accounts v1 support », puis compléter le compte coach d'Ornella (Comptes connectés) jusqu'à « Paiements activés ».
+      Sans cela, seul l'achat en 1 fois fonctionne ; en 3 ou 5 fois est refusé.
+- [ ] Compte coach : Profil → Mon profil pro → Packs de séances → créer « Pack test » (3 séances, 30 €, « En 3 fois » coché).
+- [ ] Autre compte (client) : fiche coach → « Acheter ce pack » → « En 3 fois » → carte 4242 → le pack apparaît dans « Mes réservations ».
+- [ ] Réserver une séance avec le pack (« Réserver avec mon pack ») → plus que 2 séances ; l'annuler plus de 24 h avant → la séance revient.
+- [ ] Vérifier les emails reçus : pack activé (client), pack vendu (coach), réservation confirmée.
+- [ ] Mensualités 2 et 3 : prélevées 1 et 2 mois plus tard (ou mode test accéléré, une mensualité par jour, à demander à Claude).
+- [ ] Échec de prélèvement : dans Stripe (mode test), changer la carte du client pour 4000 0000 0000 0341 → email « Échéance non prélevée », réservations bloquées.
+- [ ] Délai pour laisser un avis : choisir 48 h ou 7 jours avec rappel.
+
+### Automatisations (app + push + email)
+| Moment | Client | Coach |
+|---|---|---|
+| Pack payé | « Pack activé » | « Nouveau pack vendu » |
+| Réservation avec le pack | « Réservation confirmée » + séances restantes | « Nouvelle réservation (pack) » |
+| 3 jours avant une mensualité | « Prochaine mensualité » (montant, date) | — |
+| Mensualité refusée | « Échéance non prélevée » + lien pour payer | « Échéance impayée » |
+| Mensualité en retard réglée | — | « Échéance réglée » |
+| Dernière mensualité payée | « Pack entièrement réglé » | « Pack entièrement réglé » |
+| Échéancier abandonné par Stripe | « Pack suspendu » | « Pack impayé » |
+| 14 jours avant la fin de validité (séances restantes) | « Votre pack expire bientôt » | — |
+| Plus qu'une séance dans le pack | « Dernière séance de votre pack » | — |
+| Réponse du coach à un avis | « Votre coach a répondu à votre avis » | — |
 
 ## En attente de décision
 

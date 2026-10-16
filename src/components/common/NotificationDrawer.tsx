@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { fetchNotificationPrefs, saveNotificationPrefs } from '../../lib/push';
 import { isSupabaseEnabled } from '../../lib/supabase';
 import { useApp } from '../../context/AppContext';
-import { Bell, CheckCheck, X, Calendar, MessageSquare, AlertCircle } from 'lucide-react';
+import { Bell, CheckCheck, X, Calendar, MessageSquare, AlertCircle, Layers, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 /** Affiche « à l'instant », « il y a 5 min », « hier 14:30 »… pour les dates ISO ; sinon le texte tel quel. */
@@ -116,7 +116,10 @@ export const NotificationDrawer: React.FC = () => {
                   id={`notif-${notif.id}`}
                   onClick={() => {
                     markNotificationAsRead(notif.id);
-                    if (notif.relatedBookingId) {
+                    if (notif.type.startsWith('pack_')) {
+                      setIsNotificationDrawerOpen(false);
+                      navigateTo(currentUser?.role === 'coach' ? 'coach_financials' : 'bookings');
+                    } else if (notif.relatedBookingId) {
                       setIsNotificationDrawerOpen(false);
                       const id = notif.relatedBookingId;
                       // Report accepté, lien ajouté… : on recharge pour afficher l'horaire à jour
@@ -138,11 +141,15 @@ export const NotificationDrawer: React.FC = () => {
                         ? 'bg-[#00D664]/15 text-[#008A3E]'
                         : notif.type === 'new_review'
                         ? 'bg-amber-100 text-amber-600'
-                        : notif.type === 'booking_cancelled'
+                        : notif.type === 'booking_cancelled' || notif.type === 'pack_payment_failed'
                         ? 'bg-rose-100 text-rose-600'
+                        : notif.type.startsWith('pack_')
+                        ? 'bg-[#00D664]/15 text-[#008A3E]'
                         : 'bg-blue-100 text-blue-600'
                     }`}>
-                      {notif.type.includes('booking') ? (
+                      {notif.type.startsWith('pack_') ? (
+                        <Layers className="w-3.5 h-3.5" />
+                      ) : notif.type.includes('booking') ? (
                         <Calendar className="w-3.5 h-3.5" />
                       ) : notif.type.includes('review') ? (
                         <MessageSquare className="w-3.5 h-3.5" />
@@ -156,6 +163,19 @@ export const NotificationDrawer: React.FC = () => {
                         <span className="text-[10px] text-slate-400 shrink-0">{formatWhen(notif.createdAt)}</span>
                       </div>
                       <p className="text-xs text-slate-600 mt-0.5 leading-snug">{notif.message}</p>
+                      {notif.actionUrl?.startsWith('https://') && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            markNotificationAsRead(notif.id);
+                            import('@capacitor/browser').then(({ Browser }) => Browser.open({ url: notif.actionUrl!, presentationStyle: 'popover' }));
+                          }}
+                          className="mt-2 min-h-9 px-3 rounded-full bg-fmc-green text-fmc-navy text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
+                        >
+                          {notif.actionLabel || 'Ouvrir'} <ExternalLink className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

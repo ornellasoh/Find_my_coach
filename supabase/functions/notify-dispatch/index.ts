@@ -10,7 +10,8 @@ Deno.serve(async (req) => {
     const { data: row } = await admin.from('notifications').select('user_id, data').eq('id', notification_id).maybeSingle();
     if (!row) return json({ error: 'Notification introuvable' }, 404);
     const n = row.data ?? {};
-    await deliver(row.user_id, n.type ?? 'system', n.title ?? 'Find My Coach', n.message ?? '', n.relatedBookingId);
+    await deliver(row.user_id, n.type ?? 'system', n.title ?? 'Find My Coach', n.message ?? '', n.relatedBookingId,
+      n.actionUrl ? { label: n.actionLabel ?? 'Ouvrir', url: n.actionUrl } : undefined);
     return json({ sent: true });
   } catch (err) {
     console.error('notify-dispatch', err);
