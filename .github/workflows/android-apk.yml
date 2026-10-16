@@ -9,7 +9,8 @@ jobs:
   apk:
     runs-on: ubuntu-latest
     env:
-      HAS_STORAGE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY != '' }}
+      # Accepte aussi l'ancien nom mal orthographié du secret (SUPERBASE_…)
+      HAS_STORAGE_KEY: ${{ (secrets.SUPABASE_SERVICE_ROLE_KEY || secrets.SUPERBASE_SERVICE_ROLE_KEY) != '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -49,7 +50,7 @@ jobs:
         if: ${{ env.HAS_STORAGE_KEY == 'true' }}
         env:
           SUPABASE_URL: https://seftoygihefwohrioojo.supabase.co
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || secrets.SUPERBASE_SERVICE_ROLE_KEY }}
         run: |
           APK=$(ls android/app/build/outputs/apk/debug/*.apk | head -1)
           VERSION="1.0.${{ github.run_number }}"
