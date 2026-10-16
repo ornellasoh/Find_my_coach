@@ -75,6 +75,15 @@ Ces captures datent du 10 oct. 2026 : elles ne montrent ni la messagerie actuell
 https://findmycoach.io/confidentialite
 ```
 
+### Accès à l'application
+Choisir « Tout ou partie des fonctionnalités sont soumises à des restrictions », puis ajouter des instructions :
+- **Nom d'utilisateur** : `demo.apple@findmycoach.io` (même compte client de test que pour Apple)
+- **Mot de passe** : à saisir directement dans la Play Console (jamais dans ce fichier)
+- **Autres informations** (à coller) :
+```
+Compte client de test. Après connexion : onglet « Explorer » pour trouver un coach, ouvrir une fiche puis « Réserver la séance ». Les profils marqués « exemple » sont des démonstrations en lecture seule. Le paiement passe par Stripe (carte bancaire) ; aucun achat intégré. Suppression du compte : Profil → « Supprimer mon compte ».
+```
+
 ### Annonces
 **Non**, l'application ne contient pas d'annonces.
 

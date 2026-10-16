@@ -113,8 +113,8 @@ Les écrans montrés viennent du mode démonstration de l'app (coachs et séance
 
 ## 3. Informations pour la vérification par Apple (App Review)
 
-**Connexion requise** : oui. Créer un compte client de test dans l'app et indiquer ici son email et son mot de passe
-(ne jamais les écrire dans ce fichier).
+**Connexion requise** : oui. Compte client de test : `demo.apple@findmycoach.io` (le même sert pour Google Play).
+Le mot de passe se saisit directement dans App Store Connect, jamais dans ce fichier.
 
 **Coordonnées** : prénom, nom, téléphone et email de la personne à contacter.
 
@@ -125,7 +125,7 @@ Find My Coach met en relation des particuliers et des coachs sportifs indépenda
 
 Paiement : les séances sont des prestations de service individuelles réalisées par une personne (coaching 1 à 1, en personne ou en temps réel). Elles sont réglées par carte via Stripe, conformément aux règles 3.1.3(d) (services de personne à personne en temps réel) et 3.1.3(e) (services consommés en dehors de l'app). L'app ne vend aucun contenu ni fonctionnalité numérique.
 
-Compte de test : le compte fourni est un compte client. Depuis l'accueil, ouvrez « Explorer » pour chercher un coach, ouvrez une fiche puis « Réserver la séance ».
+Compte de test : le compte fourni est un compte client. Depuis l'accueil, ouvrez « Explorer » (« Rechercher » dans les versions suivantes) pour chercher un coach, ouvrez une fiche puis « Réserver la séance ».
 
 Localisation : utilisée uniquement quand l'utilisateur touche « Autour de moi », pour trier les coachs par distance. Elle n'est ni enregistrée ni suivie.
 
