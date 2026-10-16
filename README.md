@@ -149,7 +149,7 @@ Chaque utilisateur choisit email / push dans le panneau Notifications.
   (lien de téléchargement du site), si le secret GitHub `SUPABASE_SERVICE_ROLE_KEY` est présent.
 
 ### Google Play (AAB signé)
-Workflow manuel **Android Play Store (AAB signé)** (*Actions → Run workflow*, saisir la version).
+Workflow **Android Play Store (AAB signé)** : automatique à chaque envoi sur `main`, ou manuel (*Actions → Run workflow*).
 Secrets GitHub requis :
 
 | Secret | Valeur |
@@ -161,10 +161,14 @@ Secrets GitHub requis :
 
 Version minimale : Android 7 (SDK 24), exigée par Google Play.
 
-**Envoi automatique vers la Play Console** : au lancement du workflow, choisir la piste (`internal` par défaut,
-`alpha` = test fermé, `production` = brouillon à valider à la main) et écrire les nouveautés. L'AAB part tout seul
-si le secret `PLAY_SERVICE_ACCOUNT_JSON` existe ; sinon, télécharger l'artefact `.aab` et l'envoyer dans
-*Play Console → Tester → … → Créer une release*.
+**Envoi automatique vers la Play Console** (si le secret `PLAY_SERVICE_ACCOUNT_JSON` existe) :
+- **à chaque envoi sur `main`** qui touche l'app (`src/`, `public/`, `android/`, dépendances, config) : AAB signé
+  et publié tout de suite en **test interne**, avec la version de `package.json` et, comme nouveautés,
+  la première ligne du message du commit ;
+- **à la main** (*Actions → Run workflow*) : choisir la version, la piste (`internal`, `alpha` = test fermé,
+  `beta`, `production` = brouillon à valider dans la Play Console) et les nouveautés.
+
+Sans ce secret, télécharger l'artefact `.aab` et l'envoyer dans *Play Console → Tester → … → Créer une release*.
 
 Mise en place, une seule fois :
 1. Google Cloud Console (même compte que la Play Console) → créer un projet, activer **Google Play Android Developer API**.

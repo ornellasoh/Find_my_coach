@@ -1,7 +1,19 @@
 name: Android Play Store (AAB signé)
 
-# Lancement manuel : GitHub → Actions → « Android Play Store (AAB signé) » → Run workflow
+# Automatique : chaque envoi sur main qui touche l'app part en test interne Google Play.
+# Manuel : GitHub → Actions → « Android Play Store (AAB signé) » → Run workflow (choix de la piste et des nouveautés).
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'android/**'
+      - 'index.html'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'capacitor.config.ts'
+      - 'vite.config.ts'
   workflow_dispatch:
     inputs:
       version_name:
@@ -18,6 +30,11 @@ on:
         description: "Nouveautés (français, 500 caractères max.)"
         required: false
         default: "Corrections et améliorations."
+
+# Un seul envoi à la fois : un nouvel envoi sur main remplace celui en attente
+concurrency:
+  group: android-release
+  cancel-in-progress: false
 
 jobs:
   aab:
@@ -36,6 +53,24 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
+
+      - name: Paramètres de la version
+        id: rel
+        env:
+          IN_VERSION: ${{ inputs.version_name }}
+          IN_TRACK: ${{ inputs.track }}
+          IN_NOTES: ${{ inputs.release_notes }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          VERSION="${IN_VERSION:-$(node -p "require('./package.json').version")}"
+          TRACK="${IN_TRACK:-internal}"
+          # Nouveautés : saisies à la main, sinon la première ligne du message du commit
+          NOTES="${IN_NOTES:-$(printf '%s' "$COMMIT_MSG" | head -n 1)}"
+          NOTES="${NOTES:-Corrections et améliorations.}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "track=$TRACK" >> "$GITHUB_OUTPUT"
+          { echo "notes<<FMC_EOF"; printf '%s\n' "$NOTES"; echo "FMC_EOF"; } >> "$GITHUB_OUTPUT"
+          echo "Version $VERSION ($GITHUB_RUN_NUMBER), piste $TRACK"
 
       - name: Vérifier les secrets de signature
         env:
@@ -68,14 +103,14 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           VERSION_CODE: ${{ github.run_number }}
-          VERSION_NAME: ${{ inputs.version_name }}
+          VERSION_NAME: ${{ steps.rel.outputs.version }}
         run: |
           chmod +x gradlew
           ./gradlew bundleRelease --no-daemon
 
       - uses: actions/upload-artifact@v4
         with:
-          name: FindMyCoach-play-store-${{ inputs.version_name }}-${{ github.run_number }}
+          name: FindMyCoach-play-store-${{ steps.rel.outputs.version }}-${{ github.run_number }}
           path: android/app/build/outputs/bundle/release/*.aab
 
       # Envoi automatique vers la Play Console (API officielle Google Play, compte de service).
@@ -83,22 +118,22 @@ jobs:
       - name: Préparer les nouveautés
         if: ${{ env.HAS_PLAY_KEY == 'true' }}
         env:
-          NOTES: ${{ inputs.release_notes }}
+          NOTES: ${{ steps.rel.outputs.notes }}
         run: |
           mkdir -p whatsnew
           printf '%s' "$NOTES" | head -c 500 > whatsnew/whatsnew-fr-FR
 
-      - name: Envoyer vers Google Play (piste ${{ inputs.track }})
+      - name: Envoyer vers Google Play (piste ${{ steps.rel.outputs.track }})
         if: ${{ env.HAS_PLAY_KEY == 'true' }}
         uses: r0adkll/upload-google-play@v1.1.3
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: io.findmycoach.app
           releaseFiles: android/app/build/outputs/bundle/release/*.aab
-          track: ${{ inputs.track }}
+          track: ${{ steps.rel.outputs.track }}
           # Piste de test : publiée tout de suite aux testeurs. Production : brouillon, à valider dans la Play Console.
-          status: ${{ inputs.track == 'production' && 'draft' || 'completed' }}
-          releaseName: ${{ inputs.version_name }} (${{ github.run_number }})
+          status: ${{ steps.rel.outputs.track == 'production' && 'draft' || 'completed' }}
+          releaseName: ${{ steps.rel.outputs.version }} (${{ github.run_number }})
           whatsNewDirectory: whatsnew
 
       - name: Rappel (envoi manuel)
