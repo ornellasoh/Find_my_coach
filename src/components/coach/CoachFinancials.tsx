@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { fetchStripeStatus, openCoachStripe, type StripeAccountStatus } from '../../lib/payments';
+import { PackBalances } from '../common/PackBalances';
 
 export const CoachFinancials: React.FC = () => {
   const { 
@@ -202,6 +203,8 @@ export const CoachFinancials: React.FC = () => {
         )}
       </div>
       )}
+
+      <PackBalances mode="coach" />
 
       {/* Transaction History */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 border border-fmc-line/80 dark:border-slate-800 space-y-3">

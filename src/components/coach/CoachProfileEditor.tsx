@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { CoachingFormat, CoachLevel } from '../../types';
 import { CoachDocumentsPanel } from './CoachDocumentsPanel';
+import { CoachPacksEditor } from './CoachPacksEditor';
 import { ShareProfileCard } from './ShareProfileCard';
 import { fetchMyPrivateAddress } from '../../lib/sessions';
 import { searchPlaces } from '../../utils/geo';
@@ -622,6 +623,9 @@ export const CoachProfileEditor: React.FC = () => {
           <span>Enregistrer mon profil professionnel</span>
         </button>
       </form>
+
+      {/* Packs de séances (enregistrés à part) */}
+      {coach && <CoachPacksEditor coach={coach} />}
 
       {/* Justificatifs (stockage privé) */}
       {coach && currentUser && <CoachDocumentsPanel coach={coach} ownerId={currentUser.id} onCountChange={setDocCount} />}

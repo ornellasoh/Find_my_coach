@@ -80,7 +80,8 @@ Deno.serve(async (req) => {
     });
 
     const when = `le ${b.date} à ${b.startTime}`;
-    const refundText = refundedAmount ? ` Vous êtes remboursé de ${(refundedAmount / 100).toFixed(2).replace('.', ',')} € sur votre carte (sous 5 à 10 jours).` : '';
+    const packText = row.pack_purchase_id ? ' La séance est recréditée sur votre pack.' : '';
+    const refundText = packText + (refundedAmount ? ` Vous êtes remboursé de ${(refundedAmount / 100).toFixed(2).replace('.', ',')} € sur votre carte (sous 5 à 10 jours).` : '');
     if (by !== 'client') {
       await notify(row.client_id, 'booking_cancelled', 'Séance annulée',
         `Votre séance avec ${b.coachName ?? 'votre coach'} ${when} a été annulée.${refundText}`, booking_id);

@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Booking } from '../../types';
+import { PackBalances } from '../common/PackBalances';
 
 export const ClientBookings: React.FC = () => {
   const { 
@@ -79,6 +80,8 @@ export const ClientBookings: React.FC = () => {
   return (
     <div className="min-h-screen bg-fmc-bg dark:bg-[#0B0F19] text-fmc-navy dark:text-slate-100 pb-32 max-w-md mx-auto px-5 pt-4">
       <ScreenHeader title="Mes réservations" onBack={goBack} />
+
+      <PackBalances mode="client" />
 
       {cancelMessage && (
         <div

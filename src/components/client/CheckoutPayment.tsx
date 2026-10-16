@@ -18,14 +18,18 @@ import {
   CheckCircle2,
   CalendarCheck,
   PlusCircle,
-  Wallet
+  Wallet,
+  Layers
 } from 'lucide-react';
+import { isUsablePack, packCoversFormat, sessionsLeft } from '../../lib/packs';
 import { Card, IconTile, PrimaryButton, ScreenHeader, StickyAction, formatDateFr, formatEuro } from '../ui/fmc';
 
 type PaymentMethodId = 'card' | 'apple_pay' | 'google_pay';
 
 export const CheckoutPayment: React.FC = () => {
-  const { bookingDraft, goBack, navigateTo, createBooking, currentUser, isOnline, createPendingBooking, applyServerBooking } = useApp();
+  const { bookingDraft, goBack, navigateTo, createBooking, currentUser, isOnline, createPendingBooking, applyServerBooking, packBalances, refreshPackBalances } = useApp();
+  // Pack choisi pour cette séance (null : paiement par carte)
+  const [usePackId, setUsePackId] = useState<string | null | undefined>(undefined);
   const [payError, setPayError] = useState('');
   const [waitingReturn, setWaitingReturn] = useState(false);
 
@@ -61,6 +65,39 @@ export const CheckoutPayment: React.FC = () => {
   const travelFee = bookingDraft.travelFee ?? 0;
   const subtotal = basePrice + travelFee + serviceFee + taxes;
   const finalTotal = Math.max(0, Number((subtotal - appliedDiscount).toFixed(2)));
+
+  // Packs utilisables : même coach, type de séance couvert, séances restantes, encore valables à la date choisie
+  const usablePacks = packBalances.filter(
+    (b) =>
+      b.coachId === coach.id &&
+      isUsablePack(b) &&
+      packCoversFormat(b.pack.format, sessionType.format) &&
+      (!b.expiresAt || b.expiresAt.slice(0, 10) >= selectedDate)
+  );
+  const packId = usePackId === undefined ? usablePacks[0]?.id ?? null : usePackId;
+  const chosenPack = usablePacks.find((b) => b.id === packId) ?? null;
+
+  const handleBookWithPack = async () => {
+    if (!chosenPack || !bookingDraft) return;
+    setPayError('');
+    setIsProcessing(true);
+    let pendingId: string | null = null;
+    try {
+      const pending = await createPendingBooking(bookingDraft);
+      pendingId = pending.id;
+      const { bookWithPack } = await import('../../lib/packs');
+      const booking = await bookWithPack(pending.id, chosenPack.id);
+      refreshPackBalances();
+      applyServerBooking(booking);
+    } catch (err) {
+      setIsProcessing(false);
+      setPayError((err as Error).message || 'La réservation a échoué.');
+      if (pendingId) {
+        const { cancelBookingRemote } = await import('../../lib/payments');
+        cancelBookingRemote(pendingId).catch(() => {});
+      }
+    }
+  };
 
   const handleApplyPromo = () => {
     setPromoError('');
@@ -148,6 +185,31 @@ export const CheckoutPayment: React.FC = () => {
         </div>
       </Card>
 
+      {/* Packs de séances */}
+      {usablePacks.length > 0 && (
+        <>
+          <h2 className="text-base font-semibold mb-3">Utiliser un pack</h2>
+          <div className="space-y-3 mb-6" role="radiogroup" aria-label="Pack ou paiement">
+            {usablePacks.map((b) => (
+              <Card key={b.id} selected={packId === b.id} role="radio" aria-checked={packId === b.id} onClick={() => setUsePackId(b.id)} className="p-4 flex items-center gap-4 cursor-pointer">
+                <IconTile tone="outline"><Layers className="w-5 h-5" /></IconTile>
+                <span className="flex-1 min-w-0">
+                  <span className="font-semibold block truncate">{b.pack.name}</span>
+                  <span className="text-sm text-slate-500 block">{sessionsLeft(b)} séance{sessionsLeft(b) > 1 ? 's' : ''} restante{sessionsLeft(b) > 1 ? 's' : ''} · rien à payer</span>
+                </span>
+                {packId === b.id ? <CheckCircle2 className="w-6 h-6 text-white fill-fmc-green shrink-0" /> : <span className="w-6 h-6 rounded-full border-2 border-fmc-line dark:border-slate-700 shrink-0" />}
+              </Card>
+            ))}
+            <Card selected={packId === null} role="radio" aria-checked={packId === null} onClick={() => setUsePackId(null)} className="p-4 flex items-center gap-4 cursor-pointer">
+              <IconTile tone="outline"><CreditCard className="w-5 h-5" /></IconTile>
+              <span className="flex-1 min-w-0 font-semibold">Payer cette séance par carte</span>
+              {packId === null ? <CheckCircle2 className="w-6 h-6 text-white fill-fmc-green shrink-0" /> : <span className="w-6 h-6 rounded-full border-2 border-fmc-line dark:border-slate-700 shrink-0" />}
+            </Card>
+          </div>
+        </>
+      )}
+
+      {!chosenPack && (<>
       {/* Moyens de paiement */}
       <h2 className="text-base font-semibold mb-3">Mode de paiement</h2>
       {isOnline ? (
@@ -234,8 +296,17 @@ export const CheckoutPayment: React.FC = () => {
       </div>
       {promoSuccess && <p className="text-sm text-fmc-green-ink font-medium mt-1">{promoSuccess}</p>}
       {promoError && <p className="text-sm text-rose-500 font-medium mt-1">{promoError}</p>}
+      </>)}
 
       {/* Résumé */}
+      {chosenPack ? (
+        <Card className="p-6 mt-2">
+          <h2 className="text-base font-semibold mb-2">Résumé de la réservation</h2>
+          <p className="text-[15px] text-slate-500">
+            Une séance de votre pack « {chosenPack.pack.name} » sera utilisée. Il vous en restera {sessionsLeft(chosenPack) - 1}.
+          </p>
+        </Card>
+      ) : (
       <Card className="p-6 mt-6">
         <h2 className="text-base font-semibold mb-5">Résumé de la réservation</h2>
         <dl className="space-y-3.5 text-[15px]">
@@ -276,6 +347,7 @@ export const CheckoutPayment: React.FC = () => {
           <span className="text-2xl font-bold text-fmc-green-ink tabular-nums">{formatEuro(finalTotal)}</span>
         </div>
       </Card>
+      )}
 
       {payError && <p className="text-sm text-rose-500 font-medium text-center mt-4">{payError}</p>}
       {waitingReturn && <p className="text-sm text-slate-500 text-center mt-4">Vérification du paiement…</p>}
@@ -290,10 +362,10 @@ export const CheckoutPayment: React.FC = () => {
           id="btn-process-payment"
           gradient
           disabled={isProcessing}
-          onClick={handleProcessPayment}
-          icon={<Lock className="w-5 h-5" />}
+          onClick={chosenPack ? handleBookWithPack : handleProcessPayment}
+          icon={chosenPack ? <Layers className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
         >
-          {isProcessing ? (isOnline ? 'Ouverture du paiement sécurisé…' : 'Validation du paiement…') : `Payer maintenant • ${formatEuro(finalTotal)}`}
+          {chosenPack ? (isProcessing ? 'Réservation…' : 'Réserver avec mon pack') : isProcessing ? (isOnline ? 'Ouverture du paiement sécurisé…' : 'Validation du paiement…') : `Payer maintenant • ${formatEuro(finalTotal)}`}
         </PrimaryButton>
       </StickyAction>
     </div>

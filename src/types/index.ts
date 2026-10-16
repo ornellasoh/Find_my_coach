@@ -41,14 +41,44 @@ export interface VerificationDoc {
   adminFeedback?: string;
 }
 
+export type PackInstallments = 1 | 3 | 5;
+
+/** Pack de séances proposé par le coach (fiche coach). Le prix payé est `totalPrice`, en 1, 3 ou 5 fois. */
 export interface SessionPack {
   id: string;
   name: string;
   sessionsCount: number;
-  discountPercent: number;
-  pricePerSession: number;
-  totalPrice: number;
+  totalPrice: number;              // en €, ce que paie le client pour tout le pack
+  validityMonths?: number;         // durée pour utiliser les séances (6 mois par défaut)
+  format?: CoachingFormat | 'any'; // type de séance couvert ('any' : tous)
+  installments?: PackInstallments[]; // paiements proposés (1 = en une fois)
+  active?: boolean;                // false : masqué aux clients
+  description?: string;
+  // Anciens champs des profils de démonstration
+  discountPercent?: number;
+  pricePerSession?: number;
   popular?: boolean;
+}
+
+/** Pack acheté, avec ses séances restantes et ses échéances (fonction fmc_pack_balances). */
+export interface PackBalance {
+  id: string;
+  clientId: string;
+  clientName: string;
+  coachId: string;
+  coachName: string;
+  pack: { id: string; name: string; sessionsCount: number; totalPrice: number; format?: CoachingFormat | 'any'; validityMonths: number };
+  sessionsTotal: number;
+  sessionsUsed: number;
+  installments: PackInstallments;
+  installmentsPaid: number;
+  installmentAmount: number; // €
+  amountTotal: number;       // €
+  applicationFee: number;    // €
+  status: 'active' | 'past_due' | 'unpaid' | 'cancelled' | 'expired';
+  activatedAt: string | null;
+  expiresAt: string | null;
+  createdAt: string;
 }
 
 export interface WeeklyScheduleDay {
@@ -302,6 +332,10 @@ export type NotificationType =
   | 'session_report'
   | 'review_request'
   | 'review_reply'
+  | 'pack_purchased'
+  | 'pack_sold'
+  | 'pack_payment'
+  | 'pack_payment_failed'
   | 'reminder'
   | 'reminder_soon'
   | 'system';

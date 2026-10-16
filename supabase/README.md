@@ -72,3 +72,11 @@ Fonction serveur ajoutée : `notify-dispatch` (envoi push + email des notificati
 Fonctions modifiées : `create-checkout`, `stripe-webhook` / `verify-payment` (via `_shared/confirm.ts`), `send-reminders`, `_shared/common.ts`.
 
 Tests (base PostgreSQL locale jetable, jamais la production) : `PGHOST=… PGPORT=… PGUSER=postgres bash supabase/tests/run_local.sh`
+
+## Packs de séances (16 oct. 2026)
+
+Migration `20261016150000_packs_seances.sql` ; fonctions `create-pack-checkout` et `verify-pack` (avec vérification JWT).
+Paiement en 1 fois (Checkout « payment ») ou en 3 / 5 mensualités (Checkout « subscription », arrêté par le webhook après la dernière échéance).
+
+À activer une fois dans Stripe → Développeurs → Webhooks (point de réception du **compte plateforme**) :
+`invoice.paid`, `invoice.payment_failed`, `customer.subscription.deleted` (en plus des événements déjà reçus).

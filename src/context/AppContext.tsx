@@ -7,6 +7,7 @@ import {
   AvailabilitySlot, 
   SessionType, 
   Booking, 
+  PackBalance,
   Review, 
   Favorite, 
   Notification, 
@@ -219,6 +220,13 @@ interface AppContextType {
   toggleReviewVisibility: (reviewId: string) => void;
   /** Réponse publique du coach à un avis (une seule fois). Renvoie un message d'erreur, ou null si c'est enregistré. */
   replyToReview: (reviewId: string, reply: string) => Promise<string | null>;
+
+  // Packs de séances (achetés par le client / vendus par le coach)
+  packBalances: PackBalance[];
+  refreshPackBalances: () => Promise<PackBalance[]>;
+  /** Message affiché après le retour de la page de paiement d'un pack (web). */
+  packNotice: string | null;
+  setPackNotice: (msg: string | null) => void;
   
   // Favorites
   favorites: Favorite[];
@@ -411,6 +419,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // UI Drawers & Modals
   const [isNotificationDrawerOpen, setIsNotificationDrawerOpen] = useState(false);
   const [reviewModalBooking, setReviewModalBooking] = useState<Booking | null>(null);
+  const [packBalances, setPackBalances] = useState<PackBalance[]>([]);
+  const [packNotice, setPackNotice] = useState<string | null>(null);
   const [activeVideoBooking, setActiveVideoBooking] = useState<Booking | null>(null);
   const [activeChatPartner, setActiveChatPartner] = useState<ChatPartner | null>(null);
 
@@ -1625,6 +1635,41 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  const refreshPackBalances = async (): Promise<PackBalance[]> => {
+    if (!syncOn) return [];
+    const { fetchPackBalances } = await import('../lib/packs');
+    const list = await fetchPackBalances();
+    setPackBalances(list);
+    return list;
+  };
+
+  useEffect(() => {
+    if (syncOn) refreshPackBalances();
+    else setPackBalances([]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [syncOn, uid]);
+
+  // Retour de Stripe sur le web après l'achat d'un pack (?pack=success&purchase=…)
+  useEffect(() => {
+    if (!syncOn) return;
+    const params = new URLSearchParams(window.location.search);
+    const status = params.get('pack');
+    const purchaseId = params.get('purchase');
+    if (!status || !purchaseId) return;
+    window.history.replaceState({}, '', window.location.pathname);
+    setCurrentScreen('bookings');
+    setScreenHistory(['home', 'bookings']);
+    if (status !== 'success') return;
+    setPackNotice('Vérification du paiement de votre pack…');
+    import('../lib/packs').then(({ waitForPack }) =>
+      waitForPack(purchaseId).then(async (st) => {
+        await refreshPackBalances();
+        setPackNotice(st === 'active' ? 'Votre pack est activé : réservez vos séances depuis la fiche de votre coach.' : 'Paiement du pack non confirmé pour le moment. Il apparaîtra ici dès que Stripe l’aura validé.');
+      })
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [syncOn]);
+
   // Retour de Stripe sur le web (?payment=success&booking=…)
   useEffect(() => {
     if (!syncOn) return;
@@ -1724,6 +1769,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         getCoachReviews,
         toggleReviewVisibility,
         replyToReview,
+        packBalances,
+        refreshPackBalances,
+        packNotice,
+        setPackNotice,
         favorites,
         toggleFavorite,
         isFavorite,

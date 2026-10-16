@@ -27,6 +27,7 @@ import { motion } from 'motion/react';
 import { isVerifiedCoach, isRealCoach, levelsText, approximateZone, isDemoCoachOnline, isBookableCoach, zoneDescription } from '../../utils/coachTrust';
 import { PrimaryButton, Rating, SectionHeader, StickyAction, formatDateFr, formatEuro } from '../ui/fmc';
 import { CoachReplyBlock } from '../common/ReviewReply';
+import { CoachPacksOffer } from './CoachPacksOffer';
 
 export const CoachProfileView: React.FC = () => {
   const { 
@@ -307,6 +308,9 @@ export const CoachProfileView: React.FC = () => {
             Poser une question à {coach.name.split(' ')[0]}
           </button>
         </section>
+
+        {/* Packs de séances */}
+        <CoachPacksOffer coach={coach} canBuy={!isDemoCoachOnline(coach) && isBookableCoach(coach) && coach.userId !== currentUser?.id} />
 
         {/* Avis */}
         <section>

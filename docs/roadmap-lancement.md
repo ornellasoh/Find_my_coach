@@ -59,6 +59,12 @@
       clients, clients réguliers, taux de fidélisation, clients les plus fidèles.
 - [ ] Tester l'écran Statistiques avec un vrai compte coach (Ornella).
 
+- [x] Avis : réponse publique du coach (une seule fois) ; avis refusés par le serveur sans séance effectuée (16 oct.).
+- [x] Packs de séances (16 oct.) : le coach les crée dans « Mon profil pro » ; le client paie en 1, 3 ou 5 fois (échéancier Stripe, risque d'impayé pour le coach) ; chaque réservation utilise une séance.
+- [ ] Stripe : ajouter les événements `invoice.paid`, `invoice.payment_failed`, `customer.subscription.deleted` au webhook (Ornella).
+- [ ] Tester un achat de pack en 3 fois avec un vrai coach dont les paiements Stripe sont activés.
+- [ ] Choisir le délai pour laisser un avis (48 h ou 7 jours avec rappel).
+
 ## En attente de décision
 
 - Lien TestFlight public pour les 10 premiers inscrits iPhone, puis validation manuelle (idée proposée, non codée).

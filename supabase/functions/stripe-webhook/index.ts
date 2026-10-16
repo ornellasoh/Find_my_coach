@@ -1,7 +1,8 @@
-// Reçoit les événements Stripe (paiement réussi, expiré, remboursé, compte coach mis à jour).
+// Reçoit les événements Stripe (paiement réussi, expiré, remboursé, compte coach mis à jour, échéances des packs).
 import Stripe from 'npm:stripe@17.7.0';
 import { admin, notify, stripe } from '../_shared/common.ts';
 import { confirmPaidSession, setBooking } from '../_shared/confirm.ts';
+import { handleInvoiceFailed, handleInvoicePaid, handlePackCheckout, handleSubscriptionDeleted } from '../_shared/packs.ts';
 
 const cryptoProvider = Stripe.createSubtleCryptoProvider();
 
@@ -28,12 +29,19 @@ Deno.serve(async (req) => {
     switch (event.type) {
       case 'checkout.session.completed':
       case 'checkout.session.async_payment_succeeded': {
-        await confirmPaidSession(event.data.object as Stripe.Checkout.Session);
+        const s = event.data.object as Stripe.Checkout.Session;
+        if (s.metadata?.pack_purchase_id) await handlePackCheckout(s);
+        else await confirmPaidSession(s);
         break;
       }
       case 'checkout.session.expired':
       case 'checkout.session.async_payment_failed': {
         const s = event.data.object as Stripe.Checkout.Session;
+        if (s.metadata?.pack_purchase_id) {
+          await admin.from('pack_purchases').update({ status: 'cancelled', updated_at: new Date().toISOString() })
+            .eq('id', s.metadata.pack_purchase_id).eq('status', 'pending');
+          break;
+        }
         const bookingId = s.metadata?.booking_id;
         await admin.from('payments').update({ status: 'expired', updated_at: new Date().toISOString() }).eq('id', s.id);
         if (bookingId) {
@@ -47,12 +55,27 @@ Deno.serve(async (req) => {
       case 'charge.refunded': {
         const c = event.data.object as Stripe.Charge;
         const pi = String(c.payment_intent ?? '');
+        // Pack payé en une fois et remboursé depuis Stripe : le pack n'est plus utilisable
+        await admin.from('pack_purchases').update({ status: 'cancelled', updated_at: new Date().toISOString() })
+          .eq('payment_intent_id', pi).in('status', ['active', 'past_due']);
         const { data: pay } = await admin.from('payments').select('*').eq('payment_intent_id', pi).maybeSingle();
         if (pay && pay.status !== 'refunded') {
           await admin.from('payments').update({ status: 'refunded', updated_at: new Date().toISOString() }).eq('id', pay.id);
           await setBooking(pay.booking_id, 'cancelled', { bookingStatus: 'cancelled', paymentStatus: 'refunded' });
           await notify(pay.client_id, 'booking_cancelled', 'Remboursement effectué', 'Votre séance a été remboursée sur votre carte.', pay.booking_id);
         }
+        break;
+      }
+      case 'invoice.paid': {
+        await handleInvoicePaid(event.data.object as Stripe.Invoice);
+        break;
+      }
+      case 'invoice.payment_failed': {
+        await handleInvoiceFailed(event.data.object as Stripe.Invoice);
+        break;
+      }
+      case 'customer.subscription.deleted': {
+        await handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
         break;
       }
       case 'account.updated': {
