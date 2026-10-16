@@ -159,8 +159,23 @@ Secrets GitHub requis :
 | `ANDROID_KEY_ALIAS` | `upload` |
 | `ANDROID_KEY_PASSWORD` | mot de passe de la clé |
 
-Version minimale : Android 7 (SDK 24), exigée par Google Play. Fichier à envoyer : l'artefact `.aab`
-du workflow, dans *Play Console → Tester → Tests fermés → Créer une release*.
+Version minimale : Android 7 (SDK 24), exigée par Google Play.
+
+**Envoi automatique vers la Play Console** : au lancement du workflow, choisir la piste (`internal` par défaut,
+`alpha` = test fermé, `production` = brouillon à valider à la main) et écrire les nouveautés. L'AAB part tout seul
+si le secret `PLAY_SERVICE_ACCOUNT_JSON` existe ; sinon, télécharger l'artefact `.aab` et l'envoyer dans
+*Play Console → Tester → … → Créer une release*.
+
+Mise en place, une seule fois :
+1. Google Cloud Console (même compte que la Play Console) → créer un projet, activer **Google Play Android Developer API**.
+2. *IAM → Comptes de service* → créer un compte de service → *Clés* → ajouter une clé **JSON** (fichier téléchargé).
+3. Play Console → *Utilisateurs et autorisations* → inviter l'adresse du compte de service, accès à Find My Coach
+   avec les droits « Publier des versions dans les pistes de test » (et « production » si besoin).
+4. GitHub → *Settings → Secrets → Actions* → secret `PLAY_SERVICE_ACCOUNT_JSON` = contenu complet du fichier JSON.
+   Supprimer ensuite le fichier du Mac.
+
+La toute première version d'une app doit avoir été envoyée à la main dans la Play Console (c'est déjà fait
+pour le test interne). Le numéro de version (`versionCode`) est le numéro d'exécution du workflow : il augmente tout seul.
 
 Créer la clé une seule fois et la conserver hors du dépôt. Sans Java sur le Mac : `zsh scripts/creer-cle-android.sh`
 (demande le mot de passe, crée `~/findmycoach-upload.jks` et copie sa version base64). Avec Java :
