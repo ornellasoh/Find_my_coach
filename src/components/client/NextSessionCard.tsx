@@ -41,7 +41,7 @@ export const NextSessionCard: React.FC = () => {
   if (!next) {
     return (
       <section className="mb-7 rounded-[28px] bg-white dark:bg-slate-900 border border-fmc-line/80 dark:border-slate-800 p-5">
-        <span className="text-xs font-bold uppercase tracking-wider text-fmc-green-ink">Ma prochaine séance</span>
+        <span className="text-[13px] font-semibold text-[#007A3D] dark:text-fmc-green">Ma prochaine séance</span>
         <p className="mt-2 font-semibold">Aucune séance prévue</p>
         <p className="text-sm text-slate-500 mt-0.5">Trouvez un coach près de chez vous ou en visio.</p>
         <button
@@ -73,7 +73,7 @@ export const NextSessionCard: React.FC = () => {
       aria-label="Ma prochaine séance"
     >
       <div className="flex items-center justify-between mb-4 gap-2">
-        <span className="text-xs font-bold uppercase tracking-wider text-fmc-green">Ma prochaine séance</span>
+        <span className="text-[13px] font-semibold text-fmc-green">Ma prochaine séance</span>
         <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${state.cls}`}>{state.label}</span>
       </div>
 
@@ -94,7 +94,7 @@ export const NextSessionCard: React.FC = () => {
       </p>
 
       {next.bookingStatus === 'confirmed' && details?.prepInstructions && (
-        <p className="mt-2 text-sm text-white/70 line-clamp-2">📋 {details.prepInstructions}</p>
+        <p className="mt-2 text-sm text-white/70 line-clamp-2">{details.prepInstructions}</p>
       )}
 
       <div className="mt-4 flex items-center gap-2">

@@ -8,7 +8,6 @@ import {
   Calendar,
   User,
   LayoutDashboard,
-  Wallet,
   Users,
   Settings,
   MessageSquare,
@@ -55,8 +54,8 @@ export const BottomNav: React.FC = () => {
           { id: 'nav-coach-bookings', label: 'Planning', icon: Calendar, screen: 'coach_bookings', also: ['coach_availabilities'], badge: upcoming },
           messages,
           { id: 'nav-coach-clients', label: 'Clients', icon: Users, screen: 'coach_clients' },
-          { id: 'nav-coach-financials', label: 'Revenus', icon: Wallet, screen: 'coach_financials' },
-          { id: 'nav-coach-profile-edit', label: 'Profil', icon: Settings, screen: 'coach_profile_edit' },
+          // 5 onglets au plus (recommandation Apple) : les revenus se consultent depuis le Profil et l'Accueil
+          { id: 'nav-coach-profile-edit', label: 'Profil', icon: Settings, screen: 'coach_profile_edit', also: ['coach_financials'] },
         ]
       : [
           { id: 'nav-home', label: 'Accueil', icon: Home, screen: 'home' },

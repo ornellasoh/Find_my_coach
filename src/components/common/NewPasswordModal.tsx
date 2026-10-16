@@ -56,7 +56,7 @@ export const NewPasswordModal: React.FC = () => {
           <KeyRound className="w-6 h-6" />
         </div>
         <h2 id="new-password-title" className="text-lg font-extrabold text-[#0F172A] dark:text-white">
-          {done ? 'Mot de passe modifié ✅' : 'Choisissez un nouveau mot de passe'}
+          {done ? 'Mot de passe modifié' : 'Choisissez un nouveau mot de passe'}
         </h2>
         {!done && (
           <>

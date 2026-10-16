@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ratingLabel } from '../../utils/coachTrust';
 import { Avatar } from '../ui/Avatar';
+import { VerifiedMark } from './CoachCard';
 import { isVerifiedCoach } from '../../utils/coachTrust';
 import { createAppleEngine, createLeafletEngine, loadMapKit, type MapEngine } from '../../lib/mapEngines';
 import { CoachProfile } from '../../types';
@@ -100,12 +101,11 @@ export const CoachMap: React.FC<CoachMapProps> = ({
           lng: coach.longitude,
           html: `
         <div class="group relative cursor-pointer transform transition duration-200 ${isSelected ? 'scale-110 z-50' : 'hover:scale-105'}">
-          <div class="flex items-center gap-1 px-2.5 py-1 rounded-full shadow-md font-extrabold text-xs transition border ${
+          <div class="flex items-center gap-1 px-2.5 py-1 rounded-full shadow-md font-bold text-xs transition border ${
             isSelected
               ? 'bg-[#0F172A] text-[#00FD83] border-[#00FD83] ring-2 ring-[#00FD83]/30 shadow-lg'
               : 'bg-white text-[#0F172A] border-slate-200 hover:border-[#00D664]'
           }">
-            <span class="text-[10px] text-[#00B050]">⚡</span>
             <span>${coach.hourlyRate}€</span>
           </div>
           <div class="w-0 h-0 mx-auto border-l-4 border-r-4 border-t-4 ${
@@ -228,8 +228,8 @@ export const CoachMap: React.FC<CoachMapProps> = ({
               <div className="relative shrink-0">
                 <Avatar src={activeCoach.photo} name={activeCoach.name} className="w-14 h-14 rounded-xl border border-slate-100 shadow-xs" />
                 {isVerifiedCoach(activeCoach) && (
-                  <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-[#00D664] text-[#0F172A] rounded-full flex items-center justify-center text-[10px] shadow-xs">
-                    ✓
+                  <span className="absolute -bottom-1 -right-1 w-5 h-5 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-xs">
+                    <VerifiedMark className="w-4 h-4" />
                   </span>
                 )}
               </div>

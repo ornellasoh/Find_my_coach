@@ -69,13 +69,13 @@ export const CoachDocumentsPanel: React.FC<{ coach: CoachProfile; ownerId: strin
   const verified = coach.verificationStatus === 'verified';
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-xs space-y-3 mt-4">
+    <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 border border-fmc-line/80 dark:border-slate-800 space-y-3 mt-4">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-xs font-black uppercase tracking-wider flex items-center gap-2">
+        <h3 className="text-xs font-bold flex items-center gap-2">
           <FileCheck2 className="w-4 h-4 text-[#00B050]" /> Justificatifs & badge « Vérifié »
         </h3>
         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${verified ? 'bg-emerald-100 text-[#008A3E]' : coach.verificationStatus === 'pending' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'}`}>
-          {verified ? 'Vérifié ✓' : coach.verificationStatus === 'pending' ? 'En cours' : 'Non vérifié'}
+          {verified ? 'Vérifié' : coach.verificationStatus === 'pending' ? 'En cours' : 'Non vérifié'}
         </span>
       </div>
       <p className="text-xs text-slate-500 flex items-start gap-1.5">
@@ -141,7 +141,7 @@ export const CoachDocumentsPanel: React.FC<{ coach: CoachProfile; ownerId: strin
         </div>
         <input ref={fileRef} type="file" accept="application/pdf,image/*" className="hidden" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
         <button type="button" onClick={() => fileRef.current?.click()} className="w-full min-h-11 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 text-sm cursor-pointer">
-          {file ? `📎 ${file.name}` : 'Choisir un fichier (PDF ou photo, 10 Mo max.)'}
+          {file ? file.name : 'Choisir un fichier (PDF ou photo, 10 Mo max.)'}
         </button>
         {error && <p className="text-xs text-rose-600">{error}</p>}
         {ok && <p className="text-xs text-[#008A3E] font-semibold">{ok}</p>}

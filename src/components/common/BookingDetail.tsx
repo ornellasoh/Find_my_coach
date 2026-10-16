@@ -443,7 +443,7 @@ export const BookingDetail: React.FC = () => {
               <p className="text-sm whitespace-pre-line">{report.summary}</p>
               {report.nextActions && (
                 <div className="rounded-2xl bg-fmc-green/10 p-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-fmc-green-ink mb-1">Prochaines actions</p>
+                  <p className="text-[13px] font-semibold text-[#007A3D] dark:text-fmc-green mb-1">Prochaines actions</p>
                   <p className="text-sm whitespace-pre-line">{report.nextActions}</p>
                 </div>
               )}

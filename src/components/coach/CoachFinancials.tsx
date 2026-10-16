@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { isSupabaseEnabled } from '../../lib/supabase';
 import { useApp } from '../../context/AppContext';
+import { ScreenHeader, formatEuro, formatDateFr } from '../ui/fmc';
 import { 
   ArrowLeft, 
   Wallet, 
@@ -74,32 +75,20 @@ export const CoachFinancials: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F6F9FA] text-[#0F172A] pb-28 max-w-md mx-auto px-4 pt-3">
-      {/* Top Header */}
-      <div className="flex items-center justify-between py-2 mb-3">
-        <button
-          onClick={goBack}
-          className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-700 shadow-xs hover:bg-slate-50 transition cursor-pointer"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-
-        <h1 className="text-base font-extrabold text-[#0F172A]">Revenus & Versements</h1>
-
-        <div className="w-10" />
-      </div>
+    <div className="min-h-screen bg-fmc-bg dark:bg-[#0B0F19] text-fmc-navy dark:text-slate-100 pb-32 max-w-md mx-auto px-5 pt-4">
+      <ScreenHeader title="Revenus et versements" onBack={goBack} />
 
       {/* Encaissements Stripe */}
       {isOnline && (
-        <div className={`rounded-3xl p-5 mb-4 border ${stripeStatus?.charges_enabled ? 'bg-white border-slate-200' : 'bg-[#00D664]/10 border-[#00D664]/40'}`}>
+        <div className={`rounded-3xl p-5 mb-4 border ${stripeStatus?.charges_enabled ? 'bg-white border-slate-200' : 'bg-fmc-green/10 border-[#00D664]/40'}`}>
           <div className="flex items-start gap-3">
             <div className="w-11 h-11 rounded-2xl bg-[#1C1C1C] text-[#00D664] flex items-center justify-center shrink-0">
               <CreditCard className="w-5 h-5" />
             </div>
             <div className="flex-1">
-              <h2 className="font-bold text-[#0F172A]">
+              <h2 className="font-bold text-fmc-navy">
                 {stripeStatus?.charges_enabled
-                  ? 'Paiements activés ✅'
+                  ? 'Paiements activés'
                   : stripeStatus?.details_submitted
                   ? 'Vérification Stripe en cours'
                   : 'Activez vos paiements'}
@@ -114,7 +103,7 @@ export const CoachFinancials: React.FC = () => {
           <button
             onClick={handleStripe}
             disabled={stripeLoading}
-            className="w-full h-12 mt-4 rounded-full bg-[#00D664] text-[#0F172A] font-bold text-sm disabled:opacity-50 cursor-pointer"
+            className="w-full h-12 mt-4 rounded-full bg-fmc-green text-fmc-navy font-bold text-sm disabled:opacity-50 cursor-pointer"
           >
             {stripeLoading ? 'Ouverture de Stripe…' : stripeStatus?.details_submitted ? 'Mon tableau de bord Stripe' : 'Activer les paiements avec Stripe'}
           </button>
@@ -124,23 +113,23 @@ export const CoachFinancials: React.FC = () => {
 
       {/* Main Balance Card */}
       <div className="bg-[#0F172A] text-white rounded-3xl p-5 shadow-lg mb-4 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-[#00D664]/10 rounded-full blur-2xl pointer-events-none" />
+        <div className="absolute top-0 right-0 w-32 h-32 bg-fmc-green/10 rounded-full blur-2xl pointer-events-none" />
         
-        <span className="text-xs font-bold text-slate-400 block uppercase tracking-wider">
+        <span className="text-xs font-bold text-slate-400 block">
           {isOnline ? 'Revenus nets des séances effectuées' : 'Solde disponible au virement'}
         </span>
-        <div className="text-3xl font-black text-white mt-1 mb-3">
-          {availableForPayout.toFixed(2)} €
+        <div className="text-3xl font-bold text-white mt-1 mb-3">
+          {formatEuro(availableForPayout)}
         </div>
 
         <div className="grid grid-cols-2 gap-2 pt-3 border-t border-slate-800 text-xs">
           <div>
             <span className="text-slate-400 block">En attente (séances à venir)</span>
-            <span className="text-amber-400 font-black">{pendingNet.toFixed(2)} €</span>
+            <span className="text-amber-400 font-bold">{formatEuro(pendingNet)}</span>
           </div>
           <div>
             <span className="text-slate-400 block">{isOnline ? 'Total des séances effectuées' : 'Total versé à ce jour'}</span>
-            <span className="text-[#00FD83] font-black">{totalEarnedNet.toFixed(2)} €</span>
+            <span className="text-[#00FD83] font-bold">{formatEuro(totalEarnedNet)}</span>
           </div>
         </div>
 
@@ -149,23 +138,23 @@ export const CoachFinancials: React.FC = () => {
         <button
           onClick={handlePayout}
           disabled={payoutRequested || availableForPayout <= 0}
-          className={`w-full mt-4 py-3 rounded-2xl font-black text-xs transition flex items-center justify-center gap-2 cursor-pointer shadow-md ${
+          className={`w-full mt-4 py-3 rounded-2xl font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer shadow-md ${
             payoutRequested
-              ? 'bg-[#00B050] text-[#0F172A]'
-              : 'bg-[#00D664] hover:bg-[#00B050] text-[#0F172A]'
+              ? 'bg-[#00B050] text-fmc-navy'
+              : 'bg-fmc-green text-fmc-navy'
           }`}
         >
           <ArrowDownLeft className="w-4 h-4 stroke-[2.5]" />
-          <span>{payoutRequested ? 'Demande de virement envoyée ✅' : 'Demander le virement SEPA'}</span>
+          <span>{payoutRequested ? 'Demande de virement envoyée' : 'Demander le virement SEPA'}</span>
         </button>
         )}
       </div>
 
       {/* Commission Transparency Card */}
-      <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs mb-4">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 border border-fmc-line/80 dark:border-slate-800 mb-4">
         <div className="flex items-center gap-2 mb-2">
           <ShieldCheck className="w-4 h-4 text-[#00B050]" />
-          <h2 className="text-xs font-black text-slate-800 uppercase tracking-wider">
+          <h2 className="text-[13px] font-semibold text-slate-500 dark:text-slate-400">
             Modèle de rémunération transparent
           </h2>
         </div>
@@ -180,11 +169,11 @@ export const CoachFinancials: React.FC = () => {
       </div>
 
       {!isOnline && (
-      <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs mb-4">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 border border-fmc-line/80 dark:border-slate-800 mb-4">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <Building className="w-4 h-4 text-slate-700" />
-            <h2 className="text-xs font-black text-slate-800 uppercase tracking-wider">
+            <h2 className="text-[13px] font-semibold text-slate-500 dark:text-slate-400">
               Compte bancaire de versement
             </h2>
           </div>
@@ -215,9 +204,9 @@ export const CoachFinancials: React.FC = () => {
       )}
 
       {/* Transaction History */}
-      <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs space-y-3">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 border border-fmc-line/80 dark:border-slate-800 space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-extrabold text-[#0F172A]">Historique des transactions</h2>
+          <h2 className="text-sm font-bold text-fmc-navy">Historique des transactions</h2>
           <span className="text-xs text-slate-400 font-bold">{coachPayouts.length} lignes</span>
         </div>
 
@@ -231,13 +220,13 @@ export const CoachFinancials: React.FC = () => {
                 className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between"
               >
                 <div>
-                  <h4 className="text-xs font-extrabold text-[#0F172A]">{t.clientName}</h4>
+                  <h4 className="text-xs font-bold text-fmc-navy">{t.clientName}</h4>
                   <p className="text-[11px] text-slate-500 font-medium">{t.sessionTitle}</p>
-                  <span className="text-[10px] text-slate-400">{t.date}</span>
+                  <span className="text-[10px] text-slate-400">{formatDateFr(t.date)}</span>
                 </div>
 
                 <div className="text-right">
-                  <div className="text-xs font-black text-[#0F172A]">+{t.netAmount.toFixed(2)} €</div>
+                  <div className="text-xs font-bold text-fmc-navy">+{formatEuro(t.netAmount)}</div>
                   <span
                     className={`inline-block text-[10px] font-bold px-1.5 py-0.2 rounded-md ${
                       t.status === 'paid'
@@ -245,7 +234,7 @@ export const CoachFinancials: React.FC = () => {
                         : 'bg-amber-100 text-amber-800'
                     }`}
                   >
-                    {t.status === 'paid' ? (isOnline ? 'Séance effectuée' : 'Versé ✓') : 'Séance à venir'}
+                    {t.status === 'paid' ? (isOnline ? 'Séance effectuée' : 'Versé') : 'Séance à venir'}
                   </span>
                 </div>
               </div>

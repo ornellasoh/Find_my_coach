@@ -166,7 +166,7 @@ export const CoachFeatureCard: React.FC<{ coach: CoachProfile }> = ({ coach }) =
           {ratingLabel(coach)}
         </span>
         {coach.isElite && isRealCoach(coach) && (
-          <span className="absolute top-4 right-4 px-2.5 py-1 rounded-full bg-fmc-green text-fmc-navy text-[11px] font-bold uppercase tracking-wide">
+          <span className="absolute top-4 right-4 px-2.5 py-1 rounded-full bg-fmc-green text-fmc-navy text-[11px] font-bold">
             Élite
           </span>
         )}

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { isSupabaseEnabled } from '../../lib/supabase';
 import { Avatar } from '../ui/Avatar';
 import { useApp } from '../../context/AppContext';
+import { ScreenHeader, formatDateFr } from '../ui/fmc';
 import { 
   ArrowLeft, 
   Users, 
@@ -72,20 +73,8 @@ export const CoachClients: React.FC = () => {
     : [];
 
   return (
-    <div className="min-h-screen bg-[#F6F9FA] text-[#0F172A] pb-28 max-w-md mx-auto px-4 pt-3">
-      {/* Top Header */}
-      <div className="flex items-center justify-between py-2 mb-3">
-        <button
-          onClick={goBack}
-          className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-700 shadow-xs hover:bg-slate-50 transition cursor-pointer"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-
-        <h1 className="text-base font-extrabold text-[#0F172A]">Fiches Clients & Suivi</h1>
-
-        <div className="w-10" />
-      </div>
+    <div className="min-h-screen bg-fmc-bg dark:bg-[#0B0F19] text-fmc-navy dark:text-slate-100 pb-32 max-w-md mx-auto px-5 pt-4">
+      <ScreenHeader title="Mes clients" onBack={goBack} />
 
       {/* Search Input */}
       <div className="relative mb-4">
@@ -112,12 +101,12 @@ export const CoachClients: React.FC = () => {
             <div
               key={client.id}
               onClick={() => handleOpenClient(client)}
-              className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs hover:border-[#00D664] transition cursor-pointer flex items-center justify-between"
+              className="bg-white dark:bg-slate-900 rounded-3xl p-4 border border-fmc-line/80 dark:border-slate-800 hover:border-[#00D664] transition cursor-pointer flex items-center justify-between"
             >
               <div className="flex items-center gap-3">
                 <Avatar src={client.clientAvatar} name={client.clientName} className="w-12 h-12 rounded-2xl border border-slate-200" />
                 <div>
-                  <h3 className="font-extrabold text-sm text-[#0F172A]">{client.clientName}</h3>
+                  <h3 className="font-bold text-sm text-fmc-navy">{client.clientName}</h3>
                   <p className="text-[11px] text-slate-500">{client.clientEmail}</p>
 
                   <div className="flex items-center gap-2 mt-1">
@@ -155,7 +144,7 @@ export const CoachClients: React.FC = () => {
                 <div className="flex items-center gap-3">
                   <Avatar src={selectedClient.clientAvatar} name={selectedClient.clientName} className="w-14 h-14 rounded-2xl border-2 border-[#00D664]/40" />
                   <div>
-                    <h2 className="text-base font-black text-[#0F172A]">{selectedClient.clientName}</h2>
+                    <h2 className="text-base font-bold text-fmc-navy">{selectedClient.clientName}</h2>
                     <p className="text-xs text-slate-500">{selectedClient.clientEmail}</p>
                     <span className="text-[11px] font-bold text-[#008A3E]">
                       {selectedClient.totalSessions} séances complétées
@@ -178,7 +167,7 @@ export const CoachClients: React.FC = () => {
                     startChatWithClient(selectedClient);
                     setSelectedClient(null);
                   }}
-                  className="py-2.5 bg-[#00D664]/15 hover:bg-[#00D664]/25 text-[#008A3E] rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition border border-[#00D664]/30 cursor-pointer"
+                  className="py-2.5 bg-fmc-green/15 hover:bg-fmc-green/25 text-[#008A3E] rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition border border-[#00D664]/30 cursor-pointer"
                 >
                   <MessageSquare className="w-3.5 h-3.5" />
                   <span>Chat FMC</span>
@@ -213,7 +202,7 @@ export const CoachClients: React.FC = () => {
 
               {/* Client Tags */}
               <div className="py-3 border-b border-slate-100">
-                <label className="text-xs font-black text-slate-800 uppercase tracking-wider block mb-1.5">
+                <label className="text-[13px] font-semibold text-slate-500 dark:text-slate-400 block mb-1.5">
                   Tags & Objectifs
                 </label>
                 <div className="flex flex-wrap gap-1.5 mb-2">
@@ -236,7 +225,7 @@ export const CoachClients: React.FC = () => {
                   />
                   <button
                     onClick={handleAddTag}
-                    className="px-3 py-1.5 bg-[#00D664] text-[#0F172A] font-bold rounded-xl text-xs hover:bg-[#00B050] transition cursor-pointer"
+                    className="px-3 py-1.5 bg-fmc-green text-fmc-navy font-bold rounded-xl text-xs hover:bg-[#00B050] transition cursor-pointer"
                   >
                     Ajouter
                   </button>
@@ -246,7 +235,7 @@ export const CoachClients: React.FC = () => {
               {/* Private Coach Notes */}
               <div className="py-3 border-b border-slate-100">
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-black text-slate-800 uppercase tracking-wider">
+                  <label className="text-[13px] font-semibold text-slate-500 dark:text-slate-400">
                     Notes privées de coaching
                   </label>
                   <span className="text-[10px] text-slate-400">Visible uniquement par vous</span>
@@ -268,7 +257,7 @@ export const CoachClients: React.FC = () => {
 
               {/* Booking History with this client */}
               <div className="py-3">
-                <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider mb-2">
+                <h3 className="text-[13px] font-semibold text-slate-500 dark:text-slate-400 mb-2">
                   Historique des séances ({clientBookings.length})
                 </h3>
                 {clientBookings.length === 0 ? (
@@ -283,10 +272,10 @@ export const CoachClients: React.FC = () => {
                         className="p-2.5 bg-slate-50 rounded-xl text-xs flex items-center justify-between border border-slate-200"
                       >
                         <div>
-                          <span className="font-bold text-[#0F172A] block">{b.sessionType.name}</span>
-                          <span className="text-[10px] text-slate-500">{b.date} • {b.startTime}</span>
+                          <span className="font-bold text-fmc-navy block">{b.sessionType.name}</span>
+                          <span className="text-[10px] text-slate-500">{formatDateFr(b.date)} · {b.startTime}</span>
                         </div>
-                        <span className="font-black text-[#008A3E]">+{b.price} €</span>
+                        <span className="font-bold text-[#008A3E]">+{b.price} €</span>
                       </div>
                     ))}
                   </div>
