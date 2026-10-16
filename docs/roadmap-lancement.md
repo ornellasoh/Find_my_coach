@@ -80,7 +80,8 @@ Maquette de départ : `docs/maquettes/rechercher-v2.html` (design system, écran
 - [x] Barre de menu flottante (iPhone) / barre Material 3 (Android), appui instantané, réglages d'accessibilité du téléphone respectés (16 oct.).
 - [x] Tous les autres écrans harmonisés : en-têtes iOS, feuilles du bas, dates et montants en français, sans émojis (16 oct.).
 - [x] Barre du coach à 5 onglets : « Revenus » déplacé dans « Profil » (décision d'Ornella, 16 oct.).
-- [ ] Tester la branche `refonte-ios` sur un vrai iPhone et un vrai Android, puis la fusionner après la validation d'Apple sur le correctif iOS 27.
+- [x] Refonte fusionnée dans main le 16 oct. (choix d'Ornella, sans attendre la validation d'Apple) : elle part dans le prochain build TestFlight et chez les testeurs Android.
+- [ ] Tester la refonte sur un vrai iPhone et un vrai Android.
 - [ ] Badges clients « chocolaterie » : en attente (décision d'Ornella, 16 oct.). Maquette : `docs/maquettes/badges-chocolaterie.html`.
 - [ ] Données nouvelles : temps de réponse du coach et « Populaire cette semaine » (environ ½ jour).
 - [x] Barre de menu flottante sur toute l'app (16 oct.).
