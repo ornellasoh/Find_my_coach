@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { MessageSquare } from 'lucide-react';
+import { Flag, MessageSquare } from 'lucide-react';
+import { AnimatePresence } from 'motion/react';
+import { ReportSheet } from './ReportSheet';
 import { useApp } from '../../context/AppContext';
 import type { Review } from '../../types';
 
@@ -79,5 +81,26 @@ export const CoachReplyEditor: React.FC<{ review: Review }> = ({ review }) => {
         </button>
       </div>
     </div>
+  );
+};
+
+/** Lien discret « Signaler » sous un avis (personne connectée, sauf l'auteur de l'avis). */
+export const ReportReviewLink: React.FC<{ review: Review }> = ({ review }) => {
+  const { currentUser, isOnline } = useApp();
+  const [open, setOpen] = useState(false);
+  if (!isOnline || !currentUser || currentUser.id === review.clientId) return null;
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="mt-1 min-h-11 inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 cursor-pointer"
+      >
+        <Flag className="w-3.5 h-3.5" /> Signaler
+      </button>
+      <AnimatePresence>
+        {open && <ReportSheet type="review" targetId={review.id} subject="cet avis" onClose={() => setOpen(false)} />}
+      </AnimatePresence>
+    </>
   );
 };

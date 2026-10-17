@@ -336,6 +336,8 @@ export type NotificationType =
   | 'pack_sold'
   | 'pack_payment'
   | 'pack_payment_failed'
+  | 'content_report'
+  | 'report_handled'
   | 'reminder'
   | 'reminder_soon'
   | 'system';

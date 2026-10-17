@@ -20,7 +20,7 @@ import {
   Award
 } from 'lucide-react';
 import { Logo } from '../common/Logo';
-import { AdminIssues, AdminVerifications } from './AdminModeration';
+import { AdminIssues, AdminReports, AdminVerifications } from './AdminModeration';
 import { AdminStatsCards } from './AdminStatsCards';
 
 export const AdminDashboard: React.FC = () => {
@@ -83,7 +83,12 @@ export const AdminDashboard: React.FC = () => {
       </div>
 
       {activeTab === 'verif' && <AdminVerifications />}
-      {activeTab === 'issues' && <AdminIssues />}
+      {activeTab === 'issues' && (
+        <div className="space-y-6">
+          <AdminReports />
+          <AdminIssues />
+        </div>
+      )}
       {activeTab === 'campaign' && <AdminCampaign />}
       {activeTab === 'beta' && (isOnline ? <AdminBeta /> : <p className="text-sm text-slate-500 mb-6">Disponible en ligne uniquement.</p>)}
       {activeTab === 'team' && (isOnline ? <AdminTeam /> : <p className="text-sm text-slate-500 mb-6">Disponible en ligne uniquement.</p>)}

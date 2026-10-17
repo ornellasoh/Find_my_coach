@@ -13,6 +13,7 @@ import {
   updateIssue,
 } from '../../lib/sessions';
 import { openExternal } from '../../utils/meeting';
+import { REPORT_REASONS, fetchAdminReports, resolveReport, type AdminReport } from '../../lib/moderation';
 
 const card = 'bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-xs';
 const btn = 'min-h-10 px-3 rounded-xl text-xs font-bold cursor-pointer disabled:opacity-50';
@@ -158,6 +159,82 @@ export const AdminIssues: React.FC = () => {
           </div>
         );
       })}
+    </div>
+  );
+};
+
+const REPORT_TYPE_LABELS: Record<AdminReport['targetType'], string> = {
+  conversation: 'Conversation',
+  review: 'Avis',
+  user: 'Utilisateur',
+};
+const REPORT_STATUS_LABELS: Record<AdminReport['status'], string> = {
+  open: 'À traiter',
+  resolved: 'Traité',
+  dismissed: 'Classé sans suite',
+};
+
+/** Messages, avis et utilisateurs signalés (règle 1.2 d'Apple : à traiter sous 24 h). */
+export const AdminReports: React.FC = () => {
+  const [reports, setReports] = useState<AdminReport[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const load = () => fetchAdminReports().then(setReports).catch((e) => setError(e.message));
+  useEffect(() => { load(); }, []);
+
+  const act = async (id: string, action: 'resolve' | 'dismiss' | 'hide_review') => {
+    setBusy(id + action);
+    setError(null);
+    try {
+      await resolveReport(id, action);
+      await load();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  if (!reports) return <p className="text-sm text-slate-500 flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Chargement…</p>;
+  const open = reports.filter((r) => r.status === 'open').length;
+
+  return (
+    <div className="space-y-3">
+      <h3 className="text-sm font-bold">Messages et avis signalés {open > 0 && <span className="ml-1 text-rose-600">({open} à traiter)</span>}</h3>
+      {error && <p className="text-sm text-rose-600">{error}</p>}
+      {reports.length === 0 && <p className={`${card} text-sm text-slate-500 text-center`}>Aucun signalement.</p>}
+      {reports.map((r) => (
+        <div key={r.id} className={card}>
+          <div className="flex items-center justify-between gap-2">
+            <p className="font-bold text-sm">{REPORT_TYPE_LABELS[r.targetType]} · {REPORT_REASONS.find((x) => x.id === r.reason)?.label ?? r.reason}</p>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${r.status === 'open' ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-600'}`}>
+              {REPORT_STATUS_LABELS[r.status]}
+            </span>
+          </div>
+          <p className="text-xs text-slate-500 mt-1">
+            Signalé par {r.reporterName || 'un utilisateur'} · concerne {r.reportedName || 'un utilisateur'} · {new Date(r.createdAt).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+          </p>
+          {r.details && <p className="text-sm mt-2">« {r.details} »</p>}
+          {r.snapshot && (
+            <pre className="mt-2 text-xs whitespace-pre-wrap break-words bg-slate-50 dark:bg-slate-800 rounded-xl p-3 max-h-48 overflow-y-auto font-sans">{r.snapshot}</pre>
+          )}
+          {r.status === 'open' && (
+            <div className="flex flex-wrap gap-2 mt-3">
+              {r.targetType === 'review' && (
+                <button className={`${btn} bg-rose-600 text-white`} disabled={!!busy} onClick={() => act(r.id, 'hide_review')}>Masquer l’avis</button>
+              )}
+              <button className={`${btn} bg-[#00D664] text-[#0F172A]`} disabled={!!busy} onClick={() => act(r.id, 'resolve')}>Traité</button>
+              <button className={`${btn} bg-slate-100 text-slate-700`} disabled={!!busy} onClick={() => act(r.id, 'dismiss')}>Classer sans suite</button>
+            </div>
+          )}
+          {r.status === 'open' && r.targetType !== 'review' && (
+            <p className="text-[11px] text-slate-500 mt-2">
+              Si le comportement est grave : désactiver le compte dans Supabase (Authentication → Users → Ban user), puis marquer « Traité ».
+            </p>
+          )}
+        </div>
+      ))}
     </div>
   );
 };

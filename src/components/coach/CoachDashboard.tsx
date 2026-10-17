@@ -6,7 +6,7 @@ import { fetchStripeStatus } from '../../lib/payments';
 import { Avatar } from '../ui/Avatar';
 import { Card, IconTile, Screen, SectionHeader } from '../ui/fmc';
 import { useApp } from '../../context/AppContext';
-import { CoachReplyEditor } from '../common/ReviewReply';
+import { CoachReplyEditor, ReportReviewLink } from '../common/ReviewReply';
 
 /** « mar. 13 oct. » (ou « Aujourd'hui » / « Demain ») à partir d'une date AAAA-MM-JJ. */
 const dayLabel = (iso: string) => {
@@ -249,6 +249,7 @@ export const CoachDashboard: React.FC = () => {
                 </div>
                 <p className="text-sm text-slate-600 dark:text-slate-300 leading-normal mt-1.5">{r.comment}</p>
                 <CoachReplyEditor review={r} />
+                <ReportReviewLink review={r} />
               </Card>
             ))}
           </div>

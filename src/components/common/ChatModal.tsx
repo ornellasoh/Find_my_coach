@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Avatar } from '../ui/Avatar';
 import { useApp } from '../../context/AppContext';
-import { ArrowUp, ChevronLeft } from 'lucide-react';
-import { motion } from 'motion/react';
+import { ArrowUp, ChevronLeft, Flag, MoreHorizontal, UserX } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
+import { Sheet } from '../ui/fmc';
+import { ReportSheet } from './ReportSheet';
+import { blockUser, fetchMyBlocks, unblockUser } from '../../lib/moderation';
 import { ChatPartner, ChatMessage } from '../../types';
 import { supabase } from '../../lib/supabase';
 
@@ -70,6 +73,25 @@ export const ChatModal: React.FC<ChatModalProps> = ({ partner, onClose }) => {
   // En ligne, un profil de démonstration n'a pas de vrai compte : pas de messagerie simulée
   const unavailable = isOnline && !live;
   const [loadError, setLoadError] = useState('');
+  // Signaler / bloquer (règle 1.2 d'Apple)
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [blocked, setBlocked] = useState(false);
+  useEffect(() => {
+    if (!live) return;
+    fetchMyBlocks().then((ids) => setBlocked(ids.includes(partnerUserId)));
+  }, [live, partnerUserId]);
+  const toggleBlock = async () => {
+    if (!currentUser) return;
+    try {
+      if (blocked) await unblockUser(currentUser.id, partnerUserId);
+      else await blockUser(currentUser.id, partnerUserId);
+      setBlocked(!blocked);
+    } catch (e) {
+      setSendError((e as Error).message);
+    }
+    setMenuOpen(false);
+  };
 
   const [messages, setMessages] = useState<UiMessage[]>(() => {
     if (live || (isOnline && !!supabase)) return [];
@@ -190,6 +212,9 @@ export const ChatModal: React.FC<ChatModalProps> = ({ partner, onClose }) => {
       .single();
     if (error || !data) {
       setMessages((prev) => prev.map((m) => (m.id === tempId ? { ...m, status: 'failed' } : m)));
+      // Propos injurieux (filtre du serveur) ou conversation bloquée par l'un des deux
+      if (error?.message?.includes('injurieux')) setSendError(error.message);
+      else if (error?.code === '42501' || /row-level security/i.test(error?.message ?? '')) setSendError('Message non distribué : vous ne pouvez plus écrire à cette personne.');
       return;
     }
     const row = data as MessageRow;
@@ -312,6 +337,16 @@ export const ChatModal: React.FC<ChatModalProps> = ({ partner, onClose }) => {
           <h2 className="text-base font-semibold leading-tight truncate">{partner.name}</h2>
           <p className="text-xs text-slate-500 truncate" aria-live="polite">{partnerTyping ? 'En train d’écrire…' : partner.title}</p>
         </div>
+        {live && (
+          <button
+            type="button"
+            onClick={() => setMenuOpen(true)}
+            aria-label="Signaler ou bloquer"
+            className="ml-auto w-11 h-11 rounded-full flex items-center justify-center text-fmc-navy dark:text-slate-100 cursor-pointer active:scale-95"
+          >
+            <MoreHorizontal className="w-6 h-6" />
+          </button>
+        )}
       </header>
 
       {/* Fil de la conversation */}
@@ -393,6 +428,13 @@ export const ChatModal: React.FC<ChatModalProps> = ({ partner, onClose }) => {
         <div ref={messagesEndRef} />
       </div>
 
+      {blocked && (
+        <div className="px-4 py-3 bg-rose-50 dark:bg-rose-500/10 text-sm text-rose-700 dark:text-rose-300 flex items-center justify-between gap-3">
+          <span>Vous avez bloqué {partner.name.split(' ')[0]}. Vous ne recevez plus ses messages.</span>
+          <button type="button" onClick={toggleBlock} className="min-h-11 px-2 font-bold underline cursor-pointer shrink-0">Débloquer</button>
+        </div>
+      )}
+
       {/* Zone de saisie */}
       <div className="px-3 pt-2 pb-[calc(0.75rem+var(--sab,0px))] bg-white/95 dark:bg-slate-900/95 border-t border-slate-200/70 dark:border-slate-800 flex items-end gap-2">
         <textarea
@@ -412,7 +454,8 @@ export const ChatModal: React.FC<ChatModalProps> = ({ partner, onClose }) => {
               handleSend();
             }
           }}
-          placeholder="Message"
+          placeholder={blocked ? 'Conversation bloquée' : 'Message'}
+          disabled={blocked}
           aria-label="Votre message"
           className="flex-1 resize-none bg-slate-100 dark:bg-slate-800 rounded-[22px] px-4 py-2.5 text-base leading-snug placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-fmc-green/40 max-h-[120px]"
         />
@@ -426,6 +469,43 @@ export const ChatModal: React.FC<ChatModalProps> = ({ partner, onClose }) => {
           <ArrowUp className="w-5 h-5" strokeWidth={2.5} />
         </button>
       </div>
+
+      <AnimatePresence>
+        {menuOpen && (
+          <Sheet onClose={() => setMenuOpen(false)} label="Options de la conversation">
+            <div className="space-y-2 pb-2">
+              <button
+                type="button"
+                onClick={() => { setMenuOpen(false); setReportOpen(true); }}
+                className="apple-press w-full min-h-14 px-4 rounded-2xl bg-slate-50 dark:bg-slate-800 text-left font-semibold flex items-center gap-3 cursor-pointer"
+              >
+                <Flag className="w-5 h-5 text-rose-600" /> Signaler la conversation
+              </button>
+              <button
+                type="button"
+                onClick={toggleBlock}
+                className="apple-press w-full min-h-14 px-4 rounded-2xl bg-slate-50 dark:bg-slate-800 text-left font-semibold text-rose-600 flex items-center gap-3 cursor-pointer"
+              >
+                <UserX className="w-5 h-5" /> {blocked ? `Débloquer ${partner.name.split(' ')[0]}` : `Bloquer ${partner.name.split(' ')[0]}`}
+              </button>
+              {!blocked && (
+                <p className="text-xs text-slate-500 px-1 pt-1">
+                  Une personne bloquée ne peut plus vous écrire ni réserver avec vous. Elle n’est pas prévenue.
+                </p>
+              )}
+            </div>
+          </Sheet>
+        )}
+        {reportOpen && (
+          <ReportSheet
+            type="conversation"
+            targetId={partnerUserId}
+            subject="cette conversation"
+            onClose={() => setReportOpen(false)}
+            afterAction={blocked ? undefined : { label: `Bloquer aussi ${partner.name.split(' ')[0]}`, run: toggleBlock }}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };

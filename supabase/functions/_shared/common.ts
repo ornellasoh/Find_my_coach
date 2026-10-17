@@ -109,6 +109,8 @@ const EMAIL_TYPES = new Set([
   // Packs de séances
   'pack_purchased', 'pack_sold', 'pack_payment', 'pack_payment_failed', 'pack_paid',
   'pack_installment_reminder', 'pack_expiring', 'pack_last_session',
+  // Modération (administrateurs)
+  'content_report',
 ]);
 
 /**

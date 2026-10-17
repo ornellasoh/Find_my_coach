@@ -26,7 +26,7 @@ import {
 import { motion } from 'motion/react';
 import { isVerifiedCoach, isRealCoach, levelsText, approximateZone, isDemoCoachOnline, isBookableCoach, zoneDescription } from '../../utils/coachTrust';
 import { PrimaryButton, Rating, SectionHeader, StickyAction, formatDateFr, formatEuro } from '../ui/fmc';
-import { CoachReplyBlock } from '../common/ReviewReply';
+import { CoachReplyBlock, ReportReviewLink } from '../common/ReviewReply';
 import { CoachPacksOffer } from './CoachPacksOffer';
 
 export const CoachProfileView: React.FC = () => {
@@ -335,6 +335,7 @@ export const CoachProfileView: React.FC = () => {
                   </div>
                   <p className="text-[15px] text-slate-500 dark:text-slate-400 leading-relaxed">{rev.comment}</p>
                   <CoachReplyBlock review={rev} coachName={coach.name} />
+                  <ReportReviewLink review={rev} />
                 </article>
               ))
             )}

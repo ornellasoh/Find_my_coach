@@ -123,7 +123,11 @@ Le mot de passe se saisit directement dans App Store Connect, jamais dans ce fic
 ```
 Find My Coach met en relation des particuliers et des coachs sportifs indépendants pour des séances individuelles, en personne (domicile, extérieur, salle) ou en visio en direct.
 
-Paiement : les séances sont des prestations de service individuelles réalisées par une personne (coaching 1 à 1, en personne ou en temps réel). Elles sont réglées par carte via Stripe, conformément aux règles 3.1.3(d) (services de personne à personne en temps réel) et 3.1.3(e) (services consommés en dehors de l'app). L'app ne vend aucun contenu ni fonctionnalité numérique.
+Paiement : les séances sont des prestations de service individuelles réalisées par une personne (coaching 1 à 1, en personne ou en temps réel). Elles sont réglées par carte via Stripe, conformément aux règles 3.1.3(d) (services de personne à personne en temps réel) et 3.1.3(e) (services consommés en dehors de l'app). Les coachs peuvent aussi proposer des packs de plusieurs séances 1 à 1, payables en une fois ou en 3 ou 5 mensualités : ce sont les mêmes services réels, simplement réglés d'avance. L'app ne vend aucun contenu ni fonctionnalité numérique.
+
+Contenus des utilisateurs (règle 1.2) : la messagerie et les avis sont modérés. Dans une conversation, le bouton « … » en haut à droite permet de signaler la conversation et de bloquer la personne (elle ne peut plus écrire ni réserver). Chaque avis a un lien « Signaler ». Les messages et avis contenant des insultes sont refusés automatiquement. Les signalements sont traités sous 24 h par l'équipe ; contact : contact@findmycoach.io.
+
+Fonctions réservées : l'écran « Administration » (profil) n'apparaît que pour les administrateurs de Find My Coach (modération, vérification des coachs) ; il n'est pas accessible aux utilisateurs. Aucune fonction cachée ou désactivée.
 
 Compte de test : le compte fourni est un compte client. Depuis l'accueil, ouvrez « Explorer » (« Rechercher » dans les versions suivantes) pour chercher un coach, ouvrez une fiche puis « Réserver la séance ».
 
