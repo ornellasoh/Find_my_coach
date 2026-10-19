@@ -66,6 +66,8 @@
 - [x] Emails et notifications des packs et des réponses aux avis, rappels automatiques (16 oct.) : voir « Automatisations » plus bas.
 - [x] Avis : 7 jours après la séance pour le laisser (refusé au-delà par le serveur), demande 2 h après, relance 5 jours après s'il manque (19 oct.).
 
+- [x] Pathologies (19 oct.) : le coach coche les pathologies qu'il sait accompagner (Mon profil pro), affichées sur sa fiche avec un rappel « avis du médecin » ; filtre « Pathologie accompagnée » dans la recherche.
+
 ### Test des packs de séances (Stripe en mode test, carte 4242 4242 4242 4242) — fait par Ornella le 19 oct.
 - [x] Stripe (mode test) : activer « Accounts v1 support », puis compléter le compte coach d'Ornella (Comptes connectés) jusqu'à « Paiements activés ».
       Sans cela, seul l'achat en 1 fois fonctionne ; en 3 ou 5 fois est refusé.

@@ -168,6 +168,7 @@ export const INITIAL_COACHES: CoachProfile[] = [
     ],
 
     specialties: ['Force', 'HIIT', 'Perte de Poids', 'Conditionnement', 'Préparation physique'],
+    pathologies: ['Reprise après une blessure', 'Mal de dos'],
     category: 'Sport & Fitness',
     languages: ['Français', 'Anglais'],
     certifications: ['Master STAPS Préparation Physique', 'CSCS Certified', 'Precision Nutrition L2'],
@@ -227,6 +228,7 @@ export const INITIAL_COACHES: CoachProfile[] = [
       { id: 'pack-s5', name: 'Suivi 5 Semaines', sessionsCount: 5, discountPercent: 12, pricePerSession: 61.6, totalPrice: 308, popular: true }
     ],
     specialties: ['Nutrition', 'Yoga', 'Mindset', 'Perte de Poids', 'Gestion du Stress'],
+    pathologies: ['Surpoids & obésité', 'Diabète', 'Hypertension'],
     category: 'Nutrition & Diététique',
     languages: ['Français', 'Anglais', 'Espagnol'],
     certifications: ['Diplôme Universitaire Nutrition', 'Yoga Alliance RYT 500'],
@@ -305,6 +307,7 @@ export const INITIAL_COACHES: CoachProfile[] = [
     isInPersonCoaching: true,
     verificationStatus: 'verified',
     specialties: ['Yoga', 'Méditation', 'Breathwork', 'Bien-être', 'Mobilité'],
+    pathologies: ['Mal de dos', 'Fibromyalgie', 'Après un cancer'],
     category: 'Bien-être & Posture',
     languages: ['Français', 'Espagnol', 'Anglais'],
     certifications: ['E-RYT 500 Yoga Alliance', 'Pranayama Master Coach'],

@@ -40,7 +40,7 @@ import { ShareProfileCard } from './ShareProfileCard';
 import { fetchMyPrivateAddress } from '../../lib/sessions';
 import { searchPlaces } from '../../utils/geo';
 import { profileChecklist } from '../../utils/coachTrust';
-import { AUDIENCE_OPTIONS, LEVEL_LABELS, OBJECTIVE_OPTIONS } from '../../utils/searchFilters';
+import { AUDIENCE_OPTIONS, LEVEL_LABELS, OBJECTIVE_OPTIONS, PATHOLOGY_OPTIONS } from '../../utils/searchFilters';
 
 export const CoachProfileEditor: React.FC = () => {
   const { 
@@ -75,6 +75,7 @@ export const CoachProfileEditor: React.FC = () => {
   const [objectives, setObjectives] = useState<string[]>(coach?.objectives || []);
   const [levels, setLevels] = useState<CoachLevel[]>(coach?.levels || []);
   const [audiences, setAudiences] = useState<string[]>(coach?.audiences || []);
+  const [pathologies, setPathologies] = useState<string[]>(coach?.pathologies || []);
   const [sessionIncludes, setSessionIncludes] = useState(coach?.sessionIncludes || '');
   const [prepInstructions, setPrepInstructions] = useState(coach?.prepInstructions || '');
   const [travelFee, setTravelFee] = useState<number>(coach?.travelFee ?? 0);
@@ -160,6 +161,7 @@ export const CoachProfileEditor: React.FC = () => {
       ...(coords ?? {}),
       methods: methods.trim(),
       objectives,
+      pathologies,
       levels,
       audiences,
       sessionIncludes: sessionIncludes.trim(),
@@ -548,6 +550,15 @@ export const CoachProfileEditor: React.FC = () => {
             <div className="flex flex-wrap gap-1.5">
               {OBJECTIVE_OPTIONS.map((o) => (
                 <button key={o} type="button" onClick={() => setObjectives(toggleIn(objectives, o))} className={pill(objectives.includes(o))}>{o}</button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="text-xs font-bold mb-0.5">Pathologies accompagnées</p>
+            <p className="text-[12px] text-slate-500 mb-1.5">Seulement celles pour lesquelles vous êtes formé (APA, sport santé…). Laissez vide sinon.</p>
+            <div className="flex flex-wrap gap-1.5">
+              {PATHOLOGY_OPTIONS.map((o) => (
+                <button key={o} type="button" onClick={() => setPathologies(toggleIn(pathologies, o))} className={pill(pathologies.includes(o))}>{o}</button>
               ))}
             </div>
           </div>

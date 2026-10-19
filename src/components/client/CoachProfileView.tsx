@@ -201,6 +201,21 @@ export const CoachProfileView: React.FC = () => {
           </section>
         )}
 
+        {/* Pathologies accompagnées (sport santé) */}
+        {(coach.pathologies?.length ?? 0) > 0 && (
+          <section>
+            <h2 className="text-lg font-semibold mb-2">Pathologies accompagnées</h2>
+            <div className="flex flex-wrap gap-2">
+              {coach.pathologies!.map((p) => (
+                <span key={p} className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-fmc-line dark:border-slate-800 text-sm">{p}</span>
+              ))}
+            </div>
+            <p className="text-[13px] text-slate-500 mt-2.5">
+              Déclarées par le coach. Demandez l'avis de votre médecin avant de reprendre une activité, et parlez de votre situation au coach avant la première séance.
+            </p>
+          </section>
+        )}
+
         {/* Spécialités */}
         <section>
           <h2 className="text-lg font-semibold mb-3">Spécialités</h2>

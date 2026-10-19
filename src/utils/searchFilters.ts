@@ -15,6 +15,8 @@ export interface SearchFilters {
   formats: CoachingFormat[];
   maxPrice: number | null;
   objective: string | null;
+  /** Pathologie accompagnée par le coach (sport santé) */
+  pathology: string | null;
   level: CoachLevel | null;
   /** Disponibilité réelle (créneaux libres) dans les N prochains jours */
   availabilityDays: 0 | 3 | 7 | 14;
@@ -33,6 +35,7 @@ export const DEFAULT_SEARCH_FILTERS: SearchFilters = {
   formats: [],
   maxPrice: null,
   objective: null,
+  pathology: null,
   level: null,
   availabilityDays: 0,
   onlyVerified: false,
@@ -58,6 +61,21 @@ export const OBJECTIVE_OPTIONS = [
   'Nutrition',
   'Rééducation douce',
   'Confiance en soi',
+];
+
+/** Pathologies que le coach déclare savoir accompagner (sport santé). Rien n'est demandé au client. */
+export const PATHOLOGY_OPTIONS = [
+  'Mal de dos',
+  'Arthrose & douleurs articulaires',
+  'Surpoids & obésité',
+  'Diabète',
+  'Hypertension',
+  'Maladies cardiovasculaires',
+  'Asthme & BPCO',
+  'Ostéoporose',
+  'Fibromyalgie',
+  'Après un cancer',
+  'Reprise après une blessure',
 ];
 
 export const AUDIENCE_OPTIONS = ['Adultes', 'Seniors', 'Adolescents', 'Femmes enceintes / post-partum', 'Sportifs confirmés', 'Entreprises'];

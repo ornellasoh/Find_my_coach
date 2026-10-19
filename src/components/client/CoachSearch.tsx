@@ -28,6 +28,7 @@ import {
   DEFAULT_SEARCH_FILTERS,
   LEVEL_LABELS,
   OBJECTIVE_OPTIONS,
+  PATHOLOGY_OPTIONS,
   RADIUS_OPTIONS,
   type SearchFilters,
 } from '../../utils/searchFilters';
@@ -168,7 +169,7 @@ export const CoachSearch: React.FC = () => {
     for (const c of coaches) {
       if (!isBookableCoach(c)) continue;
       if (q) {
-        const hay = [c.name, c.title, c.category, c.city, ...(c.specialties ?? []), ...(c.objectives ?? [])].join(' ').toLowerCase();
+        const hay = [c.name, c.title, c.category, c.city, ...(c.specialties ?? []), ...(c.objectives ?? []), ...(c.pathologies ?? [])].join(' ').toLowerCase();
         if (!hay.includes(q)) continue;
       }
       if (cat && c.category !== cat.name && !c.specialties.some((s) => s.toLowerCase() === cat.name.toLowerCase())) continue;
@@ -180,6 +181,7 @@ export const CoachSearch: React.FC = () => {
         const ok = (c.objectives ?? []).some((x) => x.toLowerCase() === o) || c.specialties.some((s) => s.toLowerCase().includes(o.split(' ')[0]));
         if (!ok) continue;
       }
+      if (f.pathology && !(c.pathologies ?? []).includes(f.pathology)) continue;
       if (f.level && !(c.levels ?? []).includes(f.level)) continue;
       const offersOnline = (c.formats ?? []).includes('online') || c.isOnlineCoaching;
       const offersInPerson = (c.formats ?? []).some((x) => IN_PERSON.includes(x));
@@ -227,6 +229,7 @@ export const CoachSearch: React.FC = () => {
     (f.minRating > 0 ? 1 : 0) +
     (f.onlyVerified ? 1 : 0) +
     (f.objective ? 1 : 0) +
+    (f.pathology ? 1 : 0) +
     (f.level ? 1 : 0) +
     (f.mode !== 'any' ? 1 : 0) +
     f.formats.length +
@@ -658,6 +661,12 @@ export const CoachSearch: React.FC = () => {
                 <FilterGroup title="Objectif">
                   {OBJECTIVE_OPTIONS.map((o) => (
                     <Pill key={o} active={f.objective === o} onClick={() => set({ objective: f.objective === o ? null : o })}>{o}</Pill>
+                  ))}
+                </FilterGroup>
+
+                <FilterGroup title="Pathologie accompagnée">
+                  {PATHOLOGY_OPTIONS.map((o) => (
+                    <Pill key={o} active={f.pathology === o} onClick={() => set({ pathology: f.pathology === o ? null : o })}>{o}</Pill>
                   ))}
                 </FilterGroup>
 

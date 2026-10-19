@@ -146,6 +146,7 @@ export interface CoachProfile {
   // Présentation détaillée (v1)
   methods?: string;              // méthode de travail, déroulé type d'une séance
   objectives?: string[];         // ex. « Perte de poids », « Remise en forme »
+  pathologies?: string[];        // pathologies accompagnées (sport santé), ex. « Mal de dos », « Diabète »
   levels?: CoachLevel[];         // niveaux acceptés
   audiences?: string[];          // publics : adultes, seniors, femmes enceintes…
   sessionIncludes?: string;      // ce que comprend une séance (matériel fourni, bilan, suivi…)
