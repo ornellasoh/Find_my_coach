@@ -98,25 +98,25 @@
 - Séance découverte à prix réduit (en pause).
 - Lien de visio enregistré une fois par le coach (en pause : priorité aux séances en présentiel).
 
-## Refonte du design (inspirée d'iPhone / iOS 26) — après le lancement
+## Refonte du design (inspirée d'iPhone / iOS 26) — terminée le 19 oct.
 
 Ne pas mélanger avec le lancement : on finit les maquettes, on choisit, puis on livre avec la version 1.1.
 Maquette de départ : `docs/maquettes/rechercher-v2.html` (design system, écran Rechercher, feuille « Tous les filtres »).
 
-- [ ] Relire les recherches de tendances et dire ce qui plaît (Ornella).
-- [ ] Valider la maquette de l'écran Rechercher (icônes au trait, sans émojis, barre de menu flottante).
+- [x] Relire les recherches de tendances : plus nécessaire, la refonte est faite (19 oct.).
+- [x] Valider la maquette de l'écran Rechercher : écran codé et testé sur téléphone (19 oct.).
 - [x] Décision du 15 oct. : un seul design pour iPhone et Android, mais codes Material 3 sur Android
       (barre de navigation, boutons, puces, retour). Maquette : `docs/maquettes/rechercher-v2-android.html`.
 - [x] Maquette Android de l'écran Rechercher validée par Ornella (15 oct.).
-- [ ] Maquettes des autres écrans : accueil, fiche coach, réservation, onboarding (environ ½ jour chacun).
+- [x] Maquettes des autres écrans : plus nécessaires, les écrans ont été refaits directement dans l'app (19 oct.).
 - [x] Coder l'écran Rechercher refait (16 oct., branche `refonte-ios`).
 - [x] Barre de menu flottante (iPhone) / barre Material 3 (Android), appui instantané, réglages d'accessibilité du téléphone respectés (16 oct.).
 - [x] Tous les autres écrans harmonisés : en-têtes iOS, feuilles du bas, dates et montants en français, sans émojis (16 oct.).
 - [x] Barre du coach à 5 onglets : « Revenus » déplacé dans « Profil » (décision d'Ornella, 16 oct.).
 - [x] Refonte fusionnée dans main le 16 oct. (choix d'Ornella, sans attendre la validation d'Apple) : elle part dans le prochain build TestFlight et chez les testeurs Android.
 - [x] Tester la refonte sur un vrai iPhone et un vrai Android (Ornella, 19 oct.).
-- [ ] Badges clients « chocolaterie » : en attente (décision d'Ornella, 16 oct.). Maquette : `docs/maquettes/badges-chocolaterie.html`.
-- [ ] Données nouvelles : temps de réponse du coach et « Populaire cette semaine » (environ ½ jour).
+- Option pour plus tard — badges clients « chocolaterie » : en attente (décision d'Ornella, 16 oct.). Maquette : `docs/maquettes/badges-chocolaterie.html`.
+- Option pour plus tard — temps de réponse du coach et « Populaire cette semaine » (environ ½ jour).
 - [x] Barre de menu flottante sur toute l'app (16 oct.).
 - [x] Coder les autres écrans (16 oct., première passe ; à affiner après test sur téléphone).
 
