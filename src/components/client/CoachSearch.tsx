@@ -18,7 +18,8 @@ import {
   X,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { AvailabilityBadge, CoachCard, VerifiedMark } from '../common/CoachCard';
+import { AvailabilityBadge, CoachCard, PopularBadge, VerifiedMark } from '../common/CoachCard';
+import { useCoachSignals } from '../../lib/coachSignals';
 import { Avatar } from '../ui/Avatar';
 import { CoachMap } from '../common/CoachMap';
 import type { CoachProfile, CoachingFormat, CoachLevel } from '../../types';
@@ -69,6 +70,7 @@ export const CoachSearch: React.FC = () => {
     searchFilters: f,
     setSearchFilters,
   } = useApp();
+  const signals = useCoachSignals();
 
   const set = (patch: Partial<SearchFilters>) => setSearchFilters((prev) => ({ ...prev, ...patch }));
 
@@ -212,10 +214,13 @@ export const CoachSearch: React.FC = () => {
       if (f.sortBy === 'rating') return b.coach.rating - a.coach.rating;
       if (f.center && a.distanceKm !== null && b.distanceKm !== null && Math.abs(a.distanceKm - b.distanceKm) > 2) return a.distanceKm - b.distanceKm;
       if (isVerifiedCoach(a.coach) !== isVerifiedCoach(b.coach)) return isVerifiedCoach(a.coach) ? -1 : 1;
+      const popA = !!signals.get(a.coach.id)?.popular;
+      const popB = !!signals.get(b.coach.id)?.popular;
+      if (f.sortBy === 'relevance' && popA !== popB) return popA ? -1 : 1;
       return b.coach.rating - a.coach.rating;
     });
     return out;
-  }, [coaches, categories, searchQuery, selectedCategory, f, freeSlotsByCoach]);
+  }, [coaches, categories, searchQuery, selectedCategory, f, freeSlotsByCoach, signals]);
 
   const activeCount =
     (f.maxPrice !== null ? 1 : 0) +
@@ -261,10 +266,10 @@ export const CoachSearch: React.FC = () => {
   const recommended = useMemo(() => {
     if (searchQuery.trim() || selectedCategory || activeCount > 0) return [];
     const score = (r: Row) =>
-      (isVerifiedCoach(r.coach) ? 2 : 0) + r.coach.rating * Math.log10(10 + r.coach.reviewCount) + (availabilityByCoach.has(r.coach.id) ? 1 : 0);
+      (isVerifiedCoach(r.coach) ? 2 : 0) + r.coach.rating * Math.log10(10 + r.coach.reviewCount) + (availabilityByCoach.has(r.coach.id) ? 1 : 0) + (signals.get(r.coach.id)?.popular ? 1 : 0);
     const pool = rows.filter((r) => !r.remoteOnly);
     return pool.length >= 4 ? [...pool].sort((a, b) => score(b) - score(a)).slice(0, 3) : [];
-  }, [rows, searchQuery, selectedCategory, activeCount, availabilityByCoach]);
+  }, [rows, searchQuery, selectedCategory, activeCount, availabilityByCoach, signals]);
   const [showWhy, setShowWhy] = useState(false);
 
   const SORT_LABELS: Record<SearchFilters['sortBy'], string> = {
@@ -477,7 +482,7 @@ export const CoachSearch: React.FC = () => {
           </div>
           {showWhy && (
             <p className="px-4 mt-1 text-[13px] text-slate-600 dark:text-slate-300">
-              Profils vérifiés d'abord, puis la note et le nombre d'avis, et les coachs qui ont un créneau libre cette semaine.
+              Profils vérifiés d'abord, puis la note et le nombre d'avis, les coachs qui ont un créneau libre cette semaine et ceux qui sont les plus réservés en ce moment.
             </p>
           )}
           <div className="mt-3 flex gap-3 overflow-x-auto no-scrollbar px-4 snap-x snap-mandatory">
@@ -723,6 +728,7 @@ const RecommendedCard: React.FC<{ coach: CoachProfile; distanceKm: number | null
 }) => {
   const { navigateTo, selectCoachForBooking, isFavorite, toggleFavorite } = useApp();
   const favorite = isFavorite(coach.id);
+  const popular = useCoachSignals().get(coach.id)?.popular;
   const open = () => {
     selectCoachForBooking(coach);
     navigateTo('coach_profile', { coachId: coach.id });
@@ -731,7 +737,9 @@ const RecommendedCard: React.FC<{ coach: CoachProfile; distanceKm: number | null
     <article onClick={open} className="apple-press snap-start shrink-0 w-[270px] bg-white dark:bg-slate-900 rounded-3xl p-2 border border-fmc-line dark:border-slate-800 shadow-sm cursor-pointer">
       <div className="relative h-[150px] rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800">
         <Avatar src={coach.coverPhoto || coach.photo} name={coach.name} className="w-full h-full text-4xl" />
-        {distanceKm !== null && distanceKm <= 5 && (
+        {popular ? (
+          <PopularBadge className="absolute top-2.5 left-2.5" />
+        ) : distanceKm !== null && distanceKm <= 5 && (
           <span className="absolute top-2.5 left-2.5 h-6 px-2.5 rounded-full bg-white/90 backdrop-blur-md text-fmc-navy text-[11px] font-semibold inline-flex items-center gap-1">
             <MapPin className="w-3 h-3" strokeWidth={2.5} aria-hidden="true" />
             Près de chez vous

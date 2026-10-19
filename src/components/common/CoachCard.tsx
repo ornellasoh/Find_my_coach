@@ -4,7 +4,8 @@ import { Avatar } from '../ui/Avatar';
 import { isRealCoach, isVerifiedCoach } from '../../utils/coachTrust';
 import { CoachProfile } from '../../types';
 import { useApp } from '../../context/AppContext';
-import { MapPin, ArrowRight, Calendar, Heart, Star, BadgeCheck } from 'lucide-react';
+import { MapPin, ArrowRight, Calendar, Heart, Star, BadgeCheck, Clock, TrendingUp } from 'lucide-react';
+import { responseLabel, useCoachSignals } from '../../lib/coachSignals';
 import { motion } from 'motion/react';
 import { calculateDistanceKm, formatDistance } from '../../utils/geo';
 
@@ -35,6 +36,14 @@ export const AvailabilityBadge: React.FC<{ label: string }> = ({ label }) => (
   </span>
 );
 
+/** Badge ambre « Populaire cette semaine » (calculé par le serveur sur les réservations des 7 derniers jours). */
+export const PopularBadge: React.FC<{ className?: string }> = ({ className = '' }) => (
+  <span className={`h-6 px-2.5 rounded-full bg-amber-50 dark:bg-amber-400/15 text-[#B45309] dark:text-amber-300 text-[11px] font-semibold inline-flex items-center gap-1 whitespace-nowrap ${className}`}>
+    <TrendingUp className="w-3 h-3 shrink-0" strokeWidth={2.5} aria-hidden="true" />
+    Populaire cette semaine
+  </span>
+);
+
 /**
  * Carte coach en liste (écran Rechercher).
  * Ordre de lecture : qui (photo, nom, vérifié) → confiance (note, avis) → adéquation (spécialités, lieu)
@@ -43,6 +52,8 @@ export const AvailabilityBadge: React.FC<{ label: string }> = ({ label }) => (
 export const CoachCard: React.FC<CoachCardProps> = ({ coach, userLocation, note, availability, fromPrice }) => {
   const { navigateTo, isFavorite, toggleFavorite, selectCoachForBooking } = useApp();
   const favorite = isFavorite(coach.id);
+  const signal = useCoachSignals().get(coach.id);
+  const responds = responseLabel(signal?.responseMinutes);
 
   const openProfile = () => {
     selectCoachForBooking(coach);
@@ -110,6 +121,12 @@ export const CoachCard: React.FC<CoachCardProps> = ({ coach, userLocation, note,
               {distanceKm !== null && <> · {distanceKm < 1 ? 'moins de 1 km' : `≈ ${formatDistance(distanceKm)}`}</>}
             </span>
           </p>
+          {responds && (
+            <p className="text-[13px] leading-[18px] text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+              {responds}
+            </p>
+          )}
           {note && <p className="text-[12px] font-semibold text-[#007A3D] dark:text-fmc-green mt-1">{note}</p>}
         </div>
       </div>
@@ -118,8 +135,13 @@ export const CoachCard: React.FC<CoachCardProps> = ({ coach, userLocation, note,
 
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
-          {availability && <AvailabilityBadge label={availability} />}
-          <p className={`text-[13px] text-slate-500 dark:text-slate-400 ${availability ? 'mt-1' : ''}`}>
+          {(availability || signal?.popular) && (
+            <div className="flex flex-wrap gap-1">
+              {signal?.popular && <PopularBadge />}
+              {availability && <AvailabilityBadge label={availability} />}
+            </div>
+          )}
+          <p className={`text-[13px] text-slate-500 dark:text-slate-400 ${availability || signal?.popular ? 'mt-1' : ''}`}>
             Séance dès <span className="text-[17px] font-bold text-fmc-navy dark:text-white tabular-nums">{fromPrice ?? coach.hourlyRate} €</span>/h
           </p>
         </div>

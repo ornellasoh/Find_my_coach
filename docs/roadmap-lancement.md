@@ -116,7 +116,7 @@ Maquette de départ : `docs/maquettes/rechercher-v2.html` (design system, écran
 - [x] Refonte fusionnée dans main le 16 oct. (choix d'Ornella, sans attendre la validation d'Apple) : elle part dans le prochain build TestFlight et chez les testeurs Android.
 - [x] Tester la refonte sur un vrai iPhone et un vrai Android (Ornella, 19 oct.).
 - Option pour plus tard — badges clients « chocolaterie » : en attente (décision d'Ornella, 16 oct.). Maquette : `docs/maquettes/badges-chocolaterie.html`.
-- Option pour plus tard — temps de réponse du coach et « Populaire cette semaine » (environ ½ jour).
+- [x] Temps de réponse du coach (« Répond en 2 h ») et badge « Populaire cette semaine » sur les cartes et la fiche coach, calculés par le serveur toutes les heures (19 oct.).
 - [x] Barre de menu flottante sur toute l'app (16 oct.).
 - [x] Coder les autres écrans (16 oct., première passe ; à affiner après test sur téléphone).
 

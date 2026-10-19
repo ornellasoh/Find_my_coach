@@ -28,6 +28,8 @@ import { isVerifiedCoach, isRealCoach, levelsText, approximateZone, isDemoCoachO
 import { PrimaryButton, Rating, SectionHeader, StickyAction, formatDateFr, formatEuro } from '../ui/fmc';
 import { CoachReplyBlock, ReportReviewLink } from '../common/ReviewReply';
 import { CoachPacksOffer } from './CoachPacksOffer';
+import { PopularBadge } from '../common/CoachCard';
+import { responseLabel, useCoachSignals } from '../../lib/coachSignals';
 
 export const CoachProfileView: React.FC = () => {
   const { 
@@ -43,6 +45,7 @@ export const CoachProfileView: React.FC = () => {
   } = useApp();
 
   const [copied, setCopied] = useState(false);
+  const signals = useCoachSignals();
 
   if (!selectedCoach) {
     return (
@@ -58,6 +61,8 @@ export const CoachProfileView: React.FC = () => {
   const reviews = getCoachReviews(coach.id);
   const availabilities = getCoachAvailabilities(coach.id);
   const availableSlotsCount = availabilities.filter(s => !s.isBooked).length;
+  const signal = signals.get(coach.id);
+  const responds = responseLabel(signal?.responseMinutes);
 
   const handleShare = () => {
     if (navigator.share) {
@@ -122,6 +127,7 @@ export const CoachProfileView: React.FC = () => {
               <><ShieldCheck className="w-3.5 h-3.5" /> Vérifié</>
             ) : 'Coach'}
           </span>
+          {signal?.popular && <PopularBadge className="ml-1.5 align-top" />}
           <h1 className="text-[34px] leading-tight font-semibold tracking-tight mt-2">{coach.name}</h1>
           <p className="text-base text-slate-500 dark:text-slate-400 flex items-center gap-2 mt-0.5">
             <Award className="w-5 h-5 text-fmc-green-ink shrink-0" />
@@ -157,6 +163,11 @@ export const CoachProfileView: React.FC = () => {
             <span className="inline-flex items-center gap-1.5">
               <Globe className="w-4 h-4 text-fmc-green-ink" /> {coach.languages.join(', ')}
             </span>
+            {responds && (
+              <span className="inline-flex items-center gap-1.5">
+                <Clock className="w-4 h-4 text-fmc-green-ink" /> {responds} en général
+              </span>
+            )}
           </div>
         </section>
 
