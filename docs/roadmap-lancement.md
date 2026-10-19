@@ -45,6 +45,7 @@
 ## Ensuite — pendant les tests
 
 - [ ] Répondre aux retours d'Apple (1 à 2 jours) ; en cas de refus, transmettre le message à Claude.
+- [ ] Saisir le mot de passe du compte de test dans App Store Connect (Informations de vérification) et la Play Console (Accès à l'application).
 - [ ] Valider les nouveaux testeurs iPhone à chaque email « Nouveau testeur iPhone à valider ».
 - [ ] Noter les retours des testeurs (bugs, écrans peu clairs) pour une version 1.0.1.
 - [ ] Tous les 6 mois : refaire le secret « Connexion Apple » (prochaine échéance : avril 2027,
@@ -53,7 +54,7 @@
 ## Version 1.1 — pendant les tests
 
 - [x] Refus Apple du 14 oct. (« l'app se ferme au lancement ») : corrigé (scènes iOS 27), poussé le 15 oct.
-      Reste : tester le nouveau build par TestFlight, puis le renvoyer à Apple en répondant au refus.
+      Nouveau build testé par TestFlight et renvoyé à Apple avec la réponse au refus, notes de vérification collées (Ornella, 19 oct.).
 - [x] Badges clients : série de semaines, paliers, première séance (13 oct.).
 - [x] Statistiques coach (15 oct.) : accueil coach → « Statistiques » : revenus nets des 6 derniers mois,
       clients, clients réguliers, taux de fidélisation, clients les plus fidèles.
@@ -65,15 +66,15 @@
 - [x] Emails et notifications des packs et des réponses aux avis, rappels automatiques (16 oct.) : voir « Automatisations » plus bas.
 - [x] Avis : 7 jours après la séance pour le laisser (refusé au-delà par le serveur), demande 2 h après, relance 5 jours après s'il manque (19 oct.).
 
-### À tester plus tard : packs de séances (Stripe en mode test, carte 4242 4242 4242 4242)
-- [ ] Stripe (mode test) : activer « Accounts v1 support », puis compléter le compte coach d'Ornella (Comptes connectés) jusqu'à « Paiements activés ».
+### Test des packs de séances (Stripe en mode test, carte 4242 4242 4242 4242) — fait par Ornella le 19 oct.
+- [x] Stripe (mode test) : activer « Accounts v1 support », puis compléter le compte coach d'Ornella (Comptes connectés) jusqu'à « Paiements activés ».
       Sans cela, seul l'achat en 1 fois fonctionne ; en 3 ou 5 fois est refusé.
-- [ ] Compte coach : Profil → Mon profil pro → Packs de séances → créer « Pack test » (3 séances, 30 €, « En 3 fois » coché).
-- [ ] Autre compte (client) : fiche coach → « Acheter ce pack » → « En 3 fois » → carte 4242 → le pack apparaît dans « Mes réservations ».
-- [ ] Réserver une séance avec le pack (« Réserver avec mon pack ») → plus que 2 séances ; l'annuler plus de 24 h avant → la séance revient.
-- [ ] Vérifier les emails reçus : pack activé (client), pack vendu (coach), réservation confirmée.
-- [ ] Mensualités 2 et 3 : prélevées 1 et 2 mois plus tard (ou mode test accéléré, une mensualité par jour, à demander à Claude).
-- [ ] Échec de prélèvement : dans Stripe (mode test), changer la carte du client pour 4000 0000 0000 0341 → email « Échéance non prélevée », réservations bloquées.
+- [x] Compte coach : Profil → Mon profil pro → Packs de séances → créer « Pack test » (3 séances, 30 €, « En 3 fois » coché).
+- [x] Autre compte (client) : fiche coach → « Acheter ce pack » → « En 3 fois » → carte 4242 → le pack apparaît dans « Mes réservations ».
+- [x] Réserver une séance avec le pack (« Réserver avec mon pack ») → plus que 2 séances ; l'annuler plus de 24 h avant → la séance revient.
+- [x] Vérifier les emails reçus : pack activé (client), pack vendu (coach), réservation confirmée.
+- [x] Mensualités 2 et 3 : prélevées 1 et 2 mois plus tard (ou mode test accéléré, une mensualité par jour, à demander à Claude).
+- [x] Échec de prélèvement : dans Stripe (mode test), changer la carte du client pour 4000 0000 0000 0341 → email « Échéance non prélevée », réservations bloquées.
 
 ### Automatisations (app + push + email)
 | Moment | Client | Coach |
@@ -113,7 +114,7 @@ Maquette de départ : `docs/maquettes/rechercher-v2.html` (design system, écran
 - [x] Tous les autres écrans harmonisés : en-têtes iOS, feuilles du bas, dates et montants en français, sans émojis (16 oct.).
 - [x] Barre du coach à 5 onglets : « Revenus » déplacé dans « Profil » (décision d'Ornella, 16 oct.).
 - [x] Refonte fusionnée dans main le 16 oct. (choix d'Ornella, sans attendre la validation d'Apple) : elle part dans le prochain build TestFlight et chez les testeurs Android.
-- [ ] Tester la refonte sur un vrai iPhone et un vrai Android.
+- [x] Tester la refonte sur un vrai iPhone et un vrai Android (Ornella, 19 oct.).
 - [ ] Badges clients « chocolaterie » : en attente (décision d'Ornella, 16 oct.). Maquette : `docs/maquettes/badges-chocolaterie.html`.
 - [ ] Données nouvelles : temps de réponse du coach et « Populaire cette semaine » (environ ½ jour).
 - [x] Barre de menu flottante sur toute l'app (16 oct.).
