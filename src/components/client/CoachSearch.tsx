@@ -571,7 +571,9 @@ export const CoachSearch: React.FC = () => {
               coaches={rows.filter((r) => !r.remoteOnly).map((r) => r.coach)}
               userLocation={f.center}
               radiusKm={f.center && f.mode !== 'online' ? f.radiusKm : undefined}
-              height="calc(100vh - 380px)"
+              height="max(380px, calc(100dvh - 450px))"
+              fromPrice={minPrice}
+              availability={availabilityByCoach}
               onSearchThisArea={(center) =>
                 set({ center: { latitude: center.lat, longitude: center.lng }, centerLabel: 'Zone de la carte', centerSource: 'city' })
               }

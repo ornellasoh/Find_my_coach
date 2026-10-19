@@ -66,6 +66,7 @@
 - [x] Emails et notifications des packs et des réponses aux avis, rappels automatiques (16 oct.) : voir « Automatisations » plus bas.
 - [x] Avis : 7 jours après la séance pour le laisser (refusé au-delà par le serveur), demande 2 h après, relance 5 jours après s'il manque (19 oct.).
 
+- [x] Carte de recherche refaite (19 oct.) : repères « dès … € » avec point vert (dispo sous 2 jours) et flèche « populaire », carrousel de coachs en bas synchronisé avec les repères, style de la refonte et mode sombre.
 - [x] Pathologies (19 oct.) : le coach coche les pathologies qu'il sait accompagner (Mon profil pro), affichées sur sa fiche avec un rappel « avis du médecin » ; filtre « Pathologie accompagnée » dans la recherche.
 
 ### Test des packs de séances (Stripe en mode test, carte 4242 4242 4242 4242) — fait par Ornella le 19 oct.

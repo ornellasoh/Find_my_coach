@@ -8,14 +8,15 @@ import { isSupabaseEnabled } from './supabase';
  * la carte OpenStreetMap (Leaflet). L'écran (CoachMap) ne connaît que l'interface MapEngine.
  */
 export interface LatLng { lat: number; lng: number }
-export interface MapPin extends LatLng { id: string; html: string }
+export interface MapPin extends LatLng { id: string; html: string; /** Repère au premier plan */ selected?: boolean }
 export interface MapEngine {
   kind: 'apple' | 'leaflet';
   setUser(p: LatLng | null): void;
   setCircle(p: LatLng | null, radiusKm?: number): void;
   setPins(pins: MapPin[], onClick: (id: string) => void): void;
   fit(points: LatLng[]): void;
-  panTo(p: LatLng): void;
+  /** Centre la carte sur p ; offsetY (px) remonte le point au-dessus du centre (ex. carrousel en bas) */
+  panTo(p: LatLng, offsetY?: number): void;
   flyTo(p: LatLng): void;
   zoom(direction: 1 | -1): void;
   center(): LatLng;
@@ -46,7 +47,7 @@ export function createLeafletEngine(container: HTMLElement, opts: EngineOptions)
   } else {
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
   }
-  L.control.attribution({ prefix: false, position: 'bottomleft' }).addTo(map);
+  L.control.attribution({ prefix: false, position: 'topleft' }).addTo(map);
 
   // Recalcule la taille une fois l'écran affiché (évite une carte grise sur mobile/tablette)
   setTimeout(() => map.invalidateSize(), 250);
@@ -75,14 +76,18 @@ export function createLeafletEngine(container: HTMLElement, opts: EngineOptions)
     setPins(pins, onClick) {
       pinsLayer.clearLayers();
       pins.forEach((p) => {
-        const icon = L.divIcon({ className: 'custom-coach-marker', html: p.html, iconSize: [60, 32], iconAnchor: [30, 32] });
-        pinsLayer.addLayer(L.marker([p.lat, p.lng], { icon }).on('click', () => onClick(p.id)));
+        // Taille nulle : le repère (CoachMap) se place lui-même au-dessus du point
+        const icon = L.divIcon({ className: 'custom-coach-marker', html: p.html, iconSize: [0, 0], iconAnchor: [0, 0] });
+        pinsLayer.addLayer(L.marker([p.lat, p.lng], { icon, zIndexOffset: p.selected ? 1000 : 0 }).on('click', () => onClick(p.id)));
       });
     },
     fit(points) {
       if (points.length) map.fitBounds(L.latLngBounds(points.map((p) => [p.lat, p.lng] as [number, number])), { padding: [40, 40], maxZoom: 13 });
     },
-    panTo: (p) => { map.panTo([p.lat, p.lng], { animate: true, duration: 0.5 }); },
+    panTo: (p, offsetY = 0) => {
+      const target = map.containerPointToLatLng(map.latLngToContainerPoint([p.lat, p.lng]).add([0, offsetY]));
+      map.panTo(target, { animate: true, duration: 0.5 });
+    },
     flyTo: (p) => { map.flyTo([p.lat, p.lng], 13, { duration: 0.8 }); },
     zoom: (d) => { if (d > 0) map.zoomIn(); else map.zoomOut(); },
     center: () => ({ lat: map.getCenter().lat, lng: map.getCenter().lng }),
@@ -201,7 +206,11 @@ export function createAppleEngine(container: HTMLElement, opts: EngineOptions): 
     },
     setPins(pins, onClick) {
       if (pinAnnotations.length) map.removeAnnotations(pinAnnotations);
-      pinAnnotations = pins.map((p) => htmlAnnotation(p, p.html, () => onClick(p.id)));
+      pinAnnotations = pins.map((p) => {
+        const a = htmlAnnotation(p, p.html, () => onClick(p.id));
+        if (p.selected) a.displayPriority = 1000;
+        return a;
+      });
       if (pinAnnotations.length) map.addAnnotations(pinAnnotations);
     },
     fit(points) {
@@ -213,7 +222,11 @@ export function createAppleEngine(container: HTMLElement, opts: EngineOptions): 
       const lngSpan = Math.max((Math.max(...lngs) - Math.min(...lngs)) * 1.5, 0.08);
       map.setRegionAnimated(new mapkit.CoordinateRegion(coord(center), new mapkit.CoordinateSpan(latSpan, lngSpan)), true);
     },
-    panTo: (p) => { map.setCenterAnimated(coord(p), true); },
+    panTo(p, offsetY = 0) {
+      if (!offsetY) return map.setCenterAnimated(coord(p), true);
+      const pt = map.convertCoordinateToPointOnPage(coord(p));
+      map.setCenterAnimated(map.convertPointOnPageToCoordinate(new DOMPoint(pt.x, pt.y + offsetY)), true);
+    },
     flyTo: (p) => { map.setRegionAnimated(region(p, 0.06), true); },
     zoom(d) {
       const s = map.region.span;
