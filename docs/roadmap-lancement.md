@@ -5,31 +5,31 @@
 ## Mercredi 14 octobre — App Store (environ 2 h)
 
 ### Avant le build (15 min)
-- [ ] Décider : **iPhone uniquement** (recommandé) ou iPad aussi. À dire à Claude, qui fait la modification (une ligne).
-- [ ] Stripe : activer « Accounts v1 support » (`dashboard.stripe.com/settings/developers/api-policies/feat_accounts_v1_support`),
+- [x] Décider : iPhone uniquement ou iPad aussi. Réglage actuel de l'app : iPhone et iPad (fait, confirmé par Ornella le 19 oct.).
+- [x] Stripe : activer « Accounts v1 support » (`dashboard.stripe.com/settings/developers/api-policies/feat_accounts_v1_support`),
       sinon l'activation des paiements d'un coach échoue.
-- [ ] Lovable : coller la consigne « prénom obligatoire » sur la page `/beta` (le serveur refuse déjà les inscriptions sans prénom).
+- [x] Lovable : coller la consigne « prénom obligatoire » sur la page `/beta` (le serveur refuse déjà les inscriptions sans prénom).
 
 ### Build iPhone (30 min d'attente)
-- [ ] App Store Connect → Xcode Cloud → démarrer un build → il arrive sous le nom 1.0 (2).
-- [ ] L'installer par TestFlight sur ton iPhone et tester :
-  - [ ] « Continuer avec Apple » te connecte bien ;
-  - [ ] Profil → Administration → « Bêta-testeurs iPhone (TestFlight) » est visible ;
-  - [ ] « Ajouter au calendrier » dans le détail d'une séance confirmée ouvre la fenêtre d'iOS.
+- [x] App Store Connect → Xcode Cloud → démarrer un build → il arrive sous le nom 1.0 (2).
+- [x] L'installer par TestFlight sur ton iPhone et tester :
+  - [x] « Continuer avec Apple » te connecte bien ;
+  - [x] Profil → Administration → « Bêta-testeurs iPhone (TestFlight) » est visible ;
+  - [x] « Ajouter au calendrier » dans le détail d'une séance confirmée ouvre la fenêtre d'iOS.
 
 ### TestFlight (15 min)
-- [ ] TestFlight → Test 2 → Builds → ajouter 1.0 (2) → remplir « Quoi tester » → envoyer pour vérification
+- [x] TestFlight → Test 2 → Builds → ajouter 1.0 (2) → remplir « Quoi tester » → envoyer pour vérification
       (textes : `store/app-store/textes-app-store.md`, section 7).
-- [ ] Valider Roger et Zakary dans l'onglet Bêta-testeurs (ils recevront l'invitation dès que le build est approuvé).
+- [x] Valider Roger et Zakary dans l'onglet Bêta-testeurs (ils recevront l'invitation dès que le build est approuvé).
 
 ### Fiche App Store (45 min)
-- [ ] Créer un compte client de démonstration dans l'app (pour le vérificateur d'Apple).
-- [ ] Distribution → Version 1.0 : captures (`store/app-store/captures/iPhone-6.9-pouces_1320x2868`), description,
+- [x] Créer un compte client de démonstration dans l'app (pour le vérificateur d'Apple).
+- [x] Distribution → Version 1.0 : captures (`store/app-store/captures/iPhone-6.9-pouces_1320x2868`), description,
       mots-clés, URL, copyright, build 1.0 (2), informations de vérification.
-- [ ] Informations sur l'app : sous-titre, catégories, classification d'âge.
-- [ ] Confidentialité de l'app : URL + questionnaire (section 4 du fichier de textes, à relire).
-- [ ] Tarifs et disponibilité : Gratuit, France.
-- [ ] « Ajouter pour vérification » → « Envoyer ». Publication manuelle.
+- [x] Informations sur l'app : sous-titre, catégories, classification d'âge.
+- [x] Confidentialité de l'app : URL + questionnaire (section 4 du fichier de textes, à relire).
+- [x] Tarifs et disponibilité : Gratuit, France.
+- [x] « Ajouter pour vérification » → « Envoyer ». Publication manuelle.
 
 ## Jeudi 15 octobre — Google Play (environ 2 h)
 
