@@ -63,6 +63,7 @@
 - [x] Packs de séances (16 oct.) : le coach les crée dans « Mon profil pro » ; le client paie en 1, 3 ou 5 fois (échéancier Stripe, risque d'impayé pour le coach) ; chaque réservation utilise une séance.
 - [x] Stripe : événements `invoice.paid`, `invoice.payment_failed`, `customer.subscription.deleted` ajoutés au webhook (Ornella, 16 oct.).
 - [x] Emails et notifications des packs et des réponses aux avis, rappels automatiques (16 oct.) : voir « Automatisations » plus bas.
+- [x] Avis : 7 jours après la séance pour le laisser (refusé au-delà par le serveur), demande 2 h après, relance 5 jours après s'il manque (19 oct.).
 
 ### À tester plus tard : packs de séances (Stripe en mode test, carte 4242 4242 4242 4242)
 - [ ] Stripe (mode test) : activer « Accounts v1 support », puis compléter le compte coach d'Ornella (Comptes connectés) jusqu'à « Paiements activés ».
@@ -73,7 +74,6 @@
 - [ ] Vérifier les emails reçus : pack activé (client), pack vendu (coach), réservation confirmée.
 - [ ] Mensualités 2 et 3 : prélevées 1 et 2 mois plus tard (ou mode test accéléré, une mensualité par jour, à demander à Claude).
 - [ ] Échec de prélèvement : dans Stripe (mode test), changer la carte du client pour 4000 0000 0000 0341 → email « Échéance non prélevée », réservations bloquées.
-- [ ] Délai pour laisser un avis : choisir 48 h ou 7 jours avec rappel.
 
 ### Automatisations (app + push + email)
 | Moment | Client | Coach |
@@ -87,6 +87,8 @@
 | Échéancier abandonné par Stripe | « Pack suspendu » | « Pack impayé » |
 | 14 jours avant la fin de validité (séances restantes) | « Votre pack expire bientôt » | — |
 | Plus qu'une séance dans le pack | « Dernière séance de votre pack » | — |
+| 2 h après une séance effectuée | « Comment s'est passée votre séance ? » | — |
+| 5 jours après, toujours sans avis | « Plus que 2 jours pour donner votre avis » | — |
 | Réponse du coach à un avis | « Votre coach a répondu à votre avis » | — |
 
 ## En attente de décision

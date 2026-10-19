@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { addToCalendar } from '../../utils/calendar';
+import { canLeaveReview } from '../../utils/reviewWindow';
 import type { BookingIssue, IssueCategory, RescheduleRequest, SessionReport } from '../../types';
 import { Card, Screen, ScreenHeader, formatDateFr, formatEuro } from '../ui/fmc';
 import { SessionAccess, isOnlineBooking, useSessionDetails } from './SessionAccess';
@@ -457,7 +458,7 @@ export const BookingDetail: React.FC = () => {
           ) : (
             <p className="text-sm text-slate-500">Votre coach n'a pas encore partagé de compte rendu.</p>
           )}
-          {isClient && !booking.hasReview && (
+          {isClient && canLeaveReview(booking) && (
             <div className="mt-3">
               <Btn onClick={() => setReviewModalBooking(booking)}>Laisser un avis</Btn>
             </div>

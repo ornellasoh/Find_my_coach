@@ -20,6 +20,7 @@ import {
 import { motion } from 'motion/react';
 import { Booking } from '../../types';
 import { PackBalances } from '../common/PackBalances';
+import { canLeaveReview } from '../../utils/reviewWindow';
 
 export const ClientBookings: React.FC = () => {
   const { 
@@ -262,18 +263,18 @@ export const ClientBookings: React.FC = () => {
 
                 {b.bookingStatus === 'completed' && (
                   <>
-                    {!b.hasReview ? (
+                    {canLeaveReview(b) ? (
                       <button
                         onClick={() => setReviewModalBooking(b)}
                         className="apple-press w-full h-11 bg-fmc-green text-fmc-navy font-bold rounded-full text-[15px] flex items-center justify-center gap-2 cursor-pointer"
                       >
                         <Star className="w-4 h-4 fill-current" /> Laisser un avis
                       </button>
-                    ) : (
+                    ) : b.hasReview ? (
                       <p className="h-11 rounded-full bg-[#E6FBEF] dark:bg-fmc-green/15 text-[#007A3D] dark:text-fmc-green text-[15px] font-semibold flex items-center justify-center gap-1.5">
                         <CheckCircle className="w-4 h-4" /> Avis publié
                       </p>
-                    )}
+                    ) : null}
                     <div className="grid grid-cols-2 gap-2">
                       <button
                         onClick={() => openBookingDetail(b.id)}

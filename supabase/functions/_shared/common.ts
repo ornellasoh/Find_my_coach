@@ -105,7 +105,7 @@ const EMAIL_TYPES = new Set([
   'booking_confirmed', 'new_booking', 'booking_cancelled', 'reminder',
   'session_link', 'reschedule_request', 'reschedule_accepted', 'reschedule_declined', 'session_report',
   // Avis
-  'review_request', 'review_reply',
+  'review_request', 'review_reminder', 'review_reply',
   // Packs de séances
   'pack_purchased', 'pack_sold', 'pack_payment', 'pack_payment_failed', 'pack_paid',
   'pack_installment_reminder', 'pack_expiring', 'pack_last_session',

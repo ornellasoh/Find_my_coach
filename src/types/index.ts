@@ -331,6 +331,7 @@ export type NotificationType =
   | 'reschedule_declined'
   | 'session_report'
   | 'review_request'
+  | 'review_reminder'
   | 'review_reply'
   | 'pack_purchased'
   | 'pack_sold'
