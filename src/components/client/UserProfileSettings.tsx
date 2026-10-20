@@ -30,6 +30,7 @@ import {
 import { AnimatePresence } from 'motion/react';
 import { Logo } from '../common/Logo';
 import { Card, IconTile, SectionHeader, formatDateFr, Sheet } from '../ui/fmc';
+import { BecomeCoachSheet, SpaceSwitch } from '../common/SpaceSwitch';
 
 export const UserProfileSettings: React.FC = () => {
   const { 
@@ -50,6 +51,7 @@ export const UserProfileSettings: React.FC = () => {
   } = useApp();
 
   const [isEditing, setIsEditing] = useState(false);
+  const [becomeCoachOpen, setBecomeCoachOpen] = useState(false);
   const [name, setName] = useState(currentUser?.name || '');
   const [email, setEmail] = useState(currentUser?.email || '');
   const [phone, setPhone] = useState(currentUser?.phone || '');
@@ -127,6 +129,7 @@ export const UserProfileSettings: React.FC = () => {
             <UserPen className="w-6 h-6" />
           </button>
         </header>
+        <SpaceSwitch className="mb-4" />
 
         <div className="text-center">
           <button
@@ -196,12 +199,15 @@ export const UserProfileSettings: React.FC = () => {
 
         <SectionHeader title="Préférences et sécurité" accent className="mt-8" />
         <div className="space-y-3">
-          <Row
-            icon={<Briefcase className="w-5 h-5" />}
-            title={isOnline && currentUser?.role === 'client' ? 'Devenir coach' : 'Espace coach'}
-            subtitle={isOnline && currentUser?.role === 'client' ? 'Proposez vos séances sur Find My Coach' : 'Gérer créneaux, clients et revenus'}
-            onClick={() => loginAs('coach')}
-          />
+          {currentUser?.role !== 'coach' && (
+            <Row
+              id="btn-become-coach"
+              icon={<Briefcase className="w-5 h-5" />}
+              title={isOnline ? 'Devenir coach' : 'Espace coach'}
+              subtitle={isOnline ? 'Proposez vos séances, en gardant votre compte client' : 'Gérer créneaux, clients et revenus'}
+              onClick={() => (isOnline ? setBecomeCoachOpen(true) : loginAs('coach'))}
+            />
+          )}
           {isAdmin && (
             <Row icon={<Shield className="w-5 h-5" />} title="Administration" subtitle="Accès réservé à l'équipe" onClick={() => (isOnline ? navigateTo('admin_dashboard') : loginAs('admin'))} />
           )}
@@ -283,6 +289,7 @@ export const UserProfileSettings: React.FC = () => {
           </Sheet>
         )}
       </AnimatePresence>
+      <AnimatePresence>{becomeCoachOpen && <BecomeCoachSheet onClose={() => setBecomeCoachOpen(false)} />}</AnimatePresence>
     </div>
   );
 };

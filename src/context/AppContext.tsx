@@ -68,6 +68,17 @@ export type AppScreen =
   | 'messages'
   | 'admin_dashboard';
 
+/** Espace affiché : un coach peut passer à tout moment dans son espace client, et revenir. */
+export type AppSpace = 'client' | 'coach';
+
+/** Espace d'un écran ; null pour les écrans communs (messages, détail d'une séance…). */
+export const spaceOfScreen = (screen: AppScreen): AppSpace | null =>
+  screen.startsWith('coach_') && screen !== 'coach_profile'
+    ? 'coach'
+    : ['home', 'search', 'coach_profile', 'booking_calendar', 'checkout', 'confirmation', 'bookings', 'progress', 'profile'].includes(screen)
+    ? 'client'
+    : null;
+
 export interface BookingDraft {
   coach: CoachProfile;
   selectedDate: string;
@@ -147,6 +158,12 @@ interface AppContextType {
   // Auth & Users
   currentUser: User | null;
   currentRole: UserRole | 'guest';
+  /** Espace affiché (toujours « client » pour un compte client) */
+  activeSpace: AppSpace;
+  /** Passe d'un espace à l'autre (coach uniquement) et ouvre son accueil */
+  switchSpace: (space: AppSpace) => void;
+  /** Un client devient coach (une seule fois, définitif) */
+  becomeCoach: () => void;
   loginAs: (role: UserRole, user?: User) => void;
   logout: () => void;
   registerUser: (name: string, email: string, role: UserRole, extra?: RegisterExtra) => Promise<AuthResult>;
@@ -278,6 +295,16 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const ONBOARDED_KEY = 'fmc_onboarded_v2';
+const SPACE_KEY = (userId: string) => `fmc_space_${userId}`;
+/** Dernier espace utilisé par ce coach sur cet appareil (« coach » par défaut). */
+const savedSpace = (u: User | null): AppSpace => {
+  if (!u || u.role !== 'coach') return 'client';
+  try {
+    return localStorage.getItem(SPACE_KEY(u.id)) === 'client' ? 'client' : 'coach';
+  } catch {
+    return 'coach';
+  }
+};
 
 const STORAGE_KEYS = {
   USERS: 'fmc_users_v2',
@@ -403,7 +430,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Active navigation state
   const homeScreenFor = (u: User | null): AppScreen =>
-    !u ? 'onboarding' : u.role === 'coach' ? 'coach_dashboard' : u.role === 'admin' ? 'admin_dashboard' : 'home';
+    !u ? 'onboarding' : u.role === 'coach' ? (savedSpace(u) === 'client' ? 'home' : 'coach_dashboard') : u.role === 'admin' ? 'admin_dashboard' : 'home';
+  const [activeSpace, setActiveSpace] = useState<AppSpace>(() => savedSpace(currentUser));
+  const rememberSpace = (space: AppSpace) => {
+    setActiveSpace(space);
+    if (currentUser?.role === 'coach') {
+      try { localStorage.setItem(SPACE_KEY(currentUser.id), space); } catch { /* stockage indisponible */ }
+    }
+  };
+  // Nouveau compte ou changement de rôle : on reprend l'espace mémorisé pour ce compte
+  useEffect(() => {
+    setActiveSpace(savedSpace(currentUser));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.id, currentUser?.role]);
   const [currentScreen, setCurrentScreen] = useState<AppScreen>(() => homeScreenFor(currentUser));
   const [screenHistory, setScreenHistory] = useState<AppScreen[]>(() => [homeScreenFor(currentUser)]);
   const [selectedCoach, setSelectedCoach] = useState<CoachProfile | null>(INITIAL_COACHES[0]);
@@ -534,6 +573,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setSelectedBookingId(extraParams.bookingId);
     }
     if (screen === 'admin_dashboard' && !isAdminUser) return; // l'écran admin n'est jamais ouvert sans droits serveur
+    const space = spaceOfScreen(screen);
+    if (space && currentUser?.role === 'coach' && space !== activeSpace) rememberSpace(space);
     
     setScreenHistory((prev) => [...prev, screen]);
     setCurrentScreen(screen);
@@ -549,7 +590,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setCurrentScreen(prevScreen);
     } else {
       // Fallback
-      if (currentUser?.role === 'coach') {
+      if (currentUser?.role === 'coach' && activeSpace === 'coach') {
         setCurrentScreen('coach_dashboard');
       } else if (currentUser?.role === 'admin') {
         setCurrentScreen('admin_dashboard');
@@ -572,6 +613,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return;
       }
       if (role === 'admin' && !isAdminUser) return; // droits vérifiés par le serveur
+      if (role !== 'admin' && currentUser.role === 'coach') rememberSpace(role === 'coach' ? 'coach' : 'client');
       const screen: AppScreen = role === 'coach' ? 'coach_dashboard' : role === 'admin' ? 'admin_dashboard' : 'home';
       setCurrentScreen(screen);
       setScreenHistory([screen]);
@@ -1448,7 +1490,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         } else if (data.bookingId) {
           setSelectedBookingId(data.bookingId);
           setCurrentScreen('booking_detail');
-          setScreenHistory([user.role === 'coach' ? 'coach_bookings' : 'bookings', 'booking_detail']);
+          // Séance réservée par ce coach auprès d'un autre coach : elle se range dans son espace client
+          const asClient = user.role !== 'coach' || snap.bookings.some((b) => b.id === data.bookingId && b.clientId === user.id);
+          setScreenHistory([asClient ? 'bookings' : 'coach_bookings', 'booking_detail']);
         } else setIsNotificationDrawerOpen(true);
       })
     );
@@ -1475,8 +1519,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     else if (coachesList[0]) setSelectedCoach(coachesList[0]);
 
     const landing: AppScreen =
-      user.role === 'coach' ? (myCoach && !myCoach.isProfileComplete ? 'coach_profile_edit' : 'coach_dashboard')
-      : 'home';
+      user.role === 'coach'
+        ? savedSpace(user) === 'client' ? 'home' : myCoach && !myCoach.isProfileComplete ? 'coach_profile_edit' : 'coach_dashboard'
+        : 'home';
     setCurrentScreen(landing);
     setScreenHistory(user.role === 'coach' && landing === 'coach_profile_edit' ? ['coach_dashboard', landing] : [landing]);
   };
@@ -1702,6 +1747,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const updated: User = { ...currentUser, role: 'coach' };
     setCurrentUser(updated);
     saveProfile(updated);
+    try { localStorage.setItem(SPACE_KEY(updated.id), 'coach'); } catch { /* stockage indisponible */ }
+    setActiveSpace('coach');
     const existing = coaches.find((c) => c.userId === updated.id);
     const coach = existing || buildNewCoachProfile(updated);
     if (!existing) setCoaches((prev) => [...prev, coach]);
@@ -1712,6 +1759,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const currentRole: UserRole | 'guest' = currentUser ? currentUser.role : 'guest';
 
+  const switchSpace = (space: AppSpace) => {
+    if (!currentUser) return;
+    if (space === 'coach' && currentUser.role !== 'coach') return; // devenir coach passe par becomeCoach (confirmation)
+    rememberSpace(space);
+    const screen: AppScreen = space === 'coach' ? 'coach_dashboard' : 'home';
+    setCurrentScreen(screen);
+    setScreenHistory([screen]);
+    window.scrollTo(0, 0);
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -1721,6 +1778,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         screenHistory,
         currentUser,
         currentRole,
+        activeSpace,
+        switchSpace,
+        becomeCoach,
         loginAs,
         logout,
         registerUser,

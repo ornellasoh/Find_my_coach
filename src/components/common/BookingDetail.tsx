@@ -107,8 +107,7 @@ export const BookingDetail: React.FC = () => {
     refreshBookings,
     patchBookingLocal,
     applyServerBooking,
-    isOnline,
-  } = useApp();
+    isOnline, activeSpace } = useApp();
 
   const booking = bookings.find((b) => b.id === selectedBookingId) ?? null;
   const { details, setDetails, loading, error } = useSessionDetails(booking);
@@ -171,7 +170,7 @@ export const BookingDetail: React.FC = () => {
           <p className="font-semibold">Réservation introuvable</p>
           <p className="text-sm text-slate-500 mt-1">Elle a peut-être été annulée ou n'est plus accessible.</p>
           <div className="mt-4">
-            <Btn tone="primary" onClick={() => navigateTo(currentUser?.role === 'coach' ? 'coach_bookings' : 'bookings')}>
+            <Btn tone="primary" onClick={() => navigateTo(activeSpace === 'coach' ? 'coach_bookings' : 'bookings')}>
               Mes réservations
             </Btn>
           </div>

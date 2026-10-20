@@ -31,8 +31,7 @@ export const NotificationDrawer: React.FC = () => {
     navigateTo,
     bookings,
     openBookingDetail,
-    refreshBookings
-  } = useApp();
+    refreshBookings, activeSpace } = useApp();
 
   const [prefs, setPrefs] = useState<{ email: boolean; push: boolean } | null>(null);
   useEffect(() => {
@@ -118,14 +117,14 @@ export const NotificationDrawer: React.FC = () => {
                     markNotificationAsRead(notif.id);
                     if (notif.type.startsWith('pack_')) {
                       setIsNotificationDrawerOpen(false);
-                      navigateTo(currentUser?.role === 'coach' ? 'coach_financials' : 'bookings');
+                      navigateTo(activeSpace === 'coach' ? 'coach_financials' : 'bookings');
                     } else if (notif.relatedBookingId) {
                       setIsNotificationDrawerOpen(false);
                       const id = notif.relatedBookingId;
                       // Report accepté, lien ajouté… : on recharge pour afficher l'horaire à jour
                       refreshBookings().finally(() => {
                         if (bookings.some((b) => b.id === id)) openBookingDetail(id);
-                        else navigateTo(currentUser?.role === 'coach' ? 'coach_bookings' : 'bookings');
+                        else navigateTo(activeSpace === 'coach' ? 'coach_bookings' : 'bookings');
                       });
                     }
                   }}

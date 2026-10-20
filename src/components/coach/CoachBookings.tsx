@@ -109,7 +109,7 @@ export const CoachBookings: React.FC = () => {
             <Calendar className="w-10 h-10 text-slate-300 mx-auto mb-2" />
             <h3 className="font-bold text-fmc-navy text-sm">Aucune séance dans cette vue</h3>
             <p className="text-xs text-slate-500 mt-1">Les séances que vos clients réservent avec vous apparaîtront ici.</p>
-            <p className="text-[11px] text-slate-400 mt-2">Les séances que vous avez réservées vous-même auprès d'un coach sont dans l'espace client (« Explorer l'app comme un client »).</p>
+            <p className="text-[11px] text-slate-400 mt-2">Les séances que vous avez réservées vous-même auprès d'un coach sont dans votre espace client (Profil → « Espace client »).</p>
           </div>
         ) : (
           filteredBookings.map((b) => (

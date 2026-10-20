@@ -27,7 +27,7 @@ const when = (iso: string) => {
 
 /** Boîte de réception : toutes les conversations du compte, directement dans l'app. */
 export const MessagesInbox: React.FC = () => {
-  const { currentUser, isOnline, setActiveChatPartner, activeChatPartner, goBack, navigateTo } = useApp();
+  const { currentUser, isOnline, setActiveChatPartner, activeChatPartner, goBack, navigateTo, activeSpace } = useApp();
   const [items, setItems] = useState<Conversation[] | null>(null);
   const [error, setError] = useState('');
 
@@ -94,11 +94,11 @@ export const MessagesInbox: React.FC = () => {
           </span>
           <p className="font-semibold mt-4">Aucune conversation pour l'instant</p>
           <p className="text-sm text-slate-500 mt-1">
-            {currentUser?.role === 'coach'
+            {activeSpace === 'coach'
               ? 'Les messages de vos clients apparaîtront ici.'
               : 'Écrivez à un coach depuis sa fiche : la conversation apparaîtra ici.'}
           </p>
-          {currentUser?.role !== 'coach' && (
+          {activeSpace !== 'coach' && (
             <button type="button" onClick={() => navigateTo('search')} className="mt-5 h-11 px-5 rounded-full bg-fmc-green text-fmc-navy font-semibold text-sm cursor-pointer">
               Trouver un coach
             </button>

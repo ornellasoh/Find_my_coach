@@ -1,4 +1,5 @@
 import { NumberInput } from '../ui/NumberInput';
+import { SpaceSwitch } from '../common/SpaceSwitch';
 import { zoneDescription } from '../../utils/coachTrust';
 import React, { useEffect, useRef, useState } from 'react';
 import { isSupabaseEnabled } from '../../lib/supabase';
@@ -51,8 +52,7 @@ export const CoachProfileEditor: React.FC = () => {
     availabilities,
     goBack,
     navigateTo,
-    logout,
-    loginAs
+    logout
   } = useApp();
   
   const coach = coaches.find(c => c.userId === currentUser?.id) || (isSupabaseEnabled ? undefined : coaches[0]);
@@ -235,6 +235,7 @@ export const CoachProfileEditor: React.FC = () => {
   return (
     <div className="min-h-screen bg-fmc-bg dark:bg-[#0B0F19] text-fmc-navy dark:text-slate-100 pb-32 max-w-md mx-auto px-5 pt-4">
       <ScreenHeader title="Mon profil pro" onBack={goBack} />
+      <SpaceSwitch className="mb-4" />
 
       {/* Revenus : déplacés ici depuis la barre d'onglets (5 onglets au plus) */}
       <button
@@ -644,13 +645,6 @@ export const CoachProfileEditor: React.FC = () => {
       {/* Compte */}
       <div className="mt-6 space-y-2">
         <ThemePicker className="mb-2" />
-        <button
-          type="button"
-          onClick={() => loginAs('client')}
-          className="w-full h-12 rounded-full border border-slate-200 bg-white text-slate-700 font-semibold text-sm cursor-pointer"
-        >
-          Explorer l'app comme un client
-        </button>
         <button
           id="btn-logout-pro"
           type="button"

@@ -30,9 +30,10 @@ interface Tab {
 const isAndroid = Capacitor.getPlatform() === 'android';
 
 export const BottomNav: React.FC = () => {
-  const { currentScreen, navigateTo, currentUser, bookings, coaches } = useApp();
+  const { currentScreen, navigateTo, currentUser, bookings, coaches, activeSpace } = useApp();
 
-  const role = currentUser?.role || 'client';
+  // La barre suit l'espace affiché : un coach dans son espace client voit la barre client
+  const role = activeSpace;
   const unreadMessages = useUnreadMessages(currentUser?.id);
 
   // Pas de barre sur l'accueil, la connexion et le tunnel de réservation
