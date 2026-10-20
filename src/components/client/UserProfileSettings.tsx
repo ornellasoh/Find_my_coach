@@ -47,11 +47,14 @@ export const UserProfileSettings: React.FC = () => {
     isDarkMode,
     toggleDarkMode,
     isOnline,
-    isAdmin
+    isAdmin,
+    coaches
   } = useApp();
 
   const [isEditing, setIsEditing] = useState(false);
   const [becomeCoachOpen, setBecomeCoachOpen] = useState(false);
+  // Profil coach mis en pause : le compte est redevenu client, la fiche existe toujours
+  const pausedCoach = currentUser?.role === 'client' && coaches.some((c) => c.userId === currentUser.id);
   const [name, setName] = useState(currentUser?.name || '');
   const [email, setEmail] = useState(currentUser?.email || '');
   const [phone, setPhone] = useState(currentUser?.phone || '');
@@ -203,8 +206,12 @@ export const UserProfileSettings: React.FC = () => {
             <Row
               id="btn-become-coach"
               icon={<Briefcase className="w-5 h-5" />}
-              title={isOnline ? 'Devenir coach' : 'Espace coach'}
-              subtitle={isOnline ? 'Proposez vos séances, en gardant votre compte client' : 'Gérer créneaux, clients et revenus'}
+              title={!isOnline ? 'Espace coach' : pausedCoach ? 'Réactiver mon profil coach' : 'Devenir coach'}
+              subtitle={
+                !isOnline ? 'Gérer créneaux, clients et revenus'
+                : pausedCoach ? 'Votre profil coach est en pause, invisible dans la recherche'
+                : 'Proposez vos séances, en gardant votre compte client'
+              }
               onClick={() => (isOnline ? setBecomeCoachOpen(true) : loginAs('coach'))}
             />
           )}
@@ -289,7 +296,7 @@ export const UserProfileSettings: React.FC = () => {
           </Sheet>
         )}
       </AnimatePresence>
-      <AnimatePresence>{becomeCoachOpen && <BecomeCoachSheet onClose={() => setBecomeCoachOpen(false)} />}</AnimatePresence>
+      <AnimatePresence>{becomeCoachOpen && <BecomeCoachSheet reactivate={pausedCoach} onClose={() => setBecomeCoachOpen(false)} />}</AnimatePresence>
     </div>
   );
 };

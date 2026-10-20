@@ -1,5 +1,6 @@
 import { NumberInput } from '../ui/NumberInput';
-import { SpaceSwitch } from '../common/SpaceSwitch';
+import { PauseCoachSheet, SpaceSwitch } from '../common/SpaceSwitch';
+import { AnimatePresence } from 'motion/react';
 import { zoneDescription } from '../../utils/coachTrust';
 import React, { useEffect, useRef, useState } from 'react';
 import { isSupabaseEnabled } from '../../lib/supabase';
@@ -57,6 +58,7 @@ export const CoachProfileEditor: React.FC = () => {
   
   const coach = coaches.find(c => c.userId === currentUser?.id) || (isSupabaseEnabled ? undefined : coaches[0]);
 
+  const [pauseOpen, setPauseOpen] = useState(false);
   const [title, setTitle] = useState(coach?.title || '');
   const [bio, setBio] = useState(coach?.bio || '');
   const [hourlyRate, setHourlyRate] = useState<number>(coach?.hourlyRate || 0);
@@ -645,6 +647,15 @@ export const CoachProfileEditor: React.FC = () => {
       {/* Compte */}
       <div className="mt-6 space-y-2">
         <ThemePicker className="mb-2" />
+        <button
+          id="btn-pause-coach"
+          type="button"
+          onClick={() => setPauseOpen(true)}
+          className="w-full h-12 rounded-full border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-sm cursor-pointer"
+        >
+          Mettre mon profil coach en pause
+        </button>
+        <AnimatePresence>{pauseOpen && <PauseCoachSheet onClose={() => setPauseOpen(false)} />}</AnimatePresence>
         <button
           id="btn-logout-pro"
           type="button"

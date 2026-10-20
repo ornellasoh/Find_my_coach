@@ -162,8 +162,10 @@ interface AppContextType {
   activeSpace: AppSpace;
   /** Passe d'un espace à l'autre (coach uniquement) et ouvre son accueil */
   switchSpace: (space: AppSpace) => void;
-  /** Un client devient coach (une seule fois, définitif) */
+  /** Ajoute (ou réactive) le profil coach du compte, qui reste client */
   becomeCoach: () => void;
+  /** Met le profil coach en pause : masqué de la recherche, le compte redevient simple client */
+  pauseCoachProfile: () => void;
   loginAs: (role: UserRole, user?: User) => void;
   logout: () => void;
   registerUser: (name: string, email: string, role: UserRole, extra?: RegisterExtra) => Promise<AuthResult>;
@@ -1750,11 +1752,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try { localStorage.setItem(SPACE_KEY(updated.id), 'coach'); } catch { /* stockage indisponible */ }
     setActiveSpace('coach');
     const existing = coaches.find((c) => c.userId === updated.id);
-    const coach = existing || buildNewCoachProfile(updated);
-    if (!existing) setCoaches((prev) => [...prev, coach]);
+    if (existing) {
+      // Profil mis en pause : on le réactive tel quel (le serveur le rend de nouveau visible)
+      const reactivated = { ...existing, isActive: true };
+      setCoaches((prev) => prev.map((c) => (c.id === existing.id ? reactivated : c)));
+      setSelectedCoach(reactivated);
+      const screen: AppScreen = existing.isProfileComplete === false ? 'coach_profile_edit' : 'coach_dashboard';
+      setCurrentScreen(screen);
+      setScreenHistory(screen === 'coach_dashboard' ? [screen] : ['coach_dashboard', screen]);
+      return;
+    }
+    const coach = buildNewCoachProfile(updated);
+    setCoaches((prev) => [...prev, coach]);
     setSelectedCoach(coach);
     setCurrentScreen('coach_profile_edit');
     setScreenHistory(['coach_dashboard', 'coach_profile_edit']);
+  };
+
+  const pauseCoachProfile = () => {
+    if (!currentUser || currentUser.role !== 'coach') return;
+    const updated: User = { ...currentUser, role: 'client' };
+    setCurrentUser(updated);
+    saveProfile(updated); // le serveur masque la fiche et retient qu'elle est en pause
+    setCoaches((prev) => prev.map((c) => (c.userId === updated.id ? { ...c, isActive: false } : c)));
+    try { localStorage.setItem(SPACE_KEY(updated.id), 'client'); } catch { /* stockage indisponible */ }
+    setActiveSpace('client');
+    setCurrentScreen('profile');
+    setScreenHistory(['home', 'profile']);
+    window.scrollTo(0, 0);
   };
 
   const currentRole: UserRole | 'guest' = currentUser ? currentUser.role : 'guest';
@@ -1781,6 +1806,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         activeSpace,
         switchSpace,
         becomeCoach,
+        pauseCoachProfile,
         loginAs,
         logout,
         registerUser,
