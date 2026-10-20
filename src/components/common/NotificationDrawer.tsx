@@ -168,7 +168,7 @@ export const NotificationDrawer: React.FC = () => {
                           onClick={(e) => {
                             e.stopPropagation();
                             markNotificationAsRead(notif.id);
-                            import('@capacitor/browser').then(({ Browser }) => Browser.open({ url: notif.actionUrl!, presentationStyle: 'popover' }));
+                            import('@capacitor/browser').then(({ Browser }) => Browser.open({ url: notif.actionUrl!, presentationStyle: 'fullscreen' }));
                           }}
                           className="mt-2 min-h-9 px-3 rounded-full bg-fmc-green text-fmc-navy text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
                         >

@@ -30,7 +30,8 @@ export async function signInWithProvider(provider: OAuthProvider, role?: 'client
     },
   });
   if (error) return { error: authErrorFr(error.message) };
-  if (native && data?.url) await Browser.open({ url: data.url, presentationStyle: 'popover' });
+  // Plein écran : en « popover » sans taille, l'iPad affiche une fenêtre vide (refus App Store, build 28)
+  if (native && data?.url) await Browser.open({ url: data.url, presentationStyle: 'fullscreen' });
   return {};
 }
 

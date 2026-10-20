@@ -59,7 +59,7 @@ export async function addToCalendar(b: Booking, details: SessionDetails | null |
   if (platform === 'ios' && supabase) {
     const { data, error } = await supabase.functions.invoke('calendar-event', { body: { booking_id: b.id } });
     if (error || !data?.url) throw new Error('Ajout au calendrier indisponible pour le moment.');
-    await Browser.open({ url: data.url, presentationStyle: 'popover' });
+    await Browser.open({ url: data.url, presentationStyle: 'fullscreen' });
     return;
   }
 

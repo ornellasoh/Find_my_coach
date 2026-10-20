@@ -36,7 +36,7 @@ async function openStripePage(url: string, onClose?: () => void) {
       handle.remove();
       onClose?.();
     });
-    await Browser.open({ url, presentationStyle: 'popover' });
+    await Browser.open({ url, presentationStyle: 'fullscreen' });
   } else {
     window.location.href = url;
   }

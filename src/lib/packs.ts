@@ -48,7 +48,7 @@ export async function startPackCheckout(coachId: string, packId: string, install
       handle.remove();
       onClose?.(purchase_id);
     });
-    await Browser.open({ url, presentationStyle: 'popover' });
+    await Browser.open({ url, presentationStyle: 'fullscreen' });
   } else {
     window.location.href = url;
   }
