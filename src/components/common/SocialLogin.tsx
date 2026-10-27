@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Capacitor } from '@capacitor/core';
-import { signInWithProvider, type OAuthProvider } from '../../lib/oauth';
+import { onOAuthError, signInWithProvider, type OAuthProvider } from '../../lib/oauth';
 
 /** Connexion Apple affichée seulement une fois configurée (Apple Developer + Supabase) : VITE_APPLE_SIGNIN=true */
 const APPLE_ENABLED = import.meta.env.VITE_APPLE_SIGNIN === 'true';
@@ -24,6 +24,9 @@ const AppleIcon = () => (
 export const SocialLogin: React.FC<{ role?: 'client' | 'coach'; onError?: (msg: string) => void }> = ({ role, onError }) => {
   const [busy, setBusy] = useState<OAuthProvider | null>(null);
   const isAndroid = Capacitor.getPlatform() === 'android';
+
+  // Navigateur fermé sans connexion, connexion expirée ou refusée : message sous les boutons
+  useEffect(() => onOAuthError((msg) => onError?.(msg)), [onError]);
 
   const go = async (provider: OAuthProvider) => {
     setBusy(provider);
