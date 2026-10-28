@@ -34,3 +34,12 @@ Statuts :
 - `a_faire_ornella` : une action qu'Ornella doit faire elle-même (compte Apple, Google Play, secret à coller…).
 
 Règles : jamais de clé secrète, de mot de passe ni de donnée personnelle de testeur dans le journal. Des phrases simples : la lectrice n'est pas développeuse.
+
+## Mises à jour iOS / Android : anticiper
+
+Leçon du 28 octobre 2026 : le passage aux scènes (exigé par iOS 27) a rendu invisibles pendant 12 jours toutes les pages ouvertes par Capacitor (Google, Apple, paiement…), sans que personne ne le voie.
+
+- Avant tout changement natif (version d'iOS ou d'Xcode, Capacitor, plugin, `Info.plist`, `AppDelegate.swift`) : chercher ce qu'il peut casser (notes de version, issues GitHub, code du plugin dans `node_modules`).
+- Après : retester sur iPhone la connexion Google et Apple, un paiement, un pack, l'agenda, la visio et une notification.
+- Toute page externe passe par `openInApp` (`src/lib/inAppBrowser.ts`), jamais `Browser.open` directement. `npm run check:ios` le vérifie avant chaque build Xcode Cloud ; y ajouter chaque nouveau risque trouvé.
+- Mise à jour à venir ou risque repéré : l'écrire dans le journal avec le statut `decision` (le risque + l'action proposée), sans attendre la panne.
