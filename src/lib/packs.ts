@@ -1,6 +1,7 @@
 import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
 import { supabase } from './supabase';
+import { openInApp } from './inAppBrowser';
 import type { Booking, CoachingFormat, PackBalance, PackInstallments, SessionPack } from '../types';
 
 /**
@@ -48,7 +49,7 @@ export async function startPackCheckout(coachId: string, packId: string, install
       handle.remove();
       onClose?.(purchase_id);
     });
-    await Browser.open({ url, presentationStyle: 'fullscreen' });
+    await openInApp(url);
   } else {
     window.location.href = url;
   }

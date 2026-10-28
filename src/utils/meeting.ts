@@ -1,5 +1,5 @@
 import { Capacitor } from '@capacitor/core';
-import { Browser } from '@capacitor/browser';
+import { openInApp } from '../lib/inAppBrowser';
 
 /** Lien de visio accepté : https uniquement, sans espace, 500 caractères maximum (même règle que la base). */
 export function validateMeetingUrl(raw: string): { ok: true; url: string } | { ok: false; error: string } {
@@ -39,12 +39,8 @@ export function meetingProvider(url?: string | null): string {
  */
 export async function openExternal(url: string) {
   if (Capacitor.isNativePlatform()) {
-    try {
-      await Browser.open({ url, presentationStyle: 'fullscreen' });
-      return;
-    } catch {
-      /* repli ci-dessous */
-    }
+    await openInApp(url);
+    return;
   }
   const w = window.open(url, '_blank', 'noopener,noreferrer');
   if (!w) window.location.href = url;

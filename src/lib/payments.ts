@@ -1,6 +1,7 @@
 import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
 import { supabase } from './supabase';
+import { openInApp } from './inAppBrowser';
 
 /**
  * Paiements Stripe (via les fonctions Supabase create-checkout / connect-onboarding).
@@ -36,7 +37,7 @@ async function openStripePage(url: string, onClose?: () => void) {
       handle.remove();
       onClose?.();
     });
-    await Browser.open({ url, presentationStyle: 'fullscreen' });
+    await openInApp(url);
   } else {
     window.location.href = url;
   }

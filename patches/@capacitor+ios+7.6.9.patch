@@ -1,0 +1,22 @@
+diff --git a/node_modules/@capacitor/ios/Capacitor/Capacitor/CapacitorBridge.swift b/node_modules/@capacitor/ios/Capacitor/Capacitor/CapacitorBridge.swift
+index d45a8d8..a20075a 100644
+--- a/node_modules/@capacitor/ios/Capacitor/Capacitor/CapacitorBridge.swift
++++ b/node_modules/@capacitor/ios/Capacitor/Capacitor/CapacitorBridge.swift
+@@ -748,14 +748,9 @@ open class CapacitorBridge: NSObject, CAPBridgeProtocol {
+     }
+ 
+     @objc open func presentVC(_ viewControllerToPresent: UIViewController, animated flag: Bool, completion: (() -> Void)? = nil) {
+-        if viewControllerToPresent.modalPresentationStyle == .popover {
+-            self.viewController?.present(viewControllerToPresent, animated: flag, completion: completion)
+-        } else {
+-            self.tmpWindow = UIWindow.init(frame: UIScreen.main.bounds)
+-            self.tmpWindow?.rootViewController = TmpViewController.init()
+-            self.tmpWindow?.makeKeyAndVisible()
+-            self.tmpWindow?.rootViewController?.present(viewControllerToPresent, animated: flag, completion: completion)
+-        }
++        // Find My Coach : comme Capacitor 8, présenté sur la vue principale. La fenêtre temporaire
++        // (UIWindow(frame:)) n'est rattachée à aucune scène : invisible depuis le passage aux scènes (iOS 27).
++        self.viewController?.present(viewControllerToPresent, animated: flag, completion: completion)
+     }
+ 
+     @objc open func dismissVC(animated flag: Bool, completion: (() -> Void)? = nil) {

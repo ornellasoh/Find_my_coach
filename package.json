@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "postinstall": "patch-package",
     "dev": "tsx server.ts",
     "start": "tsx server.ts",
     "build": "vite build",
@@ -14,6 +15,7 @@
     "cap:sync": "npm run build:mobile && cap sync",
     "android": "npm run cap:sync && cap open android",
     "ios": "npm run cap:sync && cap open ios",
+    "check:ios": "sh scripts/check-ios.sh",
     "assets": "capacitor-assets generate --assetPath resources --iconBackgroundColor '#1D1D1D' --splashBackgroundColor '#1D1D1D'"
   },
   "dependencies": {
@@ -48,6 +50,7 @@
     "@types/node": "^22.14.0",
     "autoprefixer": "^10.4.21",
     "esbuild": "^0.25.0",
+    "patch-package": "^8.0.1",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",

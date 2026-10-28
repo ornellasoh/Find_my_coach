@@ -1,5 +1,5 @@
 import { Capacitor } from '@capacitor/core';
-import { Browser } from '@capacitor/browser';
+import { openInApp } from '../lib/inAppBrowser';
 import type { Booking, SessionDetails } from '../types';
 import { supabase } from '../lib/supabase';
 import { openExternal } from './meeting';
@@ -59,7 +59,7 @@ export async function addToCalendar(b: Booking, details: SessionDetails | null |
   if (platform === 'ios' && supabase) {
     const { data, error } = await supabase.functions.invoke('calendar-event', { body: { booking_id: b.id } });
     if (error || !data?.url) throw new Error('Ajout au calendrier indisponible pour le moment.');
-    await Browser.open({ url: data.url, presentationStyle: 'fullscreen' });
+    await openInApp(data.url);
     return;
   }
 

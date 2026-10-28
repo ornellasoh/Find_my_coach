@@ -2,6 +2,7 @@ import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
 import { supabase, authErrorFr, markPasswordRecovery } from './supabase';
+import { openInApp } from './inAppBrowser';
 
 /**
  * Connexion avec Google ou Apple (Supabase Auth).
@@ -59,7 +60,9 @@ export async function signInWithProvider(provider: OAuthProvider, role?: 'client
   // Plein écran : en « popover » sans taille, l'iPad affiche une fenêtre vide (refus App Store, build 28)
   if (native && data?.url) {
     pendingProvider = provider;
-    await Browser.open({ url: data.url, presentationStyle: 'fullscreen' });
+    // Sans attendre : si iOS ne confirme jamais l'affichage, le bouton resterait sur « Ouverture… »
+    // (repli sur Safari dans openInApp ; le retour dans l'app se fait par le même lien)
+    void openInApp(data.url);
   }
   return {};
 }

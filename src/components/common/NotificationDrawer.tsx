@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { fetchNotificationPrefs, saveNotificationPrefs } from '../../lib/push';
 import { isSupabaseEnabled } from '../../lib/supabase';
 import { useApp } from '../../context/AppContext';
+import { openExternal } from '../../utils/meeting';
 import { Bell, CheckCheck, X, Calendar, MessageSquare, AlertCircle, Layers, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -168,7 +169,7 @@ export const NotificationDrawer: React.FC = () => {
                           onClick={(e) => {
                             e.stopPropagation();
                             markNotificationAsRead(notif.id);
-                            import('@capacitor/browser').then(({ Browser }) => Browser.open({ url: notif.actionUrl!, presentationStyle: 'fullscreen' }));
+                            openExternal(notif.actionUrl!);
                           }}
                           className="mt-2 min-h-9 px-3 rounded-full bg-fmc-green text-fmc-navy text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
                         >

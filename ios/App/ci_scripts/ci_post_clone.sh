@@ -16,6 +16,9 @@ cd "$CI_PRIMARY_REPOSITORY_PATH"
 echo "▶ Dépendances JavaScript"
 npm ci
 
+echo "▶ Vérifications iOS (pages Google, Apple, paiement visibles)"
+sh scripts/check-ios.sh
+
 echo "▶ Compilation de l'app (mode mobile, .env.mobile)"
 npm run build:mobile
 
