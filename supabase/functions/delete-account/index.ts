@@ -1,7 +1,8 @@
 // Suppression définitive du compte (exigée par l'App Store et Google Play).
 // - Refusée s'il reste des séances à venir (à annuler d'abord, pour rembourser les clients).
 // - Supprime : profil, fiche coach et créneaux, favoris, objectifs, notifications, messages,
-//   programmes, appareils push, photos et documents, puis le compte de connexion.
+//   programmes, comptes rendus de séance (côté client), blocages, visites du lien coach,
+//   appareils push, photos et documents, puis le compte de connexion.
 // - Conserve les réservations et paiements passés (obligation comptable), anonymisés.
 import { admin, corsHeaders, getUser, json } from '../_shared/common.ts';
 
@@ -64,6 +65,11 @@ Deno.serve(async (req) => {
       admin.from('notifications').delete().eq('user_id', uid),
       admin.from('workout_programs').delete().eq('client_id', uid),
       admin.from('messages').delete().or(`sender_id.eq.${uid},recipient_id.eq.${uid}`),
+      // Comptes rendus de séance du client (peuvent parler de sa santé), blocages, visites du lien coach
+      // (ces visites bloquent la suppression du compte de connexion tant qu'elles existent)
+      admin.from('session_reports').delete().eq('client_id', uid),
+      admin.from('user_blocks').delete().or(`blocker_id.eq.${uid},blocked_id.eq.${uid}`),
+      admin.from('coach_link_events').delete().eq('user_id', uid),
       removeFolder('avatars', uid),
       removeFolder('documents', uid),
     ]);
